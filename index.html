@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#eee9e4">
+<title>扑克机 · Private AI Space</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="assets/pokeji.css"></head>
+<body><div id="phone">
+<div id="status">
+ <span id="statusTime"></span>
+ <span class="status-icons">
+  <svg viewBox="0 0 18 12" class="ic-signal"><rect x="0" y="7" width="3" height="5" rx=".6"/><rect x="5" y="5" width="3" height="7" rx=".6"/><rect x="10" y="3" width="3" height="9" rx=".6"/><rect x="15" y="0" width="3" height="12" rx=".6"/></svg>
+  <svg viewBox="0 0 16 12" class="ic-wifi"><path d="M8 10.4a1.15 1.15 0 1 1 0-2.3 1.15 1.15 0 0 1 0 2.3Z"/><path d="M4.6 7.2a4.9 4.9 0 0 1 6.8 0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M1.8 4.4a8.8 8.8 0 0 1 12.4 0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+  <svg viewBox="0 0 25 12" class="ic-batt"><rect x=".75" y=".75" width="20.5" height="10.5" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="22.3" y="4" width="1.7" height="4" rx="1"/><rect x="2.4" y="2.4" width="16.4" height="7.2" rx="1.4"/></svg>
+ </span>
+</div>
+<div id="screen">
+
+<section id="lock" class="view active">
+<div class="lock-orb"></div><div class="lock-main"><div class="lock-time" id="lockTime"></div><div class="lock-date" id="lockDate"></div><div class="lock-title">扑克机</div></div>
+<div class="lock-tools">
+ <button class="lock-tool" title="手电筒">⚡</button>
+ <button class="lock-tool" title="相机">◎</button>
+</div>
+<button class="unlock" onclick="unlock()">⌄</button>
+</section>
+
+<section id="home" class="view">
+<div class="p12-home">
+  <div class="p12-topline">
+    <div class="p12-brand-mini">扑克机</div>
+    <div class="p12-top-meta"><span id="homeClock">05:22</span><span id="homeDate"></span></div>
+  </div>
+
+  <div class="p12-widgets">
+    <div class="p12-widget p12-widget--brand">
+      <div class="p12-widget-suit">♠</div>
+      <div class="p12-widget-kicker">PRIVATE AI SPACE</div>
+      <div class="p12-widget-title">扑克机</div>
+      <div class="p12-widget-sub">YOUR OWN API · YOUR OWN ROOM</div>
+    </div>
+    <div class="p12-widget p12-widget--status">
+      <div class="p12-status-row"><i></i>LOCAL DATA</div>
+      <div class="p12-status-row"><i></i>API CONTROLLED</div>
+      <div class="p12-status-row"><i></i>NO BUILT-IN ROLE</div>
+    </div>
+  </div>
+
+  <div class="p12-app-heading">
+    <span>APPLICATIONS</span><i></i><em>08</em>
+  </div>
+
+  <div class="p12-apps">
+    <button class="p12-app" data-tile="chat" onclick="openView('chats')"><span class="p12-tile"><span class="p12-glyph">♡</span></span><span class="p12-app-label">聊天</span><small>CHAT</small></button>
+    <button class="p12-app" data-tile="roles" onclick="openView('contacts')"><span class="p12-tile"><span class="p12-glyph">♣</span></span><span class="p12-app-label">角色</span><small>ROLES</small></button>
+    <button class="p12-app" data-tile="feed" onclick="openView('feed')"><span class="p12-tile"><span class="p12-glyph">◇</span></span><span class="p12-app-label">动态</span><small>FEED</small></button>
+    <button class="p12-app" data-tile="notice" onclick="openView('notifications')"><span class="p12-tile"><span class="p12-glyph">⌁</span></span><span class="p12-app-label">通知</span><small>NOTICE</small></button>
+    <button class="p12-app" data-tile="world" onclick="openView('engine')"><span class="p12-tile"><span class="p12-glyph">✦</span></span><span class="p12-app-label">世界</span><small>WORLD</small></button>
+    <button class="p12-app" data-tile="memory" onclick="openView('memory')"><span class="p12-tile"><span class="p12-glyph">∞</span></span><span class="p12-app-label">记忆</span><small>MEMORY</small></button>
+    <button class="p12-app" data-tile="engine" onclick="openView('engine')"><span class="p12-tile"><span class="p12-glyph">◌</span></span><span class="p12-app-label">引擎</span><small>ENGINE</small></button>
+    <button class="p12-app" data-tile="settings" onclick="openView('settings')"><span class="p12-tile"><span class="p12-glyph">○</span></span><span class="p12-app-label">设置</span><small>SETTINGS</small></button>
+  </div>
+
+  <div class="p12-dock">
+    <button data-tile="chat" onclick="openView('chats')"><span class="p12-tile p12-tile-mini"><span>♡</span></span><small>CHAT</small></button>
+    <button data-tile="roles" onclick="openView('contacts')"><span class="p12-tile p12-tile-mini"><span>♣</span></span><small>ROLES</small></button>
+    <button data-tile="world" onclick="openView('engine')"><span class="p12-tile p12-tile-mini"><span>✦</span></span><small>ENGINE</small></button>
+    <button data-tile="settings" onclick="openView('settings')"><span class="p12-tile p12-tile-mini"><span>○</span></span><small>SETUP</small></button>
+  </div>
+</div>
+</section>
+
+<section id="chats" class="view">
+<div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="requireAPI()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div class="section"><input id="chatSearch" class="search" placeholder="搜索聊天" oninput="renderChats()"></div><div id="chatList"></div></div>
+<nav class="nav"><button class="active" onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
+</section>
+
+<section id="contacts" class="view">
+<div class="header"><h1>角色</h1><div class="actions"><button class="icon-btn" onclick="newCharacter()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div class="section"><input class="search" placeholder="搜索角色" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
+<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button class="active"><b>♧</b>角色</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
+</section>
+
+<section id="feed" class="view">
+<div class="header"><h1>动态</h1><div class="actions"><button class="icon-btn" onclick="newPost()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div id="feedList" class="feed"></div></div>
+<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button class="active"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
+</section>
+
+<section id="notifications" class="view">
+<div class="header"><h1>通知</h1><div class="actions"><button class="icon-btn" onclick="clearNotifications()">✓</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div class="section" id="notificationList"></div></div>
+</section>
+
+<section id="world" class="view">
+<div class="header"><h1>世界</h1><div class="actions"><button class="icon-btn" onclick="newWorld()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div class="section" id="worldList"></div></div>
+</section>
+
+<section id="memory" class="view">
+<div class="header"><h1>记忆</h1><div class="actions"><button class="icon-btn" onclick="newMemory()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div class="section" id="memoryList"></div></div>
+</section>
+
+
+
+<section id="dataCenter" class="view">
+<div class="header"><h1>数据</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll">
+<div class="engine-card">
+<h3>导入与导出</h3>
+<p>管理你自己的扑克机数据。格式为扑克机自有 JSON，不提供其他平台角色卡、世界书或规则格式兼容。</p>
+<button class="primary" style="width:100%;margin:6px 0 9px" onclick="exportSJ()">导出扑克机数据</button>
+<button class="icon-btn" style="width:100%" onclick="document.getElementById('sjImport').click()">导入扑克机 JSON</button>
+<input id="sjImport" type="file" accept=".json,application/json" style="display:none" onchange="importSJ(event)">
+</div>
+<div class="engine-card">
+<h3>导出范围</h3>
+<div class="module"><div class="module-head"><b>全部数据</b><span class="pill">推荐</span></div><small>角色、聊天、世界、预设、正则、记忆和设置</small></div>
+<div class="module"><div class="module-head"><b>API Key</b><span class="pill">默认不导出</span></div><small>为了安全，导出的文件不会包含 API Key。</small></div>
+</div>
+</div>
+</section>
+<section id="engine" class="view">
+<div class="header"><h1>引擎</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll">
+<div class="engine-tabs">
+<button id="tabWorld" class="on" onclick="engineTab('world')">世界</button>
+<button id="tabPreset" onclick="engineTab('preset')">预设</button>
+<button id="tabRegex" onclick="engineTab('regex')">正则</button>
+<button id="tabPreview" onclick="engineTab('preview')">上下文</button>
+</div>
+<div id="engineBody"></div>
+</div>
+</section>
+<section id="settings" class="view">
+<div class="header"><h1>设置</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll">
+<div class="group"><div class="group-title">AI 服务</div>
+<div class="setting"><span>API Base URL</span><input id="apiBase" placeholder="https://..."></div>
+<div class="setting"><span>API Key</span><input id="apiKey" type="password" placeholder="本机保存"></div>
+<div class="setting"><span>模型</span><input id="apiModel" placeholder="模型名称"></div>
+<div class="setting"><span>Temperature</span><input id="temperature" type="number" min="0" max="2" step=".1"></div>
+<div class="setting"><span></span><button class="primary" onclick="saveSettings()">保存并测试</button></div>
+</div>
+<div class="group"><div class="group-title">数据</div>
+<div class="setting" onclick="exportData()"><span>导出扑克机数据</span><span class="muted">JSON ›</span></div>
+<div class="setting" onclick="importData()"><span>导入扑克机数据</span><span class="muted">JSON ›</span></div>
+<div class="setting" onclick="resetData()"><span class="danger">清空本机全部数据</span><span class="muted">›</span></div>
+</div>
+<div class="group"><div class="group-title">说明</div><div class="note">这是 API 驱动的扑克机。程序不会预置角色、聊天记录、朋友圈或模拟 AI 回复。未配置 API 时，AI 功能保持关闭。角色、世界、记忆等属于扑克机自己的数据体系，不提供酒馆格式导入。</div></div>
+</div>
+</section>
+
+<section id="chat" class="view">
+<div class="chat-head"><button class="back" onclick="openView('chats')">‹</button><div id="chatAvatar" class="avatar"></div><div><div id="chatName" class="chat-name"></div><div class="chat-sub">AI 对话</div></div><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
+<div class="scroll"><div id="messages" class="messages"></div></div>
+<div class="composer"><input id="messageInput" placeholder="输入消息…" onkeydown="if(event.key==='Enter')sendMessage()"><button class="send" onclick="sendMessage()">↑</button></div>
+</section>
+
+<div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="handle"></div><div id="modalContent"></div></div></div>
+<div id="toast" class="toast"></div>
+</div></div>
+
+
+
+<div class="v8-real-nav"></div></div>
+<script src="assets/app.js" defer></script>
+<script>
+(function(){
+  function p12Clock(){
+    var d=new Date(), h=d.getHours(), m=String(d.getMinutes()).padStart(2,'0');
+    var el=document.getElementById('homeClock');
+    if(el) el.textContent=String(h).padStart(2,'0')+':'+m;
+  }
+  p12Clock(); setInterval(p12Clock,1000);
+})();
+</script>
+</body>
+</html>
