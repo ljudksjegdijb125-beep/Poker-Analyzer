@@ -10,6 +10,7 @@ let currentChat=null;
 let abortController=null;
 let busy=false;
 let msgMenuTarget=null;
+let homePage=0, homeTouchX=0;
 
 function blank(){return{
  settings:{apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,timeout:60000},
@@ -100,8 +101,13 @@ function clearChatBackground(){if(!currentChat)return;getChatSettings(currentCha
 function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const el=document.getElementById(id);if(el)el.classList.add('active')}
 function openView(id){show(id);if(id==='home')applyHomeBackground();if(id==='engine')engineTab('world');if(id==='chats')renderChats();if(id==='contacts')renderContacts();if(id==='feed')renderFeed();if(id==='notifications')renderNotifications();if(id==='world')renderWorld();if(id==='memory')renderMemory();if(id==='settings')loadSettings()}
 function unlock(){show('home');clock();applyHomeBackground()}
-function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
-setInterval(clock,1000);clock();applyHomeBackground();
+function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hl=document.getElementById('homeClockLarge');if(hl)hl.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
+function setHomePage(n){const pages=[...document.querySelectorAll('.p12-page')];if(!pages.length)return;homePage=Math.max(0,Math.min(n,pages.length-1));pages.forEach((el,i)=>el.classList.toggle('active',i===homePage));const dots=document.getElementById('homeDots');if(dots)dots.innerHTML=pages.map((_,i)=>i===homePage?'<b>●</b>':'○').join(' ')}
+function openHomeEditor(){document.getElementById('homeEditor')?.classList.add('on')}
+function closeHomeEditor(){document.getElementById('homeEditor')?.classList.remove('on')}
+function initHomeGestures(){const desk=document.getElementById('homeDesk');if(!desk)return;desk.addEventListener('touchstart',e=>{homeTouchX=e.touches[0].clientX},{passive:true});desk.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-homeTouchX;if(Math.abs(dx)>45)setHomePage(homePage+(dx<0?1:-1))},{passive:true})}
+
+setInterval(clock,1000);clock();applyHomeBackground();initHomeGestures();
 
 /* ---------- boot ---------- */
 (function(){
