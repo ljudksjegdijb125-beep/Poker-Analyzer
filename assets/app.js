@@ -1,10 +1,9 @@
 /* =========================================================
-   扑克机 · V14.2 ENGINE CORE
+   扑克机 · V14.4 ENGINE CORE
    API-only / local-first / no built-in characters
-   World → Preset → API → Regex → State → World feedback
    ========================================================= */
-const STORE='pokeji_api_only_v3';
-const LEGACY_STORE='pokeji_api_only_v2';
+const STORE='pokeji_api_only_v4';
+const LEGACY_STORE='pokeji_api_only_v3';
 const VERSION=8;
 let data=load();
 let currentChat=null;
@@ -52,19 +51,16 @@ function unlock(){show('home');clock()}
 function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
 setInterval(clock,1000);clock();
 
-/* ---------- boot animation ---------- */
+/* ---------- boot ---------- */
 (function(){
   const boot=document.getElementById('bootScreen');
   if(!boot)return;
-  setTimeout(()=>{
-    boot.classList.add('done');
-    setTimeout(()=>{if(boot.parentNode)boot.parentNode.removeChild(boot)},750);
-  },2800);
+  setTimeout(()=>{boot.classList.add('done');setTimeout(()=>{if(boot.parentNode)boot.parentNode.removeChild(boot)},750);},2800);
 })();
 
 function avatar(c){const a=document.createElement('div');a.className='avatar';if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';a.appendChild(im)}return a.outerHTML}
 
-/* ---------- chats list ---------- */
+/* ---------- chats & contacts ---------- */
 function renderChats(){const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase();const arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有聊天<br>请先创建角色。API 只在真正发送消息时使用。</div>`;return}e.innerHTML=arr.map(c=>{const m=(data.chats[c.id]||[]).at(-1);return `<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${esc(m?.text||'尚未开始聊天')}</div></div><span class="muted">${esc(m?.time||'')}</span></div>`}).join('')}
 
 function renderContacts(q=''){const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase()));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♧</div>还没有角色<br>创建角色后才会出现在这里。</div>`;return}e.innerHTML=arr.map(c=>`<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.status||'')}</div></div><button class="icon-btn" onclick="event.stopPropagation();editCharacter('${c.id}')">⋯</button></div>`).join('')}
@@ -80,14 +76,25 @@ function updateCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)re
 function deleteCharacter(id){if(!confirm('删除角色以及本机保存的该角色聊天记录？'))return;data.characters=data.characters.filter(c=>c.id!==id);delete data.chats[id];save();closeModal();renderContacts();renderChats()}
 function clearChat(id=currentChat){if(!id)return;if(!confirm('清空这个角色的全部聊天记录？'))return;data.chats[id]=[];save();if(currentChat===id)renderMessages();closeModal();renderChats();toast('聊天记录已清空')}
 
-/* ---------- chat open & messages ---------- */
-function openChat(id){currentChat=id;const c=data.characters.find(x=>x.id===id);if(!c)return;document.getElementById('chatName').textContent=c.name;document.getElementById('chatAvatar').outerHTML=avatar(c);show('chat');renderMessages();if(!validAPI())toast('可以先聊天；发送消息前需要配置 API')}
+/* ---------- chat: FIXED openChat ---------- */
+function openChat(id){
+  currentChat=id;
+  const c=data.characters.find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('chatName').textContent=c.name;
+  const ava=document.getElementById('chatAvatar');
+  ava.innerHTML='';
+  if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';ava.appendChild(im)}
+  show('chat');
+  renderMessages();
+  if(!validAPI())toast('可以先聊天；发送消息前需要配置 API');
+}
 
 function renderMessages(){const e=document.getElementById('messages'),arr=data.chats[currentChat]||[];if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有消息<br>配置 API 后发送第一条消息。</div>`;return}
- e.innerHTML=arr.map((m,i)=>`<div class="msg ${m.role==='user'?'me':''}" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})" ontouchstart="touchStartMsg(event,${i})" ontouchend="touchEndMsg(event)"><div class="bubble" onclick="showMsgMenu(event,${i})">${esc(m.text)}</div><span class="msg-time">${esc(m.time||'')}</span></div>`).join('');
+ e.innerHTML=arr.map((m,i)=>`<div class="msg ${m.role==='user'?'me':''}" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})" ontouchstart="touchStartMsg(event,${i})" ontouchend="touchEndMsg(event)"><div class="bubble" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span style="opacity:.4;font-size:8px;margin-left:4px">(已编辑)</span>':''}</div><span class="msg-time">${esc(m.time||'')}</span></div>`).join('');
  const s=e.parentElement;if(s)s.scrollTop=s.scrollHeight}
 
-/* ---------- message menu: edit / delete / copy ---------- */
+/* ---------- message menu ---------- */
 let msgTouchTimer=null;
 function touchStartMsg(e,idx){msgTouchTimer=setTimeout(()=>{showMsgMenu(e,idx)},600)}
 function touchEndMsg(e){clearTimeout(msgTouchTimer)}
@@ -98,14 +105,11 @@ function showMsgMenu(e,idx){e.preventDefault();e.stopPropagation();msgMenuTarget
  return false}
 
 function copyMessage(idx){const arr=data.chats[currentChat]||[];const m=arr[idx];if(!m)return;navigator.clipboard?.writeText(m.text).then(()=>toast('已复制到剪贴板')).catch(()=>{const ta=document.createElement('textarea');ta.value=m.text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('已复制')});closeModal()}
-
 function editMessage(idx){const arr=data.chats[currentChat]||[];const m=arr[idx];if(!m)return;closeModal();setTimeout(()=>{modal(`<h2>编辑消息</h2><div class="field"><textarea id="editMsgText">${esc(m.text)}</textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveEditMessage(${idx})">保存</button></div>`)},50)}
-
 function saveEditMessage(idx){const text=document.getElementById('editMsgText').value;if(!text.trim())return toast('内容不能为空');const arr=data.chats[currentChat];if(arr&&arr[idx]){arr[idx].text=text.trim();arr[idx].edited=true;save();renderMessages();toast('已编辑')}closeModal()}
-
 function deleteMessage(idx){if(!confirm('删除这条消息？'))return;const arr=data.chats[currentChat];if(arr){arr.splice(idx,1);save();renderMessages();toast('已删除')}closeModal()}
 
-/* ---------- API & generation ---------- */
+/* ---------- API ---------- */
 function normalizeBase(base){let b=String(base||'').trim().replace(/\/+$/, '');if(!b)return '';if(/\/chat\/completions$/i.test(b))return b;return b+'/chat/completions'}
 function extractContent(j){const c=j?.choices?.[0]?.message?.content;if(typeof c==='string')return c;if(Array.isArray(c))return c.map(x=>typeof x==='string'?x:x?.text||'').join('');if(typeof j?.output_text==='string')return j.output_text;if(Array.isArray(j?.output))return j.output.flatMap(x=>x?.content||[]).map(x=>x?.text||'').join('');return ''}
 function withTimeout(ms){const c=new AbortController();abortController=c;return c}
@@ -199,13 +203,13 @@ function importData(){const i=document.createElement('input');i.type='file';i.ac
 function resetData(){if(confirm('确定清空本机全部数据吗？此操作不可恢复。')){localStorage.removeItem(STORE);localStorage.removeItem(LEGACY_STORE);location.reload()}}
 function chatInfo(){const c=data.characters.find(x=>x.id===currentChat);if(!c)return;modal(`<h2>${esc(c.name)}</h2><div class="note"><b>状态</b><br>${esc(c.status||'未填写')}<br><br><b>角色设定</b><br>${esc(c.bio||'未填写')}</div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="danger" onclick="clearChat('${c.id}')">清空聊天</button></div>`)}
 
-/* ---------- enhanced about ---------- */
+/* ---------- about ---------- */
 function about(){
   modal(`
     <div class="about-sheet">
       <div class="about-icon">♠</div>
       <div class="about-title">扑克机</div>
-      <div class="about-version">Version 14.3 · Build ${VERSION}</div>
+      <div class="about-version">Version 14.4 · Build ${VERSION}</div>
       <div class="about-divider"></div>
       <div class="about-desc">
         <p>API 驱动的虚拟手机式 AI 空间。</p>
