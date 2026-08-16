@@ -628,25 +628,14 @@ button:active{transform:scale(.975)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 
-/* ---------- independent chat background ---------- */
-#chat{isolation:isolate;position:relative;overflow:hidden}
-#chatBackground{
- position:absolute;inset:0;z-index:0;pointer-events:none;
- background-position:center;background-size:cover;background-repeat:no-repeat;
- opacity:var(--chat-bg-opacity,.88);
- filter:blur(var(--chat-bg-blur,0px));
- transform:scale(1.04);
- transition:opacity .2s,filter .2s,background-image .2s;
-}
-#chatBackground:after{
- content:"";position:absolute;inset:-12px;
- background:rgba(7,7,10,var(--chat-bg-overlay,.18));
-}
-#chatBackground.has-image{display:block}
-#chat .chat-head,#chat>.scroll,#chat>.composer{position:relative;z-index:2}
-#chat .chat-head{background:rgba(8,8,9,.72)}
-#chat .composer{background:rgba(11,11,12,.82)}
-.chat-row-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
-.chat-bg-controls{margin:0 16px}
-.chat-bg-controls .form-actions{margin:0 0 10px;padding:0}
-#chatBgFile{font-size:11px}
+/* ---------- V15 mobile chat layout fix ---------- */
+#chat.view.active{display:flex;flex-direction:column;}
+#chat .chat-head{flex:0 0 73px;}
+#chat > .scroll{flex:1 1 auto;min-height:0;height:auto;overflow:auto;padding-bottom:0;}
+#chat .messages{min-height:100%;padding-bottom:18px;}
+#chat .composer{position:relative;left:auto;right:auto;bottom:auto;flex:0 0 auto;padding-bottom:calc(9px + env(safe-area-inset-bottom));}
+#chat.has-custom-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
+#chat.has-custom-bg .chat-head{background:rgba(8,8,9,.72);}
+#chat.has-custom-bg .composer{background:rgba(11,11,12,.78);}
+.p12-home.has-custom-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
+.p12-home.has-custom-bg:before{opacity:.45;}
