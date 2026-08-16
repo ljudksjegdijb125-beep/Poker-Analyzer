@@ -1,0 +1,24 @@
+{
+  "name": "扑克机 · Private AI Space",
+  "short_name": "扑克机",
+  "description": "API 驱动的虚拟手机式 AI 空间",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#07070a",
+  "theme_color": "#eee9e4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
