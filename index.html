@@ -5,25 +5,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eee9e4">
 <title>扑克机 · Private AI Space</title>
+<link rel="stylesheet" href="assets/pokeji.css">
+</head>
+<body>
 
+<!-- 开机动画 -->
+<div id="bootScreen">
+  <div class="boot-inner">
+    <div class="boot-suit">♠</div>
+    <div class="boot-name">扑克机</div>
+    <div class="boot-tag">PRIVATE AI SPACE</div>
+    <div class="boot-loader"><div class="boot-fill"></div></div>
+    <div class="boot-hint">YOUR OWN API · YOUR OWN ROOM</div>
+  </div>
+</div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<link rel="stylesheet" href="assets/pokeji.css"></head>
-<body><div id="phone">
+<div id="phone">
 <div id="status">
  <span id="statusTime"></span>
  <span class="status-icons">
@@ -121,8 +118,6 @@
 <div class="scroll"><div class="section" id="memoryList"></div></div>
 </section>
 
-
-
 <section id="dataCenter" class="view">
 <div class="header"><h1>数据</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll">
@@ -140,6 +135,7 @@
 </div>
 </div>
 </section>
+
 <section id="engine" class="view">
 <div class="header"><h1>引擎</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll">
@@ -152,6 +148,7 @@
 <div id="engineBody"></div>
 </div>
 </section>
+
 <section id="settings" class="view">
 <div class="header"><h1>设置</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll">
@@ -168,6 +165,10 @@
 <div class="setting" onclick="resetData()"><span class="danger">清空本机全部数据</span><span class="muted">›</span></div>
 </div>
 <div class="group"><div class="group-title">说明</div><div class="note">这是 API 驱动的扑克机。程序不会预置角色、聊天记录、朋友圈或模拟 AI 回复。未配置 API 时，AI 功能保持关闭。角色、世界、记忆等属于扑克机自己的数据体系，不提供酒馆格式导入。</div></div>
+<div class="group"><div class="group-title">关于</div>
+<div class="setting" onclick="about()"><span>关于扑克机</span><span class="muted">›</span></div>
+<div class="setting" onclick="toast('开源地址将在下一版公布')"><span>开源与反馈</span><span class="muted">›</span></div>
+</div>
 </div>
 </section>
 
@@ -181,9 +182,6 @@
 <div id="toast" class="toast"></div>
 </div></div>
 
-
-
-<div class="v8-real-nav"></div></div>
 <script src="assets/app.js" defer></script>
 <script>
 (function(){
