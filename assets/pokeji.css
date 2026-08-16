@@ -158,26 +158,25 @@ button:active{transform:scale(.975)}
  animation:goldSheen 9s ease-in-out infinite;
 }
 .unlock{
- position:absolute;bottom:38px;left:50%;z-index:3;
- transform:translateX(-50%);width:62px;height:62px;border-radius:50%;
- border:1px solid rgba(224,201,148,.22);
- background:rgba(224,201,148,.05);
- color:#efe6cf;font-size:22px;
- box-shadow:0 15px 40px rgba(0,0,0,.4);
- backdrop-filter:blur(16px)
+ position:absolute;bottom:42px;left:50%;z-index:3;
+ transform:translateX(-50%);
+ width:64px;height:64px;border-radius:50%;
+ border:1.5px solid rgba(224,201,148,.18);
+ background:rgba(224,201,148,.04);
+ backdrop-filter:blur(12px);
+ box-shadow:0 12px 35px rgba(0,0,0,.45),inset 0 0 20px rgba(224,201,148,.03);
+ display:flex;align-items:center;justify-content:center;
+ cursor:pointer;
 }
-.unlock:active{transform:translateX(-50%) scale(.94)}
-.lock-tools{
- position:absolute;bottom:52px;left:0;right:0;z-index:3;
- display:flex;justify-content:space-between;padding:0 34px;pointer-events:none;
+.unlock:active{transform:translateX(-50%) scale(.92)}
+.unlock svg{
+ width:32px;height:32px;
+ opacity:.65;
+ transition:opacity .2s,filter .2s;
+ filter:drop-shadow(0 0 4px rgba(201,163,92,.3));
 }
-.lock-tool{
- pointer-events:auto;width:44px;height:44px;border-radius:50%;
- border:1px solid rgba(224,201,148,.16);background:rgba(224,201,148,.04);
- color:#d9d2c2;font-size:16px;backdrop-filter:blur(14px);
- box-shadow:0 10px 26px rgba(0,0,0,.35)
-}
-.lock-tool:active{background:rgba(224,201,148,.1)}
+.unlock:hover svg{opacity:.9;filter:drop-shadow(0 0 8px rgba(201,163,92,.5))}
+.lock-tools{display:none}
 
 @keyframes goldSheen{
  0%{background-position:0% 50%}
@@ -422,11 +421,12 @@ button:active{transform:scale(.975)}
 }
 .composer input:focus{border-color:rgba(224,201,148,.35);box-shadow:0 0 0 3px rgba(201,163,92,.07)}
 .send{
- width:43px;height:43px;border-radius:50%;
+ width:46px;height:42px;border-radius:14px;
  background:var(--gold-grad);background-size:220% 100%;
  color:#100c04;font-size:17px;font-weight:700;
  box-shadow:0 10px 26px rgba(138,108,55,.3);
  transition:background-position .4s,transform .15s;
+ display:grid;place-items:center;
 }
 .send:hover{background-position:100% 50%}
 .send:active{transform:scale(.92)}
