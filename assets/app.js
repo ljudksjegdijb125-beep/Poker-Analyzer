@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v4';
 const LEGACY_STORE='pokeji_api_only_v3';
-const VERSION=15;
+const VERSION=16;
 let data=load();
 let currentChat=null;
 let abortController=null;
@@ -13,8 +13,8 @@ let msgMenuTarget=null;
 let homePage=0, homeTouchX=0;
 
 function blank(){return{
- settings:{apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,timeout:60000},
- characters:[],chats:{},posts:[],notifications:[],worlds:[],memories:[],
+ settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,timeout:60000,maxTokens:2048,promptCache:true},
+ characters:[],chats:{},chatSettings:{},posts:[],notifications:[],worlds:[],memories:[],
  engine:{
   worldRules:[],presetModules:[],regexRules:[],
   state:{location:'',time:'',weather:'',events:[]}
@@ -27,6 +27,7 @@ function normalize(x){
  d.settings={...d.settings,...(x.settings||{})};
  d.characters=Array.isArray(x.characters)?x.characters:[];
  d.chats=x.chats&&typeof x.chats==='object'&&!Array.isArray(x.chats)?x.chats:{};
+ d.chatSettings=x.chatSettings&&typeof x.chatSettings==='object'&&!Array.isArray(x.chatSettings)?x.chatSettings:{};
  d.posts=Array.isArray(x.posts)?x.posts:[];d.notifications=Array.isArray(x.notifications)?x.notifications:[];
  d.worlds=Array.isArray(x.worlds)?x.worlds:[];d.memories=Array.isArray(x.memories)?x.memories:[];
  d.engine={...d.engine,...(x.engine||{})};
@@ -128,7 +129,7 @@ function requireAPI(){if(!validAPI()){toast('请先在设置中配置 API');open
 
 /* ---------- character CRUD ---------- */
 function newCharacter(){modal(`<h2>创建角色</h2><div class="field"><label>角色名称</label><input id="cn" placeholder="你的角色名称"></div><div class="field"><label>状态</label><input id="cs" placeholder="短状态"></div><div class="field"><label>角色设定</label><textarea id="cb" placeholder="身份、性格、经历、说话方式、边界等。"></textarea></div><div class="field"><label>头像 URL（可选）</label><input id="ci" placeholder="https://..."></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createCharacter()">创建</button></div>`)}
-function createCharacter(){const name=document.getElementById('cn').value.trim();if(!name)return toast('请填写角色名称');const id='c_'+crypto.randomUUID();data.characters.push({id,name,status:document.getElementById('cs').value.trim(),bio:document.getElementById('cb').value.trim(),image:document.getElementById('ci').value.trim()});data.chats[id]=[];data.chatSettings[id]={background:''};save();closeModal();renderContacts();toast('角色已创建')}
+function createCharacter(){const name=document.getElementById('cn').value.trim();if(!name)return toast('请填写角色名称');const id='c_'+crypto.randomUUID();data.characters.push({id,name,status:document.getElementById('cs').value.trim(),bio:document.getElementById('cb').value.trim(),image:document.getElementById('ci').value.trim()});data.chats[id]=[];getChatSettings(id);save();closeModal();renderContacts();toast('角色已创建')}
 function editCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)return;modal(`<h2>角色资料</h2><div class="field"><label>名称</label><input id="cn" value="${attr(c.name)}"></div><div class="field"><label>状态</label><input id="cs" value="${attr(c.status||'')}"></div><div class="field"><label>角色设定</label><textarea id="cb">${esc(c.bio||'')}</textarea></div><div class="field"><label>头像 URL</label><input id="ci" value="${attr(c.image||'')}"></div><div class="form-actions"><button class="danger" onclick="deleteCharacter('${id}')">删除</button><button onclick="clearChat('${id}')">清空聊天</button><button class="primary" onclick="updateCharacter('${id}')">保存</button></div>`)}
 function updateCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)return;c.name=document.getElementById('cn').value.trim()||c.name;c.status=document.getElementById('cs').value.trim();c.bio=document.getElementById('cb').value;c.image=document.getElementById('ci').value.trim();save();closeModal();renderContacts();renderChats();toast('已保存')}
 function deleteCharacter(id){if(!confirm('删除角色以及本机保存的该角色聊天记录？'))return;data.characters=data.characters.filter(c=>c.id!==id);delete data.chats[id];delete data.chatSettings?.[id];save();closeModal();renderContacts();renderChats()}
@@ -144,6 +145,7 @@ function openChat(id){
   ava.innerHTML='';
   if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';ava.appendChild(im)}
   show('chat');
+  applyChatBackground();
   renderMessages();
   if(!validAPI())toast('可以先聊天；发送消息前需要配置 API');
 }
@@ -167,14 +169,66 @@ function editMessage(idx){const arr=data.chats[currentChat]||[];const m=arr[idx]
 function saveEditMessage(idx){const text=document.getElementById('editMsgText').value;if(!text.trim())return toast('内容不能为空');const arr=data.chats[currentChat];if(arr&&arr[idx]){arr[idx].text=text.trim();arr[idx].edited=true;save();renderMessages();toast('已编辑')}closeModal()}
 function deleteMessage(idx){if(!confirm('删除这条消息？'))return;const arr=data.chats[currentChat];if(arr){arr.splice(idx,1);save();renderMessages();toast('已删除')}closeModal()}
 
-/* ---------- API ---------- */
+/* ---------- API : multi-provider (OpenAI / Anthropic Claude / Google Gemini) ---------- */
 function normalizeBase(base){let b=String(base||'').trim().replace(/\/+$/, '');if(!b)return '';if(/\/chat\/completions$/i.test(b))return b;return b+'/chat/completions'}
+function normalizeAnthropicBase(base){let b=String(base||'').trim().replace(/\/+$/, '');if(!b)return '';if(/\/v1\/messages$/i.test(b))return b;if(/\/v1$/i.test(b))return b+'/messages';return b+'/v1/messages'}
+function normalizeGeminiBase(base){let b=String(base||'').trim().replace(/\/+$/, '');return b||'https://generativelanguage.googleapis.com'}
 function extractContent(j){const c=j?.choices?.[0]?.message?.content;if(typeof c==='string')return c;if(Array.isArray(c))return c.map(x=>typeof x==='string'?x:x?.text||'').join('');if(typeof j?.output_text==='string')return j.output_text;if(Array.isArray(j?.output))return j.output.flatMap(x=>x?.content||[]).map(x=>x?.text||'').join('');return ''}
-function withTimeout(ms){const c=new AbortController();abortController=c;return c}
+function extractAnthropicContent(j){if(Array.isArray(j?.content))return j.content.filter(x=>x?.type==='text').map(x=>x.text||'').join('');return ''}
+function extractGeminiContent(j){const parts=j?.candidates?.[0]?.content?.parts;if(Array.isArray(parts))return parts.map(p=>p?.text||'').join('');return ''}
+function extractProviderContent(provider,j){if(provider==='anthropic')return extractAnthropicContent(j);if(provider==='gemini')return extractGeminiContent(j);return extractContent(j)}
+
+/* 三家 API 的 Prompt 缓存策略：
+   - OpenAI(GPT)：命中前缀自动缓存（≥1024 tokens 自动生效），这里额外传 prompt_cache_key 让同一角色的请求稳定路由到同一缓存分区。
+   - Anthropic(Claude)：显式 cache_control，把 system 提示词和"历史消息中除最后一条外"的部分标记为可缓存断点。
+   - Google(Gemini)：2.5 系列模型对稳定的 system_instruction + 历史前缀有隐式缓存，这里保持结构稳定以提升命中率。 */
+function buildProviderRequest({provider,base,key,model,system,history,temperature,maxTokens,cacheKey,enableCache}){
+ const temp=Math.max(0,Number(temperature)||0);
+ if(provider==='anthropic'){
+  const t=Math.min(1,temp);
+  const msgs=history.map((m,i)=>{
+   const block={type:'text',text:m.content};
+   if(enableCache&&history.length>1&&i===history.length-2)block.cache_control={type:'ephemeral'};
+   return {role:m.role==='assistant'?'assistant':'user',content:[block]};
+  });
+  const sys=enableCache?[{type:'text',text:system,cache_control:{type:'ephemeral'}}]:[{type:'text',text:system}];
+  return {
+   url:normalizeAnthropicBase(base),
+   headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','anthropic-beta':'prompt-caching-2024-07-31'},
+   body:{model,system:sys,messages:msgs,temperature:t,max_tokens:Math.max(64,Number(maxTokens)||2048)}
+  };
+ }
+ if(provider==='gemini'){
+  const url=`${normalizeGeminiBase(base)}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+  return {
+   url,
+   headers:{'Content-Type':'application/json'},
+   body:{
+    system_instruction:{parts:[{text:system}]},
+    contents:history.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]})),
+    generationConfig:{temperature:Math.min(2,temp),maxOutputTokens:Math.max(64,Number(maxTokens)||2048)}
+   }
+  };
+ }
+ return {
+  url:normalizeBase(base),
+  headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+  body:{model,messages:[{role:'system',content:system},...history],temperature:Math.min(2,temp),...(enableCache&&cacheKey?{prompt_cache_key:cacheKey}:{})}
+ };
+}
+
+function withTimeout(ms){
+ const c=new AbortController();
+ const t=Math.min(180000,Math.max(1000,Number(ms)||60000));
+ c.__timer=setTimeout(()=>{try{c.abort()}catch{}},t);
+ abortController=c;
+ return c;
+}
+function releaseController(c){if(c?.__timer)clearTimeout(c.__timer);if(abortController===c)abortController=null}
 function stopGeneration(){if(abortController){abortController.abort();abortController=null;busy=false;setBusy(false);toast('已停止生成')}}
 function setBusy(v){busy=v;const btn=document.querySelector('.send');if(btn){btn.disabled=v;btn.textContent=v?'■':'↑';btn.title=v?'停止生成':'发送'}const input=document.getElementById('messageInput');if(input)input.disabled=v}
 
-async function testAPI(showMsg=true){const s=data.settings;if(!s.apiBase||!s.apiKey||!s.apiModel){if(showMsg)toast('请完整填写 API Base URL、Key 和模型');return false}const c=withTimeout(Number(s.timeout)||60000);try{const res=await fetch(normalizeBase(s.apiBase),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.apiKey},signal:c.signal,body:JSON.stringify({model:s.apiModel,messages:[{role:'user',content:'Reply with OK only.'}],temperature:0,max_tokens:8})});if(!res.ok)throw Error('HTTP '+res.status);const j=await res.json();if(!extractContent(j))throw Error('empty');if(showMsg)toast('API 连接成功');return true}catch(e){if(e.name==='AbortError')return false;if(showMsg)toast('API 测试失败：'+(e.message||'请求错误'));return false}finally{if(abortController===c)abortController=null}}
+async function testAPI(showMsg=true){const s=data.settings;if(!s.apiBase||!s.apiKey||!s.apiModel){if(showMsg)toast('请完整填写 API Base URL、Key 和模型');return false}const c=withTimeout(Number(s.timeout)||60000);try{const provider=s.apiProvider||'openai';const req=buildProviderRequest({provider,base:s.apiBase,key:s.apiKey,model:s.apiModel,system:'You are a connection test.',history:[{role:'user',content:'Reply with OK only.'}],temperature:0,maxTokens:8,enableCache:false});const res=await fetch(req.url,{method:'POST',headers:req.headers,signal:c.signal,body:JSON.stringify(req.body)});if(!res.ok){let detail='';try{detail=await res.text()}catch{}throw Error('HTTP '+res.status+(detail?' · '+detail.slice(0,160):''))}const j=await res.json();if(!extractProviderContent(provider,j))throw Error('empty');if(showMsg)toast('API 连接成功');return true}catch(e){if(e.name==='AbortError'){if(showMsg)toast('连接超时');return false}if(showMsg)toast('API 测试失败：'+(e.message||'请求错误'));return false}finally{releaseController(c)}}
 
 function getRegexFlags(r){let f=r.flags||'g';if(typeof f==='string')return [...new Set(f.replace(/[^dgimsuvy]/g,''))].join('');return 'g'}
 function applyRegexPipeline(text,target='AI 回复'){let out=String(text??'');for(const r of (data.engine.regexRules||[]).filter(x=>x.enabled!==false)){if(r.target&&r.target!==target&&r.target!=='全部消息')continue;try{out=out.replace(new RegExp(r.pattern,getRegexFlags(r)),r.replace??'')}catch{}}return out}
@@ -206,15 +260,16 @@ async function sendMessage(){
  try{
   const history=data.chats[currentChat].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}));
   const system=buildSystemPrompt(c,text);
-  const body={model:s.apiModel,messages:[{role:'system',content:system},...history],temperature:Math.min(2,Math.max(0,Number(s.temperature)||.8))};
-  const res=await fetch(normalizeBase(s.apiBase),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.apiKey},signal:controller.signal,body:JSON.stringify(body)});
+  const provider=s.apiProvider||'openai';
+  const req=buildProviderRequest({provider,base:s.apiBase,key:s.apiKey,model:s.apiModel,system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'pokeji_'+c.id,enableCache:s.promptCache!==false});
+  const res=await fetch(req.url,{method:'POST',headers:req.headers,signal:controller.signal,body:JSON.stringify(req.body)});
   if(!res.ok){let detail='';try{detail=await res.text()}catch{}throw Error('HTTP '+res.status+(detail?' · '+detail.slice(0,160):''))}
-  const j=await res.json();const rawReply=extractContent(j);if(!rawReply)throw Error('empty response');
+  const j=await res.json();const rawReply=extractProviderContent(provider,j);if(!rawReply)throw Error('empty response');
   parseState(rawReply);
   const reply=applyRegexPipeline(rawReply,'AI 回复').replace(/<state>[\s\S]*?<\/state>/gi,'').trim();
   data.chats[currentChat].push({role:'assistant',text:reply||rawReply,time:time()});data.notifications.unshift({text:`${c.name}回复了你`,time:'刚刚',type:'chat'});save();renderMessages();
- }catch(err){if(err.name==='AbortError'){toast('已停止生成');}else{toast('API 请求失败：'+(err.message||'请检查地址、Key 和模型'));renderMessages()}}
- finally{if(abortController===controller)abortController=null;setBusy(false)}
+ }catch(err){if(err.name==='AbortError'){toast('请求超时或已停止生成');}else{toast('API 请求失败：'+(err.message||'请检查地址、Key 和模型'));renderMessages()}}
+ finally{releaseController(controller);setBusy(false)}
 }
 
 /* ---------- feed ---------- */
@@ -252,8 +307,33 @@ function editRegex(i){const r=data.engine.regexRules[i];modal(`<h2>编辑正则�
 function renderEnginePreview(e){const c=currentChat&&data.characters.find(x=>x.id===currentChat);const last=(currentChat&&data.chats[currentChat]?.filter(x=>x.role==='user').at(-1)?.text)||'';const x=c?buildEngineContext(c,last):null;const prompt=c?buildSystemPrompt(c,last):'尚未进入聊天。创建角色并输入消息后，这里会显示本次上下文编译结果。';e.innerHTML=`<div class="engine-card"><h3>♥ &nbsp;上下文预览</h3><p>发送给 API 前的本地编译结果，不会自动发送。</p>${x?`<div class="preview">WORLD\n${esc(x.world)}\n\nSTATE\n${esc(x.state)}\n\nMEMORY\n${esc(x.memory)}\n\nPRESET\n${esc(x.preset)}</div>`:''}<div class="preview">${esc(prompt)}</div></div><div class="engine-card"><h3>♥ &nbsp;闭环</h3><div class="engine-flow"><div class="flowbox"><b>世界</b><span>触发与状态</span></div><div class="flowbox"><b>预设</b><span>模板与权重</span></div><div class="flowbox"><b>API</b><span>唯一 AI 来源</span></div><div class="flowbox"><b>正则</b><span>前后处理</span></div></div><div class="arrow">↻ 状态反馈 → 下一次世界检索</div></div>`}
 
 /* ---------- settings ---------- */
-function loadSettings(){applyHomeBackground();['apiBase','apiKey','apiModel','temperature','maxHistory','timeout'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=data.settings[k]??''})}
-async function saveSettings(){data.settings={...data.settings,apiBase:document.getElementById('apiBase').value.trim(),apiKey:document.getElementById('apiKey').value.trim(),apiModel:document.getElementById('apiModel').value.trim(),temperature:document.getElementById('temperature').value||.8,maxHistory:Math.min(100,Math.max(4,Number(document.getElementById('maxHistory')?.value)||40)),timeout:Math.min(180000,Math.max(10000,Number(document.getElementById('timeout')?.value)||60000))};save();if(!validAPI()){toast('已保存本机设置；请完整填写 API 后测试');return}await testAPI(true)}
+const PROVIDER_HINTS={openai:'例：https://api.openai.com/v1 （或任意 OpenAI 兼容中转地址）',anthropic:'例：https://api.anthropic.com （原生 Claude Messages API）',gemini:'例：https://generativelanguage.googleapis.com （原生 Gemini API）'};
+function updateProviderHint(){const p=document.getElementById('apiProvider')?.value||'openai';const h=document.getElementById('apiProviderHint');if(h)h.textContent=PROVIDER_HINTS[p]||''}
+function loadSettings(){
+ applyHomeBackground();
+ ['apiProvider','apiBase','apiKey','apiModel','temperature'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=data.settings[k]??''});
+ const mh=document.getElementById('maxHistory');if(mh)mh.value=data.settings.maxHistory??40;
+ const mt=document.getElementById('maxTokens');if(mt)mt.value=data.settings.maxTokens??2048;
+ const to=document.getElementById('timeout');if(to)to.value=Math.round((data.settings.timeout??60000)/1000);
+ const pc=document.getElementById('promptCache');if(pc)pc.checked=data.settings.promptCache!==false;
+ updateProviderHint();
+}
+async function saveSettings(){
+ data.settings={...data.settings,
+  apiProvider:document.getElementById('apiProvider')?.value||'openai',
+  apiBase:document.getElementById('apiBase').value.trim(),
+  apiKey:document.getElementById('apiKey').value.trim(),
+  apiModel:document.getElementById('apiModel').value.trim(),
+  temperature:document.getElementById('temperature').value||.8,
+  maxHistory:Math.min(100,Math.max(4,Number(document.getElementById('maxHistory')?.value)||40)),
+  maxTokens:Math.min(32000,Math.max(64,Number(document.getElementById('maxTokens')?.value)||2048)),
+  timeout:Math.min(180000,Math.max(10000,(Number(document.getElementById('timeout')?.value)||60)*1000)),
+  promptCache:document.getElementById('promptCache')?document.getElementById('promptCache').checked:true
+ };
+ save();
+ if(!validAPI()){toast('已保存本机设置；请完整填写 API 后测试');return}
+ await testAPI(true)
+}
 function exportSJ(){const copy=JSON.parse(JSON.stringify(data));if(copy.settings){delete copy.settings.apiKey;delete copy.settings.key;delete copy.settings.token}const blob=new Blob([JSON.stringify({format:'pokeji',version:VERSION,exportedAt:new Date().toISOString(),data:copy},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pokeji-data-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('数据已导出（API Key 未包含）')}
 function importSJ(ev){const file=ev.target.files?.[0];if(!file)return;file.text().then(txt=>{try{const obj=JSON.parse(txt);if(obj?.format!=='pokeji'||!obj.data)throw Error('invalid');const incoming=normalize(obj.data);if(!Array.isArray(incoming.characters)||typeof incoming.chats!=='object')throw Error('invalid');if(!confirm('导入将覆盖当前本机数据。API Key 不会从文件恢复。继续吗？'))return;const oldKey=data.settings?.apiKey;data=incoming;if(oldKey)data.settings.apiKey=oldKey;save();location.reload()}catch(e){toast('无法导入：文件格式不正确')}}).finally(()=>{ev.target.value=''})}
 function exportData(){exportSJ()}
