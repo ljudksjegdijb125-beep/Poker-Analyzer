@@ -90,7 +90,7 @@
 </section>
 
 <section id="chats" class="view">
-<div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="newChat()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="requireAPI()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section"><input id="chatSearch" class="search" placeholder="搜索聊天" oninput="renderChats()"></div><div id="chatList"></div></div>
 <nav class="nav"><button class="active" onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
 </section>
@@ -163,6 +163,10 @@
 <div class="setting"><span>Temperature</span><input id="temperature" type="number" min="0" max="2" step=".1"></div>
 <div class="setting"><span></span><button class="primary" onclick="saveSettings()">保存并测试</button></div>
 </div>
+<div class="group"><div class="group-title">外观</div>
+<div class="setting" onclick="chooseHomeBackground()"><span>更换主界面背景</span><span class="muted">图片 ›</span></div>
+<div class="setting" onclick="clearHomeBackground()"><span>恢复默认主界面背景</span><span class="muted">›</span></div>
+</div>
 <div class="group"><div class="group-title">数据</div>
 <div class="setting" onclick="exportData()"><span>导出扑克机数据</span><span class="muted">JSON ›</span></div>
 <div class="setting" onclick="importData()"><span>导入扑克机数据</span><span class="muted">JSON ›</span></div>
@@ -187,6 +191,10 @@
 </div></div>
 
 <script src="./assets/app.js"></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
 </body>
 </html>
