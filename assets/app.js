@@ -51,6 +51,16 @@ function unlock(){show('home');clock()}
 function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
 setInterval(clock,1000);clock();
 
+/* ---------- boot animation ---------- */
+(function(){
+  const boot=document.getElementById('bootScreen');
+  if(!boot)return;
+  setTimeout(()=>{
+    boot.classList.add('done');
+    setTimeout(()=>{if(boot.parentNode)boot.parentNode.removeChild(boot)},750);
+  },2800);
+})();
+
 function avatar(c){const a=document.createElement('div');a.className='avatar';if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';a.appendChild(im)}return a.outerHTML}
 function renderChats(){const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase();const arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有聊天<br>请先创建角色。API 只在真正发送消息时使用。</div>`;return}e.innerHTML=arr.map(c=>{const m=(data.chats[c.id]||[]).at(-1);return `<div class="row card" style="margin:0 16px 9px" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${esc(m?.text||'尚未开始聊天')}</div></div><span class="muted">${esc(m?.time||'')}</span></div>`}).join('')}
 function renderContacts(q=''){const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase()));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♧</div>还没有角色<br>创建角色后才会出现在这里。</div>`;return}e.innerHTML=arr.map(c=>`<div class="row card" style="margin:0 16px 9px" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.status||'')}</div></div><button class="icon-btn" onclick="event.stopPropagation();editCharacter('${c.id}')">⋯</button></div>`).join('')}
@@ -91,7 +101,7 @@ function buildEngineContext(character,userMessage=''){
 }
 function buildSystemPrompt(c,userMessage=''){
  const x=buildEngineContext(c,userMessage);
- return `你正在“扑克机”中与用户进行沉浸式角色对话。\n你不是预置角色；当前角色资料完全来自用户。\n\n【角色】\n${c.name}\n${c.bio||'无'}\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n世界规则决定当前可用背景；预设模块负责组合与优先级；正则负责请求前处理、回复后处理和状态反馈。保持连续性，不虚构不存在的外部数据。`;
+ return `你正在"扑克机"中与用户进行沉浸式角色对话。\n你不是预置角色；当前角色资料完全来自用户。\n\n【角色】\n${c.name}\n${c.bio||'无'}\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n世界规则决定当前可用背景；预设模块负责组合与优先级；正则负责请求前处理、回复后处理和状态反馈。保持连续性，不虚构不存在的外部数据。`;
 }
 
 async function sendMessage(){
@@ -153,7 +163,33 @@ function exportData(){exportSJ()}
 function importData(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=ev=>importSJ(ev);i.click()}
 function resetData(){if(confirm('确定清空本机全部数据吗？此操作不可恢复。')){localStorage.removeItem(STORE);localStorage.removeItem(LEGACY_STORE);location.reload()}}
 function chatInfo(){const c=data.characters.find(x=>x.id===currentChat);if(!c)return;modal(`<h2>${esc(c.name)}</h2><div class="note"><b>状态</b><br>${esc(c.status||'未填写')}<br><br><b>角色设定</b><br>${esc(c.bio||'未填写')}</div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="danger" onclick="clearChat('${c.id}')">清空聊天</button></div>`)}
-function about(){modal(`<h2>扑克机</h2><div class="note">API 驱动的虚拟手机式 AI 空间。没有内置角色，没有内置聊天，没有预设 AI 内容。角色、聊天、世界、记忆、预设与正则均属于本机数据。不会提供酒馆格式导入。</div><div class="form-actions"><button class="primary" onclick="closeModal()">完成</button></div>`)}
+
+/* ---------- enhanced about ---------- */
+function about(){
+  modal(`
+    <div class="about-sheet">
+      <div class="about-icon">♠</div>
+      <div class="about-title">扑克机</div>
+      <div class="about-version">Version 14.0 · Build ${VERSION}</div>
+      <div class="about-divider"></div>
+      <div class="about-desc">
+        <p>API 驱动的虚拟手机式 AI 空间。</p>
+        <p>没有内置角色，没有内置聊天，没有预设 AI 内容。角色、聊天、世界、记忆、预设与正则均属于本机数据。</p>
+        <p>不会提供酒馆格式导入。</p>
+      </div>
+      <div class="about-meta">
+        <div class="meta-row"><span>数据格式版本</span><span>V${VERSION}</span></div>
+        <div class="meta-row"><span>存储引擎</span><span>localStorage</span></div>
+        <div class="meta-row"><span>渲染引擎</span><span>Vanilla JS</span></div>
+        <div class="meta-row"><span>界面风格</span><span>Noir Maison</span></div>
+      </div>
+      <div class="form-actions" style="margin-top:18px">
+        <button class="primary" style="width:100%" onclick="closeModal()">完成</button>
+      </div>
+    </div>
+  `);
+}
+
 function modal(x){document.getElementById('modalContent').innerHTML=x;document.getElementById('modal').classList.add('show')}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
 function v8Clock(){const d=new Date(),h=d.getHours(),m=String(d.getMinutes()).padStart(2,'0'),t=(h%12||12)+':'+m;document.getElementById('v8StatusTime')?.replaceChildren(document.createTextNode(t));document.getElementById('v8LockTime')?.replaceChildren(document.createTextNode(t))}
