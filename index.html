@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eee9e4">
 <meta name="description" content="API 驱动的虚拟手机式 AI 空间">
-<title>扑克机 · Private AI Space · V16</title>
+<title>扑克机 · Private AI Space · V17</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
 <link rel="stylesheet" href="./assets/pokeji.css">
@@ -61,8 +61,7 @@
         <button class="p12-app" onclick="openView('contacts')"><span class="p12-tile"><b>♣</b></span><span>角色</span></button>
         <button class="p12-app" onclick="openView('world')"><span class="p12-tile"><b>◇</b></span><span>世界</span></button>
         <button class="p12-app" onclick="openView('memory')"><span class="p12-tile"><b>♥</b></span><span>记忆</span></button>
-        <button class="p12-app" onclick="openView('dataCenter')"><span class="p12-tile"><b>◇</b></span><span>收藏</span></button>
-        <button class="p12-app" onclick="openView('engine')"><span class="p12-tile"><b>✦</b></span><span>工具</span></button>
+        <button class="p12-app" onclick="openView('groups')"><span class="p12-tile"><b>❖</b></span><span>群聊</span></button>
         <button class="p12-app" onclick="openView('settings')"><span class="p12-tile"><b>⚙</b></span><span>设置</span></button>
         <button class="p12-app" onclick="openHomeEditor()"><span class="p12-tile"><b>•••</b></span><span>更多</span></button>
       </div>
@@ -101,19 +100,25 @@
 <section id="chats" class="view">
 <div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="requireAPI()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section"><input id="chatSearch" class="search" placeholder="搜索聊天" oninput="renderChats()"></div><div id="chatList"></div></div>
-<nav class="nav"><button class="active" onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
+<nav class="nav"><button class="active" onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button onclick="openView('groups')"><b>❖</b>群聊</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
+</section>
+
+<section id="groups" class="view">
+<div class="header"><h1>群聊</h1><div class="actions"><button class="icon-btn" onclick="newGroup()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div id="groupList"></div></div>
+<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button class="active"><b>❖</b>群聊</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
 </section>
 
 <section id="contacts" class="view">
 <div class="header"><h1>角色</h1><div class="actions"><button class="icon-btn" onclick="newCharacter()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section"><input class="search" placeholder="搜索角色" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
-<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button class="active"><b>♧</b>角色</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
+<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button class="active"><b>♧</b>角色</button><button onclick="openView('groups')"><b>❖</b>群聊</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
 </section>
 
 <section id="feed" class="view">
 <div class="header"><h1>动态</h1><div class="actions"><button class="icon-btn" onclick="newPost()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div id="feedList" class="feed"></div></div>
-<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button class="active"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
+<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button onclick="openView('groups')"><b>❖</b>群聊</button><button class="active"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
 </section>
 
 <section id="notifications" class="view">
@@ -143,7 +148,7 @@
 </div>
 <div class="engine-card">
 <h3>导出范围</h3>
-<div class="module"><div class="module-head"><b>全部数据</b><span class="pill">推荐</span></div><small>角色、聊天、世界、预设、正则、记忆和设置</small></div>
+<div class="module"><div class="module-head"><b>全部数据</b><span class="pill">推荐</span></div><small>角色、群聊、聊天、世界、预设、正则、记忆和设置</small></div>
 <div class="module"><div class="module-head"><b>API Key</b><span class="pill">默认不导出</span></div><small>为了安全，导出的文件不会包含 API Key。</small></div>
 </div>
 </div>
@@ -201,8 +206,9 @@
 </section>
 
 <section id="chat" class="view">
-<div class="chat-head"><button class="back" onclick="openView('chats')">‹</button><div id="chatAvatar" class="avatar"></div><div><div id="chatName" class="chat-name"></div><div class="chat-sub">AI 对话</div></div><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
+<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">AI 对话</div></div><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
 <div class="scroll"><div id="messages" class="messages"></div></div>
+<div id="speakerPicker" class="speaker-picker" style="display:none"></div>
 <div class="composer"><input id="messageInput" placeholder="输入消息…" onkeydown="if(event.key==='Enter')sendMessage()"><button class="send" onclick="sendMessage()">↑</button></div>
 </section>
 
