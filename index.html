@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eee9e4">
 <meta name="description" content="API 驱动的虚拟手机式 AI 空间">
-<title>扑克机 · Private AI Space · V15</title>
+<title>扑克机 · Private AI Space · V16</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
 <link rel="stylesheet" href="./assets/pokeji.css">
@@ -59,9 +59,9 @@
       <div class="p12-apps">
         <button class="p12-app" onclick="openView('chats')"><span class="p12-tile"><b>♡</b></span><span>聊天</span></button>
         <button class="p12-app" onclick="openView('contacts')"><span class="p12-tile"><b>♣</b></span><span>角色</span></button>
-        <button class="p12-app" onclick="openView('engine')"><span class="p12-tile"><b>◇</b></span><span>世界</span></button>
+        <button class="p12-app" onclick="openView('world')"><span class="p12-tile"><b>◇</b></span><span>世界</span></button>
         <button class="p12-app" onclick="openView('memory')"><span class="p12-tile"><b>♥</b></span><span>记忆</span></button>
-        <button class="p12-app" onclick="openView('data')"><span class="p12-tile"><b>◇</b></span><span>收藏</span></button>
+        <button class="p12-app" onclick="openView('dataCenter')"><span class="p12-tile"><b>◇</b></span><span>收藏</span></button>
         <button class="p12-app" onclick="openView('engine')"><span class="p12-tile"><b>✦</b></span><span>工具</span></button>
         <button class="p12-app" onclick="openView('settings')"><span class="p12-tile"><b>⚙</b></span><span>设置</span></button>
         <button class="p12-app" onclick="openHomeEditor()"><span class="p12-tile"><b>•••</b></span><span>更多</span></button>
@@ -72,7 +72,7 @@
       <div class="p12-brand"><b>ARCHIVE</b><small>YOUR PRIVATE WORLD</small></div>
       <div class="p12-apps p12-apps-secondary">
         <button class="p12-app" onclick="openView('engine')"><span class="p12-tile"><b>✧</b></span><span>预设</span></button>
-        <button class="p12-app" onclick="openView('data')"><span class="p12-tile"><b>▣</b></span><span>数据</span></button>
+        <button class="p12-app" onclick="openView('dataCenter')"><span class="p12-tile"><b>▣</b></span><span>数据</span></button>
         <button class="p12-app" onclick="openView('settings')"><span class="p12-tile"><b>◈</b></span><span>主题</span></button>
         <button class="p12-app" onclick="openView('notifications')"><span class="p12-tile"><b>⌁</b></span><span>通知</span></button>
       </div>
@@ -166,10 +166,21 @@
 <div class="header"><h1>设置</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll">
 <div class="group"><div class="group-title">AI 服务</div>
+<div class="setting"><span>服务商</span><select id="apiProvider" onchange="updateProviderHint()">
+ <option value="openai">GPT / OpenAI 兼容</option>
+ <option value="anthropic">Claude（Anthropic 原生）</option>
+ <option value="gemini">Gemini（Google 原生）</option>
+</select></div>
+<div class="note" id="apiProviderHint" style="margin-top:-4px"></div>
 <div class="setting"><span>API Base URL</span><input id="apiBase" placeholder="https://..."></div>
 <div class="setting"><span>API Key</span><input id="apiKey" type="password" placeholder="本机保存"></div>
 <div class="setting"><span>模型</span><input id="apiModel" placeholder="模型名称"></div>
 <div class="setting"><span>Temperature</span><input id="temperature" type="number" min="0" max="2" step=".1"></div>
+<div class="setting"><span>最大输出 Tokens</span><input id="maxTokens" type="number" min="64" max="32000" step="64"></div>
+<div class="setting"><span>历史消息条数</span><input id="maxHistory" type="number" min="4" max="100" step="1"></div>
+<div class="setting"><span>请求超时（秒）</span><input id="timeout" type="number" min="10" max="180" step="5"></div>
+<div class="setting"><span>Prompt 缓存</span><input id="promptCache" type="checkbox" style="width:auto"></div>
+<div class="note">开启后：Claude 会对 system 提示词与历史消息添加显式缓存断点；GPT 会带上稳定的 prompt_cache_key 以提升自动缓存命中率；Gemini 会保持上下文结构稳定以提升隐式缓存命中率。三者都能降低重复上下文的开销与延迟。</div>
 <div class="setting"><span></span><button class="primary" onclick="saveSettings()">保存并测试</button></div>
 </div>
 <div class="group"><div class="group-title">外观</div>
@@ -202,6 +213,10 @@
 <script src="./assets/app.js"></script>
 <script>
 if('serviceWorker' in navigator){
+  let refreshed=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(refreshed)return;refreshed=true;location.reload();
+  });
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
 </script>
