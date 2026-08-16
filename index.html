@@ -49,45 +49,56 @@
 </section>
 
 <section id="home" class="view">
-<div class="p12-home">
-  <div class="p12-topline">
-    <div class="p12-brand-mini">扑克机</div>
-    <div class="p12-top-meta"><span id="homeClock">05:22</span><span id="homeDate"></span></div>
-  </div>
-  <div class="p12-widgets">
-    <div class="p12-widget p12-widget--brand">
-      <div class="p12-widget-suit">♠</div>
-      <div class="p12-widget-kicker">PRIVATE AI SPACE</div>
-      <div class="p12-widget-title">扑克机</div>
-      <div class="p12-widget-sub">YOUR OWN API · YOUR OWN ROOM</div>
+<div class="p12-home" id="homeDesk">
+  <div class="p12-statusbar"><span id="homeClock">05:22</span><span>⌁ 5G　▰</span></div>
+  <div class="p12-island" onclick="openHomeEditor()"><i></i><span>POKEJI</span><b>♠</b></div>
+  <div class="p12-pages" id="homePages">
+    <div class="p12-page active" data-page="0">
+      <div class="p12-clock"><strong id="homeClockLarge">05:22</strong><span id="homeDate"></span></div>
+      <div class="p12-brand"><b>POKEJI</b><small>PRIVATE DIGITAL SPACE</small></div>
+      <div class="p12-apps">
+        <button class="p12-app" onclick="openView('chats')"><span class="p12-tile"><b>♡</b></span><span>聊天</span></button>
+        <button class="p12-app" onclick="openView('contacts')"><span class="p12-tile"><b>♣</b></span><span>角色</span></button>
+        <button class="p12-app" onclick="openView('engine')"><span class="p12-tile"><b>◇</b></span><span>世界</span></button>
+        <button class="p12-app" onclick="openView('memory')"><span class="p12-tile"><b>♥</b></span><span>记忆</span></button>
+        <button class="p12-app" onclick="openView('data')"><span class="p12-tile"><b>◇</b></span><span>收藏</span></button>
+        <button class="p12-app" onclick="openView('engine')"><span class="p12-tile"><b>✦</b></span><span>工具</span></button>
+        <button class="p12-app" onclick="openView('settings')"><span class="p12-tile"><b>⚙</b></span><span>设置</span></button>
+        <button class="p12-app" onclick="openHomeEditor()"><span class="p12-tile"><b>•••</b></span><span>更多</span></button>
+      </div>
+      <div class="p12-small-widget" id="themeWidget"><small>POKEJI · THEME</small><b>NOIR</b><span>BLACK OBSIDIAN · CHAMPAGNE GOLD</span></div>
     </div>
-    <div class="p12-widget p12-widget--status">
-      <div class="p12-status-row"><i></i>LOCAL DATA</div>
-      <div class="p12-status-row"><i></i>API CONTROLLED</div>
-      <div class="p12-status-row"><i></i>NO BUILT-IN ROLE</div>
+    <div class="p12-page" data-page="1">
+      <div class="p12-clock p12-symbol"><strong>♠</strong><span>POKEJI COLLECTION</span></div>
+      <div class="p12-brand"><b>ARCHIVE</b><small>YOUR PRIVATE WORLD</small></div>
+      <div class="p12-apps p12-apps-secondary">
+        <button class="p12-app" onclick="openView('engine')"><span class="p12-tile"><b>✧</b></span><span>预设</span></button>
+        <button class="p12-app" onclick="openView('data')"><span class="p12-tile"><b>▣</b></span><span>数据</span></button>
+        <button class="p12-app" onclick="openView('settings')"><span class="p12-tile"><b>◈</b></span><span>主题</span></button>
+        <button class="p12-app" onclick="openView('notifications')"><span class="p12-tile"><b>⌁</b></span><span>通知</span></button>
+      </div>
+      <div class="p12-small-widget"><small>CUSTOM DESK</small><b>PAGE TWO</b><span>APPS & WIDGETS · YOUR ARRANGEMENT</span></div>
     </div>
   </div>
-  <div class="p12-app-heading">
-    <span>APPLICATIONS</span><i></i><em>08</em>
-  </div>
-  <div class="p12-apps">
-    <button class="p12-app" data-tile="chat" onclick="openView('chats')"><span class="p12-tile"><span class="p12-glyph">♡</span></span><span class="p12-app-label">聊天</span><small>CHAT</small></button>
-    <button class="p12-app" data-tile="roles" onclick="openView('contacts')"><span class="p12-tile"><span class="p12-glyph">♣</span></span><span class="p12-app-label">角色</span><small>ROLES</small></button>
-    <button class="p12-app" data-tile="feed" onclick="openView('feed')"><span class="p12-tile"><span class="p12-glyph">◇</span></span><span class="p12-app-label">动态</span><small>FEED</small></button>
-    <button class="p12-app" data-tile="notice" onclick="openView('notifications')"><span class="p12-tile"><span class="p12-glyph">⌁</span></span><span class="p12-app-label">通知</span><small>NOTICE</small></button>
-    <button class="p12-app" data-tile="world" onclick="openView('engine')"><span class="p12-tile"><span class="p12-glyph">✦</span></span><span class="p12-app-label">世界</span><small>WORLD</small></button>
-    <button class="p12-app" data-tile="memory" onclick="openView('memory')"><span class="p12-tile"><span class="p12-glyph">∞</span></span><span class="p12-app-label">记忆</span><small>MEMORY</small></button>
-    <button class="p12-app" data-tile="engine" onclick="openView('engine')"><span class="p12-tile"><span class="p12-glyph">◌</span></span><span class="p12-app-label">引擎</span><small>ENGINE</small></button>
-    <button class="p12-app" data-tile="settings" onclick="openView('settings')"><span class="p12-tile"><span class="p12-glyph">○</span></span><span class="p12-app-label">设置</span><small>SETTINGS</small></button>
-  </div>
+  <div class="p12-dots" id="homeDots"><b>●</b> ○</div>
   <div class="p12-dock">
-    <button data-tile="chat" onclick="openView('chats')"><span class="p12-tile p12-tile-mini"><span>♡</span></span><small>CHAT</small></button>
-    <button data-tile="roles" onclick="openView('contacts')"><span class="p12-tile p12-tile-mini"><span>♣</span></span><small>ROLES</small></button>
-    <button data-tile="world" onclick="openView('engine')"><span class="p12-tile p12-tile-mini"><span>✦</span></span><small>ENGINE</small></button>
-    <button data-tile="settings" onclick="openView('settings')"><span class="p12-tile p12-tile-mini"><span>○</span></span><small>SETUP</small></button>
+    <button onclick="openView('chats')"><span class="p12-tile p12-tile-mini">♡</span></button>
+    <button onclick="openView('contacts')"><span class="p12-tile p12-tile-mini">♣</span></button>
+    <button onclick="openView('engine')"><span class="p12-tile p12-tile-mini">✦</span></button>
+    <button onclick="openView('settings')"><span class="p12-tile p12-tile-mini">⚙</span></button>
+  </div>
+  <div class="p12-gesture"></div>
+  <div class="p12-editor" id="homeEditor">
+    <button class="p12-editor-close" onclick="closeHomeEditor()">×</button>
+    <h2>自定义主屏幕</h2><p>App 不可删除；可移动到其他页面。组件可删除、调整大小。</p>
+    <div class="p12-editor-row"><b>主题</b><button onclick="chooseHomeBackground();closeHomeEditor()">更换壁纸</button></div>
+    <div class="p12-editor-row"><b>组件</b><button onclick="toast('组件库将在下一版开放')">添加组件</button></div>
+    <div class="p12-editor-row"><b>页面</b><button onclick="toast('可左右滑动切换页面')">管理页面</button></div>
   </div>
 </div>
 </section>
+
+
 
 <section id="chats" class="view">
 <div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="requireAPI()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
