@@ -4,17 +4,18 @@
    ========================================================= */
 const STORE='pokeji_api_only_v4';
 const LEGACY_STORE='pokeji_api_only_v3';
-const VERSION=16;
+const VERSION=17;
 let data=load();
 let currentChat=null;
 let abortController=null;
 let busy=false;
 let msgMenuTarget=null;
 let homePage=0, homeTouchX=0;
+let groupPendingSpeaker=null;
 
 function blank(){return{
  settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,timeout:60000,maxTokens:2048,promptCache:true},
- characters:[],chats:{},chatSettings:{},posts:[],notifications:[],worlds:[],memories:[],
+ characters:[],chats:{},chatSettings:{},groups:[],posts:[],notifications:[],worlds:[],memories:[],
  engine:{
   worldRules:[],presetModules:[],regexRules:[],
   state:{location:'',time:'',weather:'',events:[]}
@@ -28,6 +29,7 @@ function normalize(x){
  d.characters=Array.isArray(x.characters)?x.characters:[];
  d.chats=x.chats&&typeof x.chats==='object'&&!Array.isArray(x.chats)?x.chats:{};
  d.chatSettings=x.chatSettings&&typeof x.chatSettings==='object'&&!Array.isArray(x.chatSettings)?x.chatSettings:{};
+ d.groups=Array.isArray(x.groups)?x.groups:[];
  d.posts=Array.isArray(x.posts)?x.posts:[];d.notifications=Array.isArray(x.notifications)?x.notifications:[];
  d.worlds=Array.isArray(x.worlds)?x.worlds:[];d.memories=Array.isArray(x.memories)?x.memories:[];
  d.engine={...d.engine,...(x.engine||{})};
@@ -100,7 +102,7 @@ function chooseChatBackground(){
 }
 function clearChatBackground(){if(!currentChat)return;getChatSettings(currentChat).background='';save();applyChatBackground();toast('已恢复聊天背景')}
 function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const el=document.getElementById(id);if(el)el.classList.add('active')}
-function openView(id){show(id);if(id==='home')applyHomeBackground();if(id==='engine')engineTab('world');if(id==='chats')renderChats();if(id==='contacts')renderContacts();if(id==='feed')renderFeed();if(id==='notifications')renderNotifications();if(id==='world')renderWorld();if(id==='memory')renderMemory();if(id==='settings')loadSettings()}
+function openView(id){show(id);if(id==='home')applyHomeBackground();if(id==='engine')engineTab('world');if(id==='chats')renderChats();if(id==='contacts')renderContacts();if(id==='groups')renderGroups();if(id==='feed')renderFeed();if(id==='notifications')renderNotifications();if(id==='world')renderWorld();if(id==='memory')renderMemory();if(id==='settings')loadSettings()}
 function unlock(){show('home');clock();applyHomeBackground()}
 function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hl=document.getElementById('homeClockLarge');if(hl)hl.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
 function setHomePage(n){const pages=[...document.querySelectorAll('.p12-page')];if(!pages.length)return;homePage=Math.max(0,Math.min(n,pages.length-1));pages.forEach((el,i)=>el.classList.toggle('active',i===homePage));const dots=document.getElementById('homeDots');if(dots)dots.innerHTML=pages.map((_,i)=>i===homePage?'<b>●</b>':'○').join(' ')}
@@ -124,6 +126,46 @@ function renderChats(){const e=document.getElementById('chatList'),q=(document.g
 
 function renderContacts(q=''){const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase()));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♧</div>还没有角色<br>创建角色后才会出现在这里。</div>`;return}e.innerHTML=arr.map(c=>`<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.status||'')}</div></div><button class="icon-btn" onclick="event.stopPropagation();editCharacter('${c.id}')">⋯</button></div>`).join('')}
 
+/* ---------- group chat ---------- */
+function avatarStack(members){return `<div class="avatar-stack">${members.slice(0,3).map(c=>avatar(c)).join('')}</div>`}
+function renderGroups(){
+ const e=document.getElementById('groupList');
+ if(!data.groups.length){e.innerHTML='<div class="empty"><div class="big">❖</div>还没有群聊<br>至少创建 2 个角色后即可建群。</div>';return}
+ e.innerHTML=data.groups.map(g=>{
+  const members=g.memberIds.map(id=>data.characters.find(c=>c.id===id)).filter(Boolean);
+  const last=(data.chats[g.id]||[]).at(-1);
+  let preview=last?last.text:'尚未开始聊天';
+  if(last&&last.role==='assistant'){const spk=data.characters.find(c=>c.id===last.speaker);preview=`${spk?spk.name+'：':''}${last.text}`}
+  return `<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${g.id}')">${avatarStack(members)}<div style="flex:1;min-width:0"><b>${esc(g.name)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${esc(preview)}</div></div><span class="muted">${esc(last?.time||'')}</span></div>`;
+ }).join('');
+}
+function newGroup(){
+ if(data.characters.length<2)return toast('请先创建至少 2 个角色');
+ modal(`<h2>创建群聊</h2><div class="field"><label>群聊名称</label><input id="gn" placeholder="给这个群起个名字"></div><div class="field"><label>选择成员（至少 2 人）</label><div style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto">${data.characters.map(c=>`<label style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--line);border-radius:11px"><input type="checkbox" class="gmChk" value="${c.id}" style="width:auto">${avatar(c)}<b style="font-size:13px">${esc(c.name)}</b></label>`).join('')}</div></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createGroup()">创建</button></div>`);
+}
+function createGroup(){
+ const name=document.getElementById('gn').value.trim();if(!name)return toast('请填写群聊名称');
+ const memberIds=[...document.querySelectorAll('.gmChk:checked')].map(x=>x.value);
+ if(memberIds.length<2)return toast('至少选择 2 个角色');
+ const id='g_'+crypto.randomUUID();
+ data.groups.push({id,name,memberIds,turnIndex:0});
+ data.chats[id]=[];getChatSettings(id);save();closeModal();renderGroups();toast('群聊已创建');
+}
+function editGroup(id){
+ const g=data.groups.find(x=>x.id===id);if(!g)return;
+ modal(`<h2>群聊设置</h2><div class="field"><label>群聊名称</label><input id="gn" value="${attr(g.name)}"></div><div class="field"><label>成员</label><div class="muted" style="line-height:1.9">${g.memberIds.map(mid=>data.characters.find(c=>c.id===mid)?.name).filter(Boolean).join('、')||'成员已被删除'}</div></div><div class="group" style="margin:14px 0"><div class="group-title">聊天外观</div><div class="setting" onclick="chooseChatBackground()"><span>更换聊天背景</span><span class="muted">图片 ›</span></div><div class="setting" onclick="clearChatBackground()"><span>恢复默认聊天背景</span><span class="muted">›</span></div></div><div class="form-actions"><button class="danger" onclick="deleteGroup('${id}')">解散群聊</button><button onclick="clearChat('${id}')">清空聊天</button><button class="primary" onclick="updateGroup('${id}')">保存</button></div>`);
+}
+function updateGroup(id){const g=data.groups.find(x=>x.id===id);if(!g)return;g.name=document.getElementById('gn').value.trim()||g.name;save();closeModal();renderGroups();toast('已保存')}
+function deleteGroup(id){if(!confirm('解散这个群聊？聊天记录也会被删除。'))return;data.groups=data.groups.filter(g=>g.id!==id);delete data.chats[id];delete data.chatSettings?.[id];if(currentChat===id)currentChat=null;save();closeModal();renderGroups();openView('groups')}
+function renderSpeakerPicker(g){
+ const el=document.getElementById('speakerPicker');if(!el)return;
+ const chips=[`<button class="chip ${groupPendingSpeaker===null?'on':''}" onclick="pickSpeaker(null)">自动轮流</button>`]
+  .concat(g.memberIds.map(id=>{const c=data.characters.find(x=>x.id===id);if(!c)return'';return `<button class="chip ${groupPendingSpeaker===id?'on':''}" onclick="pickSpeaker('${id}')">${esc(c.name)}</button>`}));
+ el.innerHTML=chips.join('');
+}
+function pickSpeaker(id){groupPendingSpeaker=id;const g=data.groups.find(x=>x.id===currentChat);if(g)renderSpeakerPicker(g)}
+function backFromChat(){const g=data.groups.find(x=>x.id===currentChat);openView(g?'groups':'chats')}
+
 function validAPI(){const s=data.settings;return !!(s.apiBase&&s.apiKey&&s.apiModel)}
 function requireAPI(){if(!validAPI()){toast('请先在设置中配置 API');openView('settings');return false}return true}
 
@@ -138,20 +180,43 @@ function clearChat(id=currentChat){if(!id)return;if(!confirm('清空这个角色
 /* ---------- chat: FIXED openChat ---------- */
 function openChat(id){
   currentChat=id;
-  const c=data.characters.find(x=>x.id===id);
-  if(!c)return;
-  document.getElementById('chatName').textContent=c.name;
+  groupPendingSpeaker=null;
+  const g=data.groups.find(x=>x.id===id);
   const ava=document.getElementById('chatAvatar');
   ava.innerHTML='';
-  if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';ava.appendChild(im)}
+  const sub=document.getElementById('chatSub');
+  const picker=document.getElementById('speakerPicker');
+  if(g){
+   const members=g.memberIds.map(mid=>data.characters.find(x=>x.id===mid)).filter(Boolean);
+   if(!members.length)return;
+   document.getElementById('chatName').textContent=g.name;
+   if(sub)sub.textContent=`群聊 · ${members.length} 人`;
+   ava.classList.remove('avatar');ava.classList.add('avatar-stack');
+   ava.innerHTML=members.slice(0,3).map(c=>avatar(c)).join('');
+   if(picker){picker.style.display='flex';renderSpeakerPicker(g)}
+  }else{
+   const c=data.characters.find(x=>x.id===id);
+   if(!c)return;
+   document.getElementById('chatName').textContent=c.name;
+   if(sub)sub.textContent='AI 对话';
+   ava.classList.remove('avatar-stack');ava.classList.add('avatar');
+   if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';ava.appendChild(im)}
+   if(picker)picker.style.display='none';
+  }
   show('chat');
   applyChatBackground();
   renderMessages();
   if(!validAPI())toast('可以先聊天；发送消息前需要配置 API');
 }
 
-function renderMessages(){const e=document.getElementById('messages'),arr=data.chats[currentChat]||[];if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有消息<br>配置 API 后发送第一条消息。</div>`;return}
- e.innerHTML=arr.map((m,i)=>`<div class="msg ${m.role==='user'?'me':''}" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})" ontouchstart="touchStartMsg(event,${i})" ontouchend="touchEndMsg(event)"><div class="bubble" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span style="opacity:.4;font-size:8px;margin-left:4px">(已编辑)</span>':''}</div><span class="msg-time">${esc(m.time||'')}</span></div>`).join('');
+function renderMessages(){
+ const e=document.getElementById('messages'),arr=data.chats[currentChat]||[];
+ if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有消息<br>配置 API 后发送第一条消息。</div>`;return}
+ const g=data.groups.find(x=>x.id===currentChat);
+ e.innerHTML=arr.map((m,i)=>{
+  const speakerName=(g&&m.role==='assistant')?(data.characters.find(c=>c.id===m.speaker)?.name||''):'';
+  return `<div class="msg ${m.role==='user'?'me':''}" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})" ontouchstart="touchStartMsg(event,${i})" ontouchend="touchEndMsg(event)"><div>${speakerName?`<div class="msg-speaker">${esc(speakerName)}</div>`:''}<div class="bubble" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span style="opacity:.4;font-size:8px;margin-left:4px">(已编辑)</span>':''}</div></div><span class="msg-time">${esc(m.time||'')}</span></div>`;
+ }).join('');
  const s=e.parentElement;if(s)s.scrollTop=s.scrollHeight}
 
 /* ---------- message menu ---------- */
@@ -249,25 +314,48 @@ function buildSystemPrompt(c,userMessage=''){
  const x=buildEngineContext(c,userMessage);
  return `你正在"扑克机"中与用户进行沉浸式角色对话。\n你不是预置角色；当前角色资料完全来自用户。\n\n【角色】\n${c.name}\n${c.bio||'无'}\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n世界规则决定当前可用背景；预设模块负责组合与优先级；正则负责请求前处理、回复后处理和状态反馈。保持连续性，不虚构不存在的外部数据。`;
 }
+function buildGroupSystemPrompt(g,activeChar,userMessage=''){
+ const x=buildEngineContext(activeChar,userMessage);
+ const roster=g.memberIds.map(id=>data.characters.find(c=>c.id===id)).filter(Boolean).map(m=>`- ${m.name}：${(m.bio||'（无设定）').slice(0,140)}`).join('\n');
+ return `你正在"扑克机"的群聊"${g.name}"中扮演多个角色之一，所有角色资料完全来自用户。\n\n【群聊成员】\n${roster}\n\n本轮只以【${activeChar.name}】的身份回复：只输出该角色本人的发言内容，不要替其他角色说话或替他们做决定，也不要在回复里加角色名前缀（界面会自动显示发言人）。\n\n【当前发言角色】\n${activeChar.name}\n${activeChar.bio||'无'}\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n保持人物关系与对话连续性，不虚构不存在的外部数据。`;
+}
 
 async function sendMessage(){
  if(busy){stopGeneration();return}
  if(!validAPI()){toast('API 未配置');openView('settings');return}
  const input=document.getElementById('messageInput'),raw=input.value.trim();if(!raw||!currentChat)return;
  const text=regexPreflight(raw);data.chats[currentChat]??=[];data.chats[currentChat].push({role:'user',text,time:time()});save();input.value='';renderMessages();setBusy(true);
- const c=data.characters.find(x=>x.id===currentChat),s=data.settings;
+ const s=data.settings,group=data.groups.find(x=>x.id===currentChat);
  const controller=withTimeout(Number(s.timeout)||60000);
  try{
-  const history=data.chats[currentChat].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}));
-  const system=buildSystemPrompt(c,text);
+  let system,activeChar,notifName;
+  if(group){
+   const speakerId=groupPendingSpeaker||group.memberIds[group.turnIndex%group.memberIds.length];
+   activeChar=data.characters.find(x=>x.id===speakerId);
+   if(!activeChar)throw Error('群聊成员数据异常，请检查角色是否已被删除');
+   system=buildGroupSystemPrompt(group,activeChar,text);
+   notifName=`${group.name} · ${activeChar.name}`;
+  }else{
+   activeChar=data.characters.find(x=>x.id===currentChat);
+   if(!activeChar)throw Error('角色不存在');
+   system=buildSystemPrompt(activeChar,text);
+   notifName=activeChar.name;
+  }
+  const history=data.chats[currentChat].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>{
+   if(m.role==='user')return{role:'user',content:m.text};
+   if(group){const spk=data.characters.find(x=>x.id===m.speaker);return{role:'assistant',content:`[${spk?spk.name:'角色'}] ${m.text}`}}
+   return{role:'assistant',content:m.text};
+  });
   const provider=s.apiProvider||'openai';
-  const req=buildProviderRequest({provider,base:s.apiBase,key:s.apiKey,model:s.apiModel,system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'pokeji_'+c.id,enableCache:s.promptCache!==false});
+  const req=buildProviderRequest({provider,base:s.apiBase,key:s.apiKey,model:s.apiModel,system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'pokeji_'+(group?group.id+'_'+activeChar.id:activeChar.id),enableCache:s.promptCache!==false});
   const res=await fetch(req.url,{method:'POST',headers:req.headers,signal:controller.signal,body:JSON.stringify(req.body)});
   if(!res.ok){let detail='';try{detail=await res.text()}catch{}throw Error('HTTP '+res.status+(detail?' · '+detail.slice(0,160):''))}
   const j=await res.json();const rawReply=extractProviderContent(provider,j);if(!rawReply)throw Error('empty response');
   parseState(rawReply);
   const reply=applyRegexPipeline(rawReply,'AI 回复').replace(/<state>[\s\S]*?<\/state>/gi,'').trim();
-  data.chats[currentChat].push({role:'assistant',text:reply||rawReply,time:time()});data.notifications.unshift({text:`${c.name}回复了你`,time:'刚刚',type:'chat'});save();renderMessages();
+  const msg={role:'assistant',text:reply||rawReply,time:time()};
+  if(group){msg.speaker=activeChar.id;group.turnIndex=(group.turnIndex+1)%group.memberIds.length;groupPendingSpeaker=null;renderSpeakerPicker(group)}
+  data.chats[currentChat].push(msg);data.notifications.unshift({text:`${notifName}回复了你`,time:'刚刚',type:'chat'});save();renderMessages();
  }catch(err){if(err.name==='AbortError'){toast('请求超时或已停止生成');}else{toast('API 请求失败：'+(err.message||'请检查地址、Key 和模型'));renderMessages()}}
  finally{releaseController(controller);setBusy(false)}
 }
@@ -339,7 +427,7 @@ function importSJ(ev){const file=ev.target.files?.[0];if(!file)return;file.text(
 function exportData(){exportSJ()}
 function importData(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=ev=>importSJ(ev);i.click()}
 function resetData(){if(confirm('确定清空本机全部数据吗？此操作不可恢复。')){localStorage.removeItem(STORE);localStorage.removeItem(LEGACY_STORE);location.reload()}}
-function chatInfo(){const c=data.characters.find(x=>x.id===currentChat);if(!c)return;modal(`<h2>${esc(c.name)}</h2><div class="note"><b>状态</b><br>${esc(c.status||'未填写')}<br><br><b>角色设定</b><br>${esc(c.bio||'未填写')}</div><div class="group" style="margin:14px 0"><div class="group-title">聊天外观</div><div class="setting" onclick="chooseChatBackground()"><span>更换聊天背景</span><span class="muted">图片 ›</span></div><div class="setting" onclick="clearChatBackground()"><span>恢复默认聊天背景</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="danger" onclick="clearChat('${c.id}')">清空聊天</button></div>`)}
+function chatInfo(){const g=data.groups.find(x=>x.id===currentChat);if(g)return editGroup(g.id);const c=data.characters.find(x=>x.id===currentChat);if(!c)return;modal(`<h2>${esc(c.name)}</h2><div class="note"><b>状态</b><br>${esc(c.status||'未填写')}<br><br><b>角色设定</b><br>${esc(c.bio||'未填写')}</div><div class="group" style="margin:14px 0"><div class="group-title">聊天外观</div><div class="setting" onclick="chooseChatBackground()"><span>更换聊天背景</span><span class="muted">图片 ›</span></div><div class="setting" onclick="clearChatBackground()"><span>恢复默认聊天背景</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="danger" onclick="clearChat('${c.id}')">清空聊天</button></div>`)}
 
 /* ---------- about ---------- */
 function about(){
