@@ -1,8 +1,8 @@
-const CACHE_NAME = 'pokeji-v17.0';
+const CACHE_NAME = 'pokeji-v18.1';
 const ASSETS = [
   './',
   './index.html',
-  './assets/pokeji.css',
+  './assets/app.css',
   './assets/app.js',
   './manifest.json',
   './assets/icon-192.png',
