@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eee9e4">
 <meta name="description" content="API 驱动的虚拟手机式 AI 空间">
-<title>扑克机 · Private AI Space · V18</title>
+<title>扑克机 · Private AI Space · V19</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" id="appleTouchIcon" href="./assets/icon-192.png">
 <link rel="icon" id="appFavicon" href="./assets/icon-192.png">
@@ -14,12 +14,16 @@
 <body>
 
 <div id="bootScreen">
+  <div class="boot-grid"></div>
+  <div class="boot-vignette"></div>
+  <i class="boot-corner tl"></i><i class="boot-corner tr"></i>
+  <i class="boot-corner bl"></i><i class="boot-corner br"></i>
   <div class="boot-inner">
-    <div class="boot-suit">♠</div>
+    <div class="boot-seal"><div class="boot-suit">♠</div><div class="boot-flare"></div></div>
     <div class="boot-name">扑克机</div>
     <div class="boot-tag">PRIVATE AI SPACE</div>
     <div class="boot-loader"><div class="boot-fill"></div></div>
-    <div class="boot-hint">YOUR OWN API · YOUR OWN ROOM</div>
+    <div class="boot-hint">LOCAL MEMORY · PERSONAL API · PRIVATE STORY</div>
   </div>
 </div>
 
@@ -51,8 +55,15 @@
 
 <section id="home" class="view">
 <div class="p12-home" id="homeDesk">
-  <div class="p12-statusbar"><span id="homeClock">05:22</span><span>⌁ 5G　▰</span></div>
-  <div class="p12-island" onclick="openHomeEditor()"><i></i><span>POKEJI</span><b>♠</b></div>
+  <button class="p12-island" id="dynamicIsland" type="button" onclick="toggleDynamicIsland()" aria-expanded="false" aria-label="展开灵动岛">
+    <span class="island-sensor" aria-hidden="true"><i></i></span>
+    <span class="island-compact"><b id="islandCompactSymbol">♠</b><span id="islandCompactText">POKEJI</span></span>
+    <span class="island-expanded">
+      <b class="island-expanded-symbol" id="islandExpandedSymbol">♠</b>
+      <span class="island-expanded-copy"><strong id="islandTitle">扑克机</strong><small id="islandSubtitle">私人空间</small></span>
+      <i class="island-pulse" aria-hidden="true"></i>
+    </span>
+  </button>
   <div class="p12-pages" id="homePages">
     <div class="p12-page active" data-page="0">
       <div class="p12-clock"><strong id="homeClockLarge">05:22</strong><span id="homeDate"></span></div>
@@ -63,6 +74,7 @@
         <button class="p12-app" onclick="openView('world')"><span class="p12-tile"><b>◇</b></span><span>世界</span></button>
         <button class="p12-app" onclick="openView('memory')"><span class="p12-tile"><b>♥</b></span><span>记忆</span></button>
         <button class="p12-app" onclick="openView('groups')"><span class="p12-tile"><b>❖</b></span><span>群聊</span></button>
+        <button class="p12-app" onclick="openView('feed')"><span class="p12-tile"><b>◌</b></span><span>动态</span></button>
         <button class="p12-app" onclick="openView('settings')"><span class="p12-tile"><b>⚙</b></span><span>设置</span></button>
         <button class="p12-app" onclick="openHomeEditor()"><span class="p12-tile"><b>•••</b></span><span>更多</span></button>
       </div>
@@ -88,76 +100,70 @@
   <div class="p12-gesture"></div>
   <div class="p12-editor" id="homeEditor">
     <button class="p12-editor-close" onclick="closeHomeEditor()">×</button>
-    <h2>自定义主屏幕</h2><p>App 不可删除；可移动到其他页面。组件可删除、调整大小。</p>
-    <div class="p12-editor-row"><b>主题</b><button onclick="chooseHomeBackground();closeHomeEditor()">更换壁纸</button></div>
-    <div class="p12-editor-row"><b>组件</b><button onclick="toast('组件库将在下一版开放')">添加组件</button></div>
-    <div class="p12-editor-row"><b>页面</b><button onclick="toast('可左右滑动切换页面')">管理页面</button></div>
+    <h2>主屏幕</h2>
+    <div class="p12-editor-row"><b>壁纸</b><button onclick="chooseHomeBackground();closeHomeEditor()">更换</button></div>
+    <div class="p12-editor-row"><b>默认壁纸</b><button onclick="clearHomeBackground();closeHomeEditor()">恢复</button></div>
+    <div class="p12-editor-row"><b>灵动岛</b><button onclick="closeHomeEditor();editDynamicIsland()">自定义</button></div>
+    <div class="p12-editor-row"><b>应用版本</b><button onclick="closeHomeEditor();checkForUpdates()">检查更新</button></div>
   </div>
 </div>
 </section>
 
 
 
-<section id="chats" class="view">
+<section id="chats" class="view app-view">
 <div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="requireAPI()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section"><input id="chatSearch" class="search" placeholder="搜索聊天" oninput="renderChats()"></div><div id="chatList"></div></div>
-<nav class="nav"><button class="active" onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button onclick="openView('groups')"><b>❖</b>群聊</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
 </section>
 
-<section id="groups" class="view">
+<section id="groups" class="view app-view">
 <div class="header"><h1>群聊</h1><div class="actions"><button class="icon-btn" onclick="newGroup()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div id="groupList"></div></div>
-<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button class="active"><b>❖</b>群聊</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
 </section>
 
-<section id="contacts" class="view">
+<section id="contacts" class="view app-view">
 <div class="header"><h1>角色</h1><div class="actions"><button class="icon-btn" onclick="newCharacter()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section"><input class="search" placeholder="搜索角色" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
-<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button class="active"><b>♧</b>角色</button><button onclick="openView('groups')"><b>❖</b>群聊</button><button onclick="openView('feed')"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
 </section>
 
-<section id="feed" class="view">
+<section id="feed" class="view app-view">
 <div class="header"><h1>动态</h1><div class="actions"><button class="icon-btn" onclick="newPost()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div id="feedList" class="feed"></div></div>
-<nav class="nav"><button onclick="openView('chats')"><b>♡</b>聊天</button><button onclick="openView('contacts')"><b>♧</b>角色</button><button onclick="openView('groups')"><b>❖</b>群聊</button><button class="active"><b>◌</b>动态</button><button onclick="openView('home')"><b>⌂</b>桌面</button></nav>
 </section>
 
-<section id="notifications" class="view">
+<section id="notifications" class="view app-view">
 <div class="header"><h1>通知</h1><div class="actions"><button class="icon-btn" onclick="clearNotifications()">✓</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section" id="notificationList"></div></div>
 </section>
 
-<section id="world" class="view">
+<section id="world" class="view app-view">
 <div class="header"><h1>世界</h1><div class="actions"><button class="icon-btn" onclick="newWorld()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section" id="worldList"></div></div>
 </section>
 
-<section id="memory" class="view">
+<section id="memory" class="view app-view">
 <div class="header"><h1>记忆</h1><div class="actions"><button class="icon-btn" onclick="newMemory()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section" id="memoryList"></div></div>
 </section>
 
-<section id="dataCenter" class="view">
+<section id="dataCenter" class="view app-view">
 <div class="header"><h1>数据</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll">
 <div class="engine-card">
-<h3>导入与导出</h3>
-<p>主题文件与业务资料使用不同格式，互不混用。最终资料导入会恢复世界书、会话、配置与记忆。</p>
-<button class="primary" style="width:100%;margin:6px 0 9px" onclick="exportSJ()">导出最终资料</button>
+<h3>最终资料</h3>
+<button class="primary data-action" onclick="exportSJ()">导出最终资料</button>
 <button class="icon-btn" style="width:100%;margin-bottom:9px" onclick="document.getElementById('sjImport').click()">导入最终资料</button>
 <input id="sjImport" type="file" accept=".json,application/json" style="display:none" onchange="importSJ(event)">
-<button class="icon-btn" style="width:100%;margin-bottom:9px" onclick="exportThemes()">导出主题</button>
-<button class="icon-btn" style="width:100%" onclick="importThemes()">导入主题（追加）</button>
 </div>
 <div class="engine-card">
-<h3>导出范围</h3>
-<div class="module"><div class="module-head"><b>全部数据</b><span class="pill">推荐</span></div><small>角色、群聊、聊天、世界、预设、正则、记忆和设置</small></div>
-<div class="module"><div class="module-head"><b>API Key</b><span class="pill">默认不导出</span></div><small>为了安全，导出的文件不会包含 API Key。</small></div>
+<h3>主题样式</h3>
+<button class="icon-btn" style="width:100%;margin-bottom:9px" onclick="exportThemes()">导出主题</button>
+<button class="icon-btn" style="width:100%" onclick="importThemes()">导入主题（追加）</button>
 </div>
 </div>
 </section>
 
-<section id="engine" class="view">
+<section id="engine" class="view app-view">
 <div class="header"><h1>引擎</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll">
 <div class="engine-tabs">
@@ -170,11 +176,10 @@
 </div>
 </section>
 
-<section id="settings" class="view">
+<section id="settings" class="view app-view">
 <div class="header"><h1>设置</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll">
 <div class="group"><div class="group-title">API 模型分工</div>
-<div class="note">每个模型拥有独立服务商、地址、Key、模型名及请求配额链路。点击模型项编辑；主聊天模型用于普通对话。</div>
 <div id="modelProfiles"></div>
 <div class="setting"><span>Temperature</span><input id="temperature" type="number" min="0" max="2" step=".1"></div>
 <div class="setting"><span>最大输出 Tokens</span><input id="maxTokens" type="number" min="64" max="32000" step="64"></div>
@@ -182,16 +187,20 @@
 <div class="setting"><span>摘要保留轮数</span><input id="summaryKeepTurns" type="number" min="2" max="100" step="1"></div>
 <div class="setting"><span>请求超时（秒）</span><input id="timeout" type="number" min="10" max="180" step="5"></div>
 <div class="setting"><span>Prompt 缓存</span><input id="promptCache" type="checkbox" style="width:auto"></div>
-<div class="note">开启后：Claude 会对 system 提示词与历史消息添加显式缓存断点；GPT 会带上稳定的 prompt_cache_key 以提升自动缓存命中率；Gemini 会保持上下文结构稳定以提升隐式缓存命中率。三者都能降低重复上下文的开销与延迟。</div>
 <div class="setting"><span></span><button class="primary" onclick="saveSettings()">保存并测试主聊天模型</button></div>
+</div>
+<div class="group"><div class="group-title">聊天与事件</div>
+<div class="setting"><span>随机事件</span><input id="randomEventsEnabled" type="checkbox" style="width:auto" onchange="saveRandomEventSettings()"></div>
+<div class="setting"><span>触发概率</span><input id="randomEventChance" type="number" min="0" max="100" step="1" onchange="saveRandomEventSettings()"></div>
 </div>
 <div class="group"><div class="group-title">美化与应用</div>
 <div class="setting" onclick="chooseHomeBackground()"><span>更换主界面背景</span><span class="muted">图片 ›</span></div>
 <div class="setting" onclick="clearHomeBackground()"><span>恢复默认主界面背景</span><span class="muted">›</span></div>
 <div class="setting" onclick="addTheme()"><span>新增主题</span><span class="muted">追加 ›</span></div>
 <div class="setting" onclick="chooseAppIcon()"><span>应用图标</span><span class="muted">图片 ›</span></div>
+<div class="setting"><span>灵动岛</span><input id="dynamicIslandEnabled" type="checkbox" style="width:auto" onchange="saveAppearanceSettings()"></div>
+<div class="setting" onclick="editDynamicIsland()"><span>自定义灵动岛</span><span class="muted">文字 · 颜色 · 尺寸 ›</span></div>
 <div class="setting"><span>全屏常驻</span><input id="fullscreenEnabled" type="checkbox" style="width:auto" onchange="saveAppearanceSettings()"></div>
-<div class="setting"><span>随机事件动画</span><input id="randomEventAnimation" type="checkbox" style="width:auto" onchange="saveAppearanceSettings()"></div>
 </div>
 <div class="group"><div class="group-title">数据</div>
 <div class="setting" onclick="exportData()"><span>导出最终资料</span><span class="muted">JSON ›</span></div>
@@ -200,10 +209,9 @@
 <div class="setting" onclick="importThemes()"><span>导入主题样式</span><span class="muted">追加 ›</span></div>
 <div class="setting" onclick="resetData()"><span class="danger">清空本机全部数据</span><span class="muted">›</span></div>
 </div>
-<div class="group"><div class="group-title">说明</div><div class="note">这是 API 驱动的扑克机。扑克主题仅属于界面视觉，不会被注入角色剧情。程序不会预置角色、聊天记录或模拟 AI 回复。未配置 API 时，AI 功能保持关闭。</div></div>
 <div class="group"><div class="group-title">关于</div>
 <div class="setting" onclick="about()"><span>关于扑克机</span><span class="muted">›</span></div>
-<div class="setting" onclick="toast('开源地址将在下一版公布')"><span>开源与反馈</span><span class="muted">›</span></div>
+<div class="setting" onclick="checkForUpdates()"><span>检查更新</span><span class="muted">↻</span></div>
 </div>
 </div>
 </section>
@@ -217,7 +225,6 @@
 
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="handle"></div><div id="modalContent"></div></div></div>
 <div id="toast" class="toast"></div>
-<div id="eventFx" class="event-fx" aria-hidden="true"></div>
 </div></div>
 
 <script src="./assets/app.js"></script>
@@ -227,7 +234,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(refreshed)return;refreshed=true;location.reload();
   });
-  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  navigator.serviceWorker.register('./sw.js').catch(error=>errorDetail(error,'离线缓存注册失败'));
 }
 </script>
 </body>

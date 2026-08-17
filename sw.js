@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokeji-v18.1';
+const CACHE_NAME = 'pokeji-v19.0';
 const ASSETS = [
   './',
   './index.html',
@@ -35,4 +35,8 @@ self.addEventListener('fetch', event => {
       return (await caches.match(event.request)) || (await caches.match('./index.html'));
     }
   })());
+});
+
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
