@@ -1,5 +1,5 @@
 /* =========================================================
-   扑克机 · V18 NOIR MAISON EDITION
+   扑克机 · V19 NOIR MAISON EDITION
    Private members'-club aesthetic: ink black, aged ivory,
    brushed brass. No external assets. Offline-safe. Mobile-first.
    ========================================================= */
@@ -67,7 +67,7 @@ button:active{transform:scale(.975)}
 .view.active{display:block;animation:viewIn .34s cubic-bezier(.22,1,.36,1)}
 @keyframes viewIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.view.active{animation:none}}
-.scroll{height:100%;overflow:auto;padding-bottom:82px;scrollbar-width:none}
+.scroll{height:100%;overflow:auto;padding-bottom:calc(28px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
 .scroll::-webkit-scrollbar{display:none}
 .hide{display:none!important}
 
@@ -76,21 +76,26 @@ button:active{transform:scale(.975)}
 /* ---------- boot ---------- */
 #bootScreen{
  position:fixed;inset:0;z-index:9999;
- background:
-  radial-gradient(circle at 50% 30%,rgba(201,163,92,.06),transparent 50%),
-  var(--black);
+ overflow:hidden;background:#050506;
  display:flex;align-items:center;justify-content:center;
- transition:opacity .7s cubic-bezier(.22,1,.36,1),visibility .7s;
+ transition:opacity .85s cubic-bezier(.22,1,.36,1),visibility .85s;
 }
 #bootScreen.done{opacity:0;visibility:hidden;pointer-events:none}
-.boot-inner{text-align:center;animation:bootIn .9s cubic-bezier(.22,1,.36,1) both}
+.boot-grid{position:absolute;inset:-20%;background:repeating-radial-gradient(circle at 50% 46%,transparent 0 39px,rgba(215,177,102,.035) 40px,transparent 41px 80px);animation:bootGridTurn 18s linear infinite}
+.boot-grid:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 49.8%,rgba(217,180,106,.09) 50%,transparent 50.2%),linear-gradient(transparent 49.8%,rgba(217,180,106,.07) 50%,transparent 50.2%);transform:rotate(18deg)}
+.boot-vignette{position:absolute;inset:0;background:radial-gradient(circle at 50% 44%,rgba(202,163,92,.13),transparent 25%),radial-gradient(circle at 50% 44%,transparent 18%,rgba(5,5,6,.25) 50%,#050506 82%)}
+.boot-inner{position:relative;z-index:4;width:180px;text-align:center;animation:bootIn 1s cubic-bezier(.22,1,.36,1) both}
+.boot-seal{position:relative;width:132px;height:132px;margin:auto;display:grid;place-items:center}
+.boot-seal:before,.boot-seal:after{content:"";position:absolute;inset:0;border:1px solid rgba(235,209,151,.2);transform:rotate(45deg);animation:bootSealBreath 2.4s ease-in-out infinite}
+.boot-seal:after{inset:13px;border-color:rgba(235,209,151,.1);animation-delay:.25s}
 .boot-suit{
- font:90px/1 Georgia,serif;
+ position:relative;z-index:2;font:96px/1 Georgia,serif;
  background:var(--gold-grad);background-size:200% 200%;
  -webkit-background-clip:text;background-clip:text;color:transparent;
  animation:bootPulse 2.2s ease-in-out infinite,bootGoldMove 4s ease-in-out infinite;
  filter:drop-shadow(0 0 30px rgba(201,163,92,.25));
 }
+.boot-flare{position:absolute;z-index:3;left:50%;top:50%;width:1px;height:180px;background:linear-gradient(transparent,#f8e9bd,transparent);transform:translate(-50%,-50%) rotate(30deg);filter:blur(.3px);animation:bootFlare 2.5s .3s ease-in-out infinite}
 .boot-name{
  margin-top:22px;font:30px/1 Georgia,"Songti SC",serif;
  letter-spacing:8px;color:var(--ivory);
@@ -115,11 +120,16 @@ button:active{transform:scale(.975)}
  margin-top:16px;font-size:7px;letter-spacing:1.5px;color:var(--whisper);
  opacity:0;animation:bootFade .7s 1.6s cubic-bezier(.22,1,.36,1) forwards;
 }
+.boot-corner{position:absolute;width:31px;height:31px;border-color:rgba(221,185,111,.2);opacity:0;animation:bootFade .7s 1s forwards}
+.boot-corner.tl{left:24px;top:26px;border-left:1px solid;border-top:1px solid}.boot-corner.tr{right:24px;top:26px;border-right:1px solid;border-top:1px solid}.boot-corner.bl{left:24px;bottom:26px;border-left:1px solid;border-bottom:1px solid}.boot-corner.br{right:24px;bottom:26px;border-right:1px solid;border-bottom:1px solid}
 @keyframes bootIn{from{opacity:0;transform:scale(.88) translateY(12px)}to{opacity:1;transform:none}}
 @keyframes bootPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 @keyframes bootGoldMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 @keyframes bootFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes bootLoad{to{width:100%}}
+@keyframes bootGridTurn{to{transform:rotate(360deg)}}
+@keyframes bootSealBreath{0%,100%{opacity:.45;transform:rotate(45deg) scale(.97)}50%{opacity:1;transform:rotate(45deg) scale(1.03)}}
+@keyframes bootFlare{0%,100%{opacity:0;transform:translate(-50%,-50%) rotate(30deg) translateY(-45px)}40%,55%{opacity:.65}70%{opacity:0;transform:translate(-50%,-50%) rotate(30deg) translateY(45px)}}
 
 /* ---------- lock ---------- */
 #lock{
@@ -190,9 +200,38 @@ button:active{transform:scale(.975)}
 .p12-home:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.12;background:repeating-linear-gradient(125deg,transparent 0 92px,#d9b76b 93px,transparent 94px)}
 .p12-home.has-custom-bg{background-size:cover;background-position:center;background-repeat:no-repeat}
 .p12-statusbar{position:absolute;top:0;left:0;right:0;height:38px;padding:11px 18px 0;display:flex;justify-content:space-between;font-size:12px;z-index:8;color:#eee8dc}
-.p12-island{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:132px;height:29px;border-radius:18px;background:#020202;border:1px solid #29251d;box-shadow:0 2px 15px #000;display:flex;align-items:center;justify-content:center;gap:8px;color:#c9aa69;font-size:9px;letter-spacing:1px;z-index:9;cursor:pointer}
-.p12-island i{width:6px;height:6px;border-radius:50%;background:var(--gold-hi);box-shadow:0 0 10px rgba(238,218,159,.6)}
-.p12-island b{font:12px Georgia,serif;color:var(--gold-hi);font-weight:400}
+.p12-island{
+ --island-accent:#eeda9f;--island-closed-width:132px;--island-open-width:274px;
+ appearance:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);
+ width:var(--island-closed-width);height:31px;padding:0;overflow:hidden;
+ border-radius:19px;background:#010101;border:1px solid #28251f;
+ box-shadow:0 3px 18px rgba(0,0,0,.9),inset 0 1px rgba(255,255,255,.035);
+ color:var(--island-accent);z-index:12;cursor:pointer;
+ transition:width .38s cubic-bezier(.2,.9,.25,1),height .38s cubic-bezier(.2,.9,.25,1),border-radius .38s cubic-bezier(.2,.9,.25,1),box-shadow .38s ease;
+}
+.p12-island[data-size="compact"]{--island-closed-width:108px;--island-open-width:238px}
+.p12-island[data-size="wide"]{--island-closed-width:158px;--island-open-width:314px}
+.p12-island.is-expanded{width:min(var(--island-open-width),calc(100% - 38px));height:80px;border-radius:25px;box-shadow:0 13px 38px rgba(0,0,0,.82),inset 0 1px rgba(255,255,255,.04)}
+.p12-island:active{transform:translateX(-50%) scale(.985)}
+.p12-island:focus-visible{outline:1px solid var(--island-accent);outline-offset:3px}
+.p12-island[hidden]{display:none!important}
+.island-sensor{position:absolute;left:11px;top:50%;width:17px;height:9px;transform:translateY(-50%);opacity:.75;transition:opacity .2s}
+.island-sensor:before{content:"";position:absolute;left:0;top:1px;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#47688b 0 9%,#14283b 20%,#060b13 52%,#000 74%);box-shadow:0 0 0 1px #111,0 0 6px rgba(58,96,138,.24)}
+.island-sensor i{position:absolute;right:0;top:3px;width:4px;height:4px;border-radius:50%;background:#171717;box-shadow:inset 0 0 1px #455}
+.island-compact{position:absolute;inset:0 10px 0 31px;display:flex;align-items:center;justify-content:center;gap:7px;opacity:1;transition:opacity .12s ease}
+.island-compact b{flex:none;font:11px/1 Georgia,serif;color:var(--island-accent);font-weight:400}
+.island-compact span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--island-accent);font-size:7px;letter-spacing:1.35px}
+.island-expanded{position:absolute;inset:0;padding:13px 16px 12px;display:flex;align-items:center;gap:12px;opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .16s ease,transform .24s ease}
+.island-expanded-symbol{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none;background:linear-gradient(145deg,rgba(238,218,159,.14),rgba(238,218,159,.03));border:1px solid color-mix(in srgb,var(--island-accent) 28%,transparent);font:23px/1 Georgia,serif;color:var(--island-accent);font-weight:400}
+.island-expanded-copy{display:block;min-width:0;flex:1;text-align:left}
+.island-expanded-copy strong,.island-expanded-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.island-expanded-copy strong{font-size:13px;letter-spacing:.2px;color:#f4efe6}
+.island-expanded-copy small{margin-top:5px;font-size:8px;letter-spacing:.6px;color:#8e8779}
+.island-pulse{width:6px;height:6px;border-radius:50%;flex:none;background:var(--island-accent);box-shadow:0 0 12px var(--island-accent);animation:islandPulse 1.8s ease-in-out infinite}
+.p12-island.is-expanded .island-compact{opacity:0}
+.p12-island.is-expanded .island-sensor{opacity:0}
+.p12-island.is-expanded .island-expanded{opacity:1;transform:none;pointer-events:auto;transition-delay:.11s}
+@keyframes islandPulse{0%,100%{opacity:.35;transform:scale(.72)}50%{opacity:1;transform:scale(1)}}
 .p12-pages{position:absolute;inset:38px 0 0;z-index:2;touch-action:pan-y}
 .p12-page{position:absolute;inset:0;padding:16px 22px 100px;opacity:0;transform:translateX(45px);pointer-events:none;transition:opacity .28s ease,transform .28s ease}
 .p12-page.active{opacity:1;transform:none;pointer-events:auto}
@@ -263,6 +302,13 @@ button:active{transform:scale(.975)}
 .nav button{flex:1;font-size:9px;color:var(--caption);padding-top:7px}
 .nav button b{display:block;font-size:18px;font-weight:400;line-height:25px}
 .nav button.active{color:var(--gold-hi)}
+
+/* Fixed-height app shells: the header stays put and the content reaches the real bottom. */
+.app-view.active{display:flex;flex-direction:column}
+.app-view>.header{flex:0 0 76px}
+.app-view>.scroll{flex:1 1 auto;min-height:0;height:auto;overflow-y:auto;padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+#settings>.scroll,#dataCenter>.scroll{-webkit-overflow-scrolling:touch}
+#settings>.scroll:after,#dataCenter>.scroll:after{content:"";display:block;height:8px}
 
 /* ---------- chat ---------- */
 #chat{background:#09090a}
@@ -431,6 +477,8 @@ button:active{transform:scale(.975)}
 .engine-card p{margin:8px 15px 0;font-size:11.5px;line-height:1.75;color:var(--muted)}
 .engine-card > .primary,.engine-card > button.primary{margin-left:15px;margin-right:15px;width:calc(100% - 30px)}
 .engine-card{padding-bottom:15px;margin:0 16px 14px}
+#dataCenter .engine-card:first-child{margin-top:16px}
+.data-action{width:calc(100% - 30px);margin:14px 15px 9px!important}
 
 /* ---------- about sheet (premium) ---------- */
 .about-sheet{padding:10px 0 6px;text-align:center}
@@ -531,8 +579,6 @@ button:active{transform:scale(.975)}
 #chat.has-custom-bg .composer{background:rgba(11,11,12,.78);}
 .p12-home.has-custom-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
 .p12-home.has-custom-bg:before{opacity:.45;}
-/* V18 functional additions */
+/* V19 functional additions */
 .error-detail{max-height:45vh;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#141418;color:#ffd7d7;padding:14px;border-radius:12px;font-size:11px;line-height:1.55}
-.event-fx{position:fixed;z-index:9999;left:50%;top:42%;transform:translate(-50%,-50%) scale(.2);pointer-events:none;opacity:0;color:var(--gold,#c9a35c);font-size:72px;text-shadow:0 0 32px currentColor}
-.event-fx.play{animation:eventBurst 1.15s ease-out}
-@keyframes eventBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(-20deg)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(8deg)}100%{opacity:0;transform:translate(-50%,-65%) scale(1.8) rotate(18deg)}}
+@media(prefers-reduced-motion:reduce){.boot-grid,.boot-seal:before,.boot-seal:after,.boot-suit,.boot-flare,.island-pulse{animation:none!important}.p12-island{transition-duration:.01ms!important}}

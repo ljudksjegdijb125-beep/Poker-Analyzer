@@ -1,10 +1,11 @@
 /* =========================================================
-   扑克机 · V18 ENGINE CORE
+   扑克机 · V19 ENGINE CORE
    API-only / local-first / no built-in characters
    ========================================================= */
-const STORE='pokeji_api_only_v18';
-const LEGACY_STORES=['private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION=18;
+const STORE='pokeji_api_only_v19';
+const LEGACY_STORES=['pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
+const VERSION=19;
+let startupError=null;
 let data=load();
 let currentChat=null;
 let abortController=null;
@@ -12,10 +13,12 @@ let busy=false;
 let msgMenuTarget=null;
 let homePage=0, homeTouchX=0;
 let groupPendingSpeaker=null;
+let islandTimer=null;
 
 function emptyModel(){return{provider:'openai',base:'',key:'',model:'',weight:100}}
+function defaultDynamicIsland(){return{compactText:'POKEJI',title:'扑克机',subtitle:'私人空间',symbol:'♠',accent:'#eeda9f',size:'standard'}}
 function blank(){return{
- settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,timeout:60000,maxTokens:2048,promptCache:true,fullscreenEnabled:false,randomEventAnimation:true,appIcon:'',themes:[],activeTheme:''},
+ settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,timeout:60000,maxTokens:2048,promptCache:true,fullscreenEnabled:false,randomEventsEnabled:false,randomEventChance:15,dynamicIslandEnabled:true,dynamicIsland:defaultDynamicIsland(),appIcon:'',themes:[],activeTheme:''},
  models:{chat:emptyModel(),random:emptyModel(),voice:emptyModel(),vision:emptyModel(),summary:emptyModel()},
  characters:[],chats:{},chatSettings:{},chatSummaries:{},groups:[],posts:[],notifications:[],worlds:[],memories:[],
  engine:{
@@ -28,6 +31,7 @@ function normalize(x){
  if(!x||typeof x!=='object')return d;
  Object.assign(d,x);
  d.settings={...d.settings,...(x.settings||{})};
+ d.settings.dynamicIsland={...defaultDynamicIsland(),...(x.settings?.dynamicIsland||{})};
  d.models={...d.models,...(x.models||{})};
  for(const k of Object.keys(d.models))d.models[k]={...emptyModel(),...(d.models[k]||{})};
  if(!d.models.chat.base&&d.settings.apiBase)d.models.chat={provider:d.settings.apiProvider||'openai',base:d.settings.apiBase||'',key:d.settings.apiKey||'',model:d.settings.apiModel||'',weight:100};
@@ -49,11 +53,23 @@ function load(){try{
  const raw=localStorage.getItem(STORE)||LEGACY_STORES.map(k=>localStorage.getItem(k)).find(Boolean);
  if(!raw)return blank();
  return normalize(JSON.parse(raw));
-}catch{return blank()}}
-function save(){try{localStorage.setItem(STORE,JSON.stringify(data));return true}catch(e){toast('本地存储空间不足，请先导出数据');return false}}
+}catch(error){startupError=error;return blank()}}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(data));return true}catch(error){errorDetail(error,'本地存储异常');return false}}
+function redactSensitive(value){
+ let result=String(value??'');
+ for(const profile of Object.values(data?.models||{})){
+  const secret=String(profile?.key||'');
+  if(secret.length>=4)result=result.split(secret).join('[REDACTED]');
+ }
+ result=result.replace(/(authorization\s*[:=]\s*bearer\s+)[^\s,;]+/gi,'$1[REDACTED]')
+  .replace(/(x-api-key\s*[:=]\s*)[^\s,;]+/gi,'$1[REDACTED]')
+  .replace(/([?&]key=)[^&\s]+/gi,'$1[REDACTED]')
+  .replace(/("?(?:api[_-]?key|token)"?\s*[:=]\s*"?)[^"\s,}]+/gi,'$1[REDACTED]');
+ return result;
+}
 function errorDetail(error,context='运行错误'){
- const detail=[context,error?.name||'Error',error?.message||String(error),error?.stack||''].filter(Boolean).join('\n\n');
- console.error(context,error);
+ const detail=redactSensitive([context,error?.name||'Error',error?.message||String(error),error?.stack||''].filter(Boolean).join('\n\n'));
+ console.error(detail);
  modal(`<h2>${esc(context)}</h2><pre class="error-detail">${esc(detail)}</pre><div class="form-actions"><button onclick="copyError()">复制完整报错</button><button class="primary" onclick="closeModal()">关闭</button></div>`);
  window.__lastError=detail;
 }
@@ -76,6 +92,39 @@ function applyAppearance(){
  document.getElementById('appleTouchIcon')?.setAttribute('href',icon);
  const theme=(data.settings.themes||[]).find(t=>t.id===data.settings.activeTheme);
  if(theme?.vars)Object.entries(theme.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+ applyDynamicIsland();
+}
+function cleanIslandConfig(input=data.settings?.dynamicIsland){
+ const fallback=defaultDynamicIsland(),cfg={...fallback,...(input||{})};
+ cfg.compactText=String(cfg.compactText||fallback.compactText).slice(0,18);
+ cfg.title=String(cfg.title||fallback.title).slice(0,24);
+ cfg.subtitle=String(cfg.subtitle||fallback.subtitle).slice(0,36);
+ cfg.symbol=Array.from(String(cfg.symbol||fallback.symbol)).slice(0,3).join('');
+ cfg.accent=/^#[0-9a-f]{6}$/i.test(String(cfg.accent))?String(cfg.accent):fallback.accent;
+ cfg.size=['compact','standard','wide'].includes(cfg.size)?cfg.size:fallback.size;
+ return cfg;
+}
+function applyDynamicIsland(){
+ const island=document.getElementById('dynamicIsland');if(!island)return;
+ const cfg=cleanIslandConfig();data.settings.dynamicIsland=cfg;
+ const enabled=data.settings.dynamicIslandEnabled!==false;
+ island.hidden=!enabled;island.dataset.size=cfg.size;island.style.setProperty('--island-accent',cfg.accent);
+ document.getElementById('islandCompactText').textContent=cfg.compactText;
+ document.getElementById('islandCompactSymbol').textContent=cfg.symbol;
+ document.getElementById('islandExpandedSymbol').textContent=cfg.symbol;
+ document.getElementById('islandTitle').textContent=cfg.title;
+ document.getElementById('islandSubtitle').textContent=cfg.subtitle;
+ if(!enabled)collapseDynamicIsland();
+}
+function collapseDynamicIsland(){
+ const island=document.getElementById('dynamicIsland');if(!island)return;
+ clearTimeout(islandTimer);island.classList.remove('is-expanded');island.setAttribute('aria-expanded','false');island.setAttribute('aria-label','展开灵动岛');
+}
+function toggleDynamicIsland(){
+ const island=document.getElementById('dynamicIsland');if(!island||island.hidden)return;
+ const open=!island.classList.contains('is-expanded');clearTimeout(islandTimer);
+ island.classList.toggle('is-expanded',open);island.setAttribute('aria-expanded',String(open));island.setAttribute('aria-label',open?'收起灵动岛':'展开灵动岛');
+ if(open)islandTimer=setTimeout(collapseDynamicIsland,5200);
 }
 function applyChatBackground(){
   const chat=document.getElementById('chat');
@@ -111,18 +160,18 @@ function readImageFile(file){
 }
 function chooseHomeBackground(){
   const input=document.createElement('input');input.type='file';input.accept='image/*';
-  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;try{data.settings.homeBackground=await readImageFile(file);save();applyHomeBackground();toast('主界面背景已更换')}catch{toast('图片读取失败')}};
+  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;try{data.settings.homeBackground=await readImageFile(file);save();applyHomeBackground();toast('主界面背景已更换')}catch(error){errorDetail(error,'主界面背景读取失败')}};
   input.click();
 }
 function clearHomeBackground(){data.settings.homeBackground='';save();applyHomeBackground();toast('已恢复主界面背景')}
 function chooseChatBackground(){
   if(!currentChat)return;
   const input=document.createElement('input');input.type='file';input.accept='image/*';
-  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;try{getChatSettings(currentChat).background=await readImageFile(file);save();applyChatBackground();toast('聊天背景已更换')}catch{toast('图片读取失败')}};
+  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;try{getChatSettings(currentChat).background=await readImageFile(file);save();applyChatBackground();toast('聊天背景已更换')}catch(error){errorDetail(error,'聊天背景读取失败')}};
   input.click();
 }
 function clearChatBackground(){if(!currentChat)return;getChatSettings(currentChat).background='';save();applyChatBackground();toast('已恢复聊天背景')}
-function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const el=document.getElementById(id);if(el)el.classList.add('active')}
+function show(id){collapseDynamicIsland();document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const el=document.getElementById(id);if(el)el.classList.add('active')}
 function openView(id){show(id);if(id==='home')applyAppearance();if(id==='engine')engineTab('world');if(id==='chats')renderChats();if(id==='contacts')renderContacts();if(id==='groups')renderGroups();if(id==='feed')renderFeed();if(id==='notifications')renderNotifications();if(id==='world')renderWorld();if(id==='memory')renderMemory();if(id==='settings')loadSettings()}
 function unlock(){show('home');clock();applyAppearance();if(data.settings.fullscreenEnabled&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(e=>errorDetail(e,'无法进入全屏'))}
 function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hl=document.getElementById('homeClockLarge');if(hl)hl.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
@@ -132,18 +181,19 @@ function closeHomeEditor(){document.getElementById('homeEditor')?.classList.remo
 function initHomeGestures(){const desk=document.getElementById('homeDesk');if(!desk)return;desk.addEventListener('touchstart',e=>{homeTouchX=e.touches[0].clientX},{passive:true});desk.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-homeTouchX;if(Math.abs(dx)>45)setHomePage(homePage+(dx<0?1:-1))},{passive:true})}
 
 setInterval(clock,1000);clock();applyAppearance();initHomeGestures();
+if(startupError)setTimeout(()=>errorDetail(startupError,'本地资料读取失败'),0);
 
 /* ---------- boot ---------- */
 (function(){
   const boot=document.getElementById('bootScreen');
   if(!boot)return;
-  setTimeout(()=>{boot.classList.add('done');setTimeout(()=>{if(boot.parentNode)boot.parentNode.removeChild(boot)},750);},2800);
+  setTimeout(()=>{boot.classList.add('done');setTimeout(()=>{if(boot.parentNode)boot.parentNode.removeChild(boot)},900);},3800);
 })();
 
 function avatar(c){const a=document.createElement('div');a.className='avatar';if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';a.appendChild(im)}return a.outerHTML}
 
 /* ---------- chats & contacts ---------- */
-function renderChats(){const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase();const arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有聊天<br>请先创建角色。API 只在真正发送消息时使用。</div>`;return}e.innerHTML=arr.map(c=>{const m=(data.chats[c.id]||[]).at(-1);return `<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${esc(m?.text||'尚未开始聊天')}</div></div><span class="muted">${esc(m?.time||'')}</span></div>`}).join('')}
+function renderChats(){const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase();const arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有聊天<br>请先创建角色。</div>`;return}e.innerHTML=arr.map(c=>{const m=(data.chats[c.id]||[]).at(-1);return `<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${esc(m?.text||'尚未开始聊天')}</div></div><span class="muted">${esc(m?.time||'')}</span></div>`}).join('')}
 
 function renderContacts(q=''){const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase()));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>还没有角色<br>创建角色后才会出现在这里。</div>`;return}e.innerHTML=arr.map(c=>`<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.status||'')}</div></div><button class="icon-btn" onclick="event.stopPropagation();editCharacter('${c.id}')">⋯</button></div>`).join('')}
 
@@ -229,12 +279,11 @@ function openChat(id){
   show('chat');
   applyChatBackground();
   renderMessages();
-  if(!validAPI())toast('可以先聊天；发送消息前需要配置 API');
 }
 
 function renderMessages(){
  const e=document.getElementById('messages'),arr=data.chats[currentChat]||[];
- if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有消息<br>配置 API 后发送第一条消息。</div>`;return}
+ if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有消息</div>`;return}
  const g=data.groups.find(x=>x.id===currentChat);
  e.innerHTML=arr.map((m,i)=>{
   const speakerName=(g&&m.role==='assistant')?(data.characters.find(c=>c.id===m.speaker)?.name||''):'';
@@ -364,7 +413,24 @@ async function refreshConversationSummary(chatId,signal){
  const summary=await invokeModel('summary',{system:'你是独立的对话记忆摘要工具。忠实压缩人物、事实、关系、承诺、偏好、未完成事项与时间线；不续写，不对话。',history:[{role:'user',content:`已有摘要：\n${data.chatSummaries[chatId]?.text||'无'}\n\n待压缩对话：\n${transcript}`}],temperature:0.1,maxTokens:1200,signal});
  data.chatSummaries[chatId]={text:summary.trim(),fingerprint,updatedAt:new Date().toISOString()};save();return summary.trim();
 }
-function triggerEventFx(reply){if(data.settings.randomEventAnimation===false)return;const eventish=/惊|突然|笑|雨|雪|火|光|心|危险|爆|冲|拥抱|亲吻/.test(reply)||Math.random()<.12;if(!eventish)return;const fx=document.getElementById('eventFx');if(!fx)return;fx.textContent=['♠','♣','♦','♥'][Math.floor(Math.random()*4)];fx.classList.remove('play');void fx.offsetWidth;fx.classList.add('play')}
+async function createNarrativeRandomEvent({chatId,group,activeChar,userMessage,signal}){
+ if(data.settings.randomEventsEnabled!==true)return '';
+ const chance=Math.min(100,Math.max(0,Number(data.settings.randomEventChance)||0));
+ if(chance<=0||Math.random()*100>=chance)return '';
+ if(!validModel('random'))throw Error('随机事件已开启，但随机事件模型未完整配置');
+ const recent=(data.chats[chatId]||[]).slice(-10).map(m=>`${m.role==='user'?'用户':(data.characters.find(c=>c.id===m.speaker)?.name||activeChar.name)}：${m.text}`).join('\n');
+ const engine=buildEngineContext(activeChar,userMessage);
+ const scope=group?`群聊：${group.name}`:`私聊角色：${activeChar.name}`;
+ const event=await invokeModel('random',{
+  system:'你是独立的角色剧情随机事件工具。只生成一条能自然进入当前情境的偶发事件，不扮演角色、不输出对话、不解释机制、不提及应用界面或品牌。事件必须与角色设定和世界规则兼容，避免强行改写既有事实。只输出事件描述。',
+  history:[{role:'user',content:`${scope}\n角色资料：${activeChar.bio||'无'}\n当前世界：${engine.world}\n世界状态：${engine.state}\n最近对话：\n${recent||'无'}\n用户刚刚说：${userMessage}`}],
+  temperature:1,maxTokens:360,cacheKey:`pokeji_random_${activeChar.id}`,signal
+ });
+ const text=String(event||'').trim().slice(0,1200);if(!text)throw Error('随机事件模型返回为空');
+ const events=Array.isArray(data.engine.state.events)?data.engine.state.events:[];
+ events.unshift({id:'event_'+crypto.randomUUID(),chatId,characterId:activeChar.id,text,at:new Date().toISOString()});
+ data.engine.state.events=events.slice(0,30);save();return text;
+}
 
 async function sendMessage(){
  if(busy){stopGeneration();return}
@@ -389,17 +455,24 @@ async function sendMessage(){
   }
   const summary=await refreshConversationSummary(currentChat,controller.signal);
   if(summary)system+=`\n\n【自动记忆摘要】\n${summary}`;
+  try{
+   const randomEvent=await createNarrativeRandomEvent({chatId:currentChat,group,activeChar,userMessage:text,signal:controller.signal});
+   if(randomEvent)system+=`\n\n【本轮随机剧情事件｜高优先级】\n${randomEvent}\n请让事件自然进入当前剧情，并保持角色身份与既有连续性。不要说明事件来自工具。`;
+  }catch(eventError){
+   if(eventError?.name==='AbortError')throw eventError;
+   errorDetail(eventError,'随机事件模型异常');
+  }
   const history=data.chats[currentChat].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>{
    if(m.role==='user')return{role:'user',content:m.text};
    if(group){const spk=data.characters.find(x=>x.id===m.speaker);return{role:'assistant',content:`[${spk?spk.name:'角色'}] ${m.text}`}}
    return{role:'assistant',content:m.text};
   });
-  const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'private_ai_'+(group?group.id+'_'+activeChar.id:activeChar.id),signal:controller.signal});
+  const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'pokeji_chat_'+(group?group.id+'_'+activeChar.id:activeChar.id),signal:controller.signal});
   parseState(rawReply);
   const reply=applyRegexPipeline(rawReply,'AI 回复').replace(/<state>[\s\S]*?<\/state>/gi,'').trim();
   const msg={role:'assistant',text:reply||rawReply,time:time()};
   if(group){msg.speaker=activeChar.id;group.turnIndex=(group.turnIndex+1)%group.memberIds.length;groupPendingSpeaker=null;renderSpeakerPicker(group)}
-  data.chats[currentChat].push(msg);data.notifications.unshift({text:`${notifName}回复了你`,time:'刚刚',type:'chat'});save();renderMessages();triggerEventFx(msg.text);
+  data.chats[currentChat].push(msg);data.notifications.unshift({text:`${notifName}回复了你`,time:'刚刚',type:'chat'});save();renderMessages();
  }catch(err){if(err.name==='AbortError'){errorDetail(err,'请求超时或已停止生成');}else{errorDetail(err,'API / 内部异常');}renderMessages()}
  finally{releaseController(controller);setBusy(false)}
 }
@@ -416,7 +489,7 @@ async function regenerateLast(){
 /* ---------- feed ---------- */
 function newPost(){if(!data.characters.length)return toast('请先创建角色');modal(`<h2>发布动态</h2><div class="field"><label>发布角色</label><select id="pc">${data.characters.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div><div class="field"><label>动态内容</label><textarea id="pt" placeholder="内容由你填写，不会自动生成。"></textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createPost()">发布</button></div>`)}
 function createPost(){const text=document.getElementById('pt').value.trim();if(!text)return toast('请输入内容');data.posts.unshift({id:'p_'+crypto.randomUUID(),char:document.getElementById('pc').value,text,time:'刚刚',likes:0});save();closeModal();renderFeed()}
-function renderFeed(){const e=document.getElementById('feedList');if(!data.posts.length){e.innerHTML='<div class="empty"><div class="big">◌</div>还没有动态<br>这里不会预置任何角色内容。</div>';return}e.innerHTML=data.posts.map(p=>{const c=data.characters.find(x=>x.id===p.char);if(!c)return '';return `<article class="feed-card card"><div class="feed-top">${avatar(c)}<div><b>${esc(c.name)}</b><div class="muted">${esc(p.time)}</div></div></div><div class="feed-text">${esc(p.text)}</div><div class="feed-actions"><button onclick="like('${p.id}')">♡ ${p.likes||0}</button><button onclick="toast('评论功能将在下一版接入')">○ 评论</button></div></article>`}).join('')||'<div class="empty">暂无动态</div>'}
+function renderFeed(){const e=document.getElementById('feedList');if(!data.posts.length){e.innerHTML='<div class="empty"><div class="big">◌</div>还没有动态</div>';return}e.innerHTML=data.posts.map(p=>{const c=data.characters.find(x=>x.id===p.char);if(!c)return '';return `<article class="feed-card card"><div class="feed-top">${avatar(c)}<div><b>${esc(c.name)}</b><div class="muted">${esc(p.time)}</div></div></div><div class="feed-text">${esc(p.text)}</div><div class="feed-actions"><button onclick="like('${p.id}')">♡ ${p.likes||0}</button></div></article>`}).join('')||'<div class="empty">暂无动态</div>'}
 function like(id){const p=data.posts.find(x=>x.id===id);if(!p)return;p.likes=(p.likes||0)+1;save();renderFeed()}
 function renderNotifications(){const e=document.getElementById('notificationList');if(!data.notifications.length){e.innerHTML='<div class="empty"><div class="big">◈</div>暂无通知</div>';return}e.innerHTML=data.notifications.map(n=>`<div class="row card" style="margin-bottom:9px"><span>${n.type==='chat'?'♡':'◌'}</span><div style="flex:1">${esc(n.text)}<div class="muted" style="margin-top:3px">${esc(n.time)}</div></div></div>`).join('')}
 function clearNotifications(){data.notifications=[];save();renderNotifications();toast('已清空')}
@@ -466,7 +539,9 @@ function loadSettings(){
  const to=document.getElementById('timeout');if(to)to.value=Math.round((data.settings.timeout??60000)/1000);
  const pc=document.getElementById('promptCache');if(pc)pc.checked=data.settings.promptCache!==false;
  const fs=document.getElementById('fullscreenEnabled');if(fs)fs.checked=data.settings.fullscreenEnabled===true;
- const ra=document.getElementById('randomEventAnimation');if(ra)ra.checked=data.settings.randomEventAnimation!==false;
+ const re=document.getElementById('randomEventsEnabled');if(re)re.checked=data.settings.randomEventsEnabled===true;
+ const rc=document.getElementById('randomEventChance');if(rc)rc.value=Math.min(100,Math.max(0,Number(data.settings.randomEventChance)||0));
+ const di=document.getElementById('dynamicIslandEnabled');if(di)di.checked=data.settings.dynamicIslandEnabled!==false;
 }
 async function saveSettings(){
  data.settings={...data.settings,
@@ -491,7 +566,46 @@ function importThemes(){const i=document.createElement('input');i.type='file';i.
 function addTheme(){modal(`<h2>新增主题</h2><div class="note">新增主题只会追加，不覆盖已有主题。</div><div class="field"><label>主题名称</label><input id="thName"></div><div class="field"><label>强调色</label><input id="thAccent" type="color" value="#c9a35c"></div><div class="field"><label>背景色</label><input id="thBg" type="color" value="#eee9e4"></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveTheme()">追加并启用</button></div>`)}
 function saveTheme(){const name=document.getElementById('thName').value.trim();if(!name)return toast('请填写主题名称');const t={id:'theme_'+crypto.randomUUID(),name,vars:{'--gold':document.getElementById('thAccent').value,'--paper':document.getElementById('thBg').value}};data.settings.themes.push(t);data.settings.activeTheme=t.id;save();applyAppearance();closeModal();toast('新主题已追加')}
 function chooseAppIcon(){const i=document.createElement('input');i.type='file';i.accept='image/png,image/jpeg,image/webp';i.onchange=async()=>{try{data.settings.appIcon=await readImageFile(i.files[0]);save();applyAppearance();toast('应用内图标已更新；已安装 PWA 的系统图标需重新安装应用') }catch(e){errorDetail(e,'图标设置失败')}};i.click()}
-async function saveAppearanceSettings(){data.settings.fullscreenEnabled=document.getElementById('fullscreenEnabled')?.checked===true;data.settings.randomEventAnimation=document.getElementById('randomEventAnimation')?.checked!==false;save();if(data.settings.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch(e){errorDetail(e,'无法进入全屏')}}else if(!data.settings.fullscreenEnabled&&document.fullscreenElement){try{await document.exitFullscreen()}catch(e){errorDetail(e,'无法退出全屏')}}}
+function saveRandomEventSettings(){
+ data.settings.randomEventsEnabled=document.getElementById('randomEventsEnabled')?.checked===true;
+ data.settings.randomEventChance=Math.min(100,Math.max(0,Number(document.getElementById('randomEventChance')?.value)||0));
+ save();
+}
+function editDynamicIsland(){
+ const cfg=cleanIslandConfig();
+ modal(`<h2>自定义灵动岛</h2><div class="field"><label><input id="diEnabled" type="checkbox" style="width:auto" ${data.settings.dynamicIslandEnabled!==false?'checked':''}> 显示灵动岛</label></div><div class="field"><label>收起文字</label><input id="diCompact" maxlength="18" value="${attr(cfg.compactText)}"></div><div class="field"><label>展开标题</label><input id="diTitle" maxlength="24" value="${attr(cfg.title)}"></div><div class="field"><label>展开副标题</label><input id="diSubtitle" maxlength="36" value="${attr(cfg.subtitle)}"></div><div class="field"><label>符号</label><input id="diSymbol" maxlength="6" value="${attr(cfg.symbol)}"></div><div class="field"><label>强调色</label><input id="diAccent" type="color" value="${attr(cfg.accent)}"></div><div class="field"><label>尺寸</label><select id="diSize"><option value="compact" ${cfg.size==='compact'?'selected':''}>紧凑</option><option value="standard" ${cfg.size==='standard'?'selected':''}>标准</option><option value="wide" ${cfg.size==='wide'?'selected':''}>宽</option></select></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveDynamicIsland()">保存</button></div>`);
+}
+function saveDynamicIsland(){
+ const fallback=defaultDynamicIsland();
+ data.settings.dynamicIslandEnabled=document.getElementById('diEnabled')?.checked!==false;
+ data.settings.dynamicIsland=cleanIslandConfig({
+  compactText:document.getElementById('diCompact')?.value.trim()||fallback.compactText,
+  title:document.getElementById('diTitle')?.value.trim()||fallback.title,
+  subtitle:document.getElementById('diSubtitle')?.value.trim()||fallback.subtitle,
+  symbol:document.getElementById('diSymbol')?.value.trim()||fallback.symbol,
+  accent:document.getElementById('diAccent')?.value||fallback.accent,
+  size:document.getElementById('diSize')?.value||fallback.size
+ });
+ save();applyDynamicIsland();closeModal();loadSettings();toast('灵动岛已更新');
+}
+async function saveAppearanceSettings(){
+ const fullscreen=document.getElementById('fullscreenEnabled'),island=document.getElementById('dynamicIslandEnabled');
+ if(fullscreen)data.settings.fullscreenEnabled=fullscreen.checked===true;
+ if(island)data.settings.dynamicIslandEnabled=island.checked===true;
+ save();applyDynamicIsland();
+ if(data.settings.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch(e){errorDetail(e,'无法进入全屏')}}else if(!data.settings.fullscreenEnabled&&document.fullscreenElement){try{await document.exitFullscreen()}catch(e){errorDetail(e,'无法退出全屏')}}
+}
+async function checkForUpdates(){
+ if(!('serviceWorker' in navigator))return toast('当前浏览器不支持离线更新');
+ toast('正在检查更新…');
+ try{
+  let registration=await navigator.serviceWorker.getRegistration();
+  if(!registration)registration=await navigator.serviceWorker.register('./sw.js');
+  await registration.update();
+  if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});toast('发现更新，正在应用…')}
+  else toast('已完成更新检查');
+ }catch(error){errorDetail(error,'检查更新失败')}
+}
 function resetData(){if(confirm('确定清空本机全部数据吗？此操作不可恢复。')){[STORE,...LEGACY_STORES].forEach(k=>localStorage.removeItem(k));location.reload()}}
 function chatInfo(){const g=data.groups.find(x=>x.id===currentChat);if(g)return editGroup(g.id);const c=data.characters.find(x=>x.id===currentChat);if(!c)return;modal(`<h2>${esc(c.name)}</h2><div class="note"><b>状态</b><br>${esc(c.status||'未填写')}<br><br><b>角色设定</b><br>${esc(c.bio||'未填写')}</div><div class="group" style="margin:14px 0"><div class="group-title">聊天外观</div><div class="setting" onclick="chooseChatBackground()"><span>更换聊天背景</span><span class="muted">图片 ›</span></div><div class="setting" onclick="clearChatBackground()"><span>恢复默认聊天背景</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="danger" onclick="clearChat('${c.id}')">清空聊天</button></div>`)}
 
@@ -501,7 +615,7 @@ function about(){
     <div class="about-sheet">
       <div class="about-icon">♠</div>
       <div class="about-title">扑克机</div>
-      <div class="about-version">Version 15 · Build ${VERSION}</div>
+      <div class="about-version">Version ${VERSION}</div>
       <div class="about-divider"></div>
       <div class="about-desc">
         <p>API 驱动的虚拟手机式 AI 空间。</p>
