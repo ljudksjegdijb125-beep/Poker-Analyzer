@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokeji-v19.0';
+const CACHE_NAME = 'pokeji-v20.0';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,11 @@ const ASSETS = [
   './assets/app.js',
   './manifest.json',
   './assets/icon-192.png',
-  './assets/icon-512.png'
+  './assets/icon-512.png',
+  './assets/icons/apps/chat-a-heart.webp',
+  './assets/icons/apps/character-k-spade.webp',
+  './assets/icons/apps/group-q-club.webp',
+  './assets/icons/apps/moments-j-diamond.webp'
 ];
 
 self.addEventListener('install', event => {

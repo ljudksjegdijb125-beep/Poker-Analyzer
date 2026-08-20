@@ -1,7 +1,7 @@
 {
   "name": "扑克机 · Private AI Space",
   "short_name": "扑克机",
-  "description": "API 驱动的虚拟手机式 AI 空间",
+  "description": "本地优先、可安装的手机化 AI 角色聊天空间",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#07070a",

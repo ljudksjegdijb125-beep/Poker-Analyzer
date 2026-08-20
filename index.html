@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eee9e4">
 <meta name="description" content="API 驱动的虚拟手机式 AI 空间">
-<title>扑克机 · Private AI Space · V19</title>
+<title>扑克机 · Private AI Space · V20</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" id="appleTouchIcon" href="./assets/icon-192.png">
 <link rel="icon" id="appFavicon" href="./assets/icon-192.png">
@@ -64,47 +64,27 @@
       <i class="island-pulse" aria-hidden="true"></i>
     </span>
   </button>
-  <div class="p12-pages" id="homePages">
-    <div class="p12-page active" data-page="0">
-      <div class="p12-clock"><strong id="homeClockLarge">05:22</strong><span id="homeDate"></span></div>
-      <div class="p12-brand"><b>POKEJI</b><small>PRIVATE DIGITAL SPACE</small></div>
-      <div class="p12-apps">
-        <button class="p12-app" onclick="openView('chats')"><span class="p12-tile"><b>♡</b></span><span>聊天</span></button>
-        <button class="p12-app" onclick="openView('contacts')"><span class="p12-tile"><b>♣</b></span><span>角色</span></button>
-        <button class="p12-app" onclick="openView('world')"><span class="p12-tile"><b>◇</b></span><span>世界</span></button>
-        <button class="p12-app" onclick="openView('memory')"><span class="p12-tile"><b>♥</b></span><span>记忆</span></button>
-        <button class="p12-app" onclick="openView('groups')"><span class="p12-tile"><b>❖</b></span><span>群聊</span></button>
-        <button class="p12-app" onclick="openView('feed')"><span class="p12-tile"><b>◌</b></span><span>动态</span></button>
-        <button class="p12-app" onclick="openView('settings')"><span class="p12-tile"><b>⚙</b></span><span>设置</span></button>
-        <button class="p12-app" onclick="openHomeEditor()"><span class="p12-tile"><b>•••</b></span><span>更多</span></button>
-      </div>
-    </div>
-    <div class="p12-page" data-page="1">
-      <div class="p12-clock p12-symbol"><strong>♠</strong><span>POKEJI COLLECTION</span></div>
-      <div class="p12-brand"><b>ARCHIVE</b><small>YOUR PRIVATE WORLD</small></div>
-      <div class="p12-apps p12-apps-secondary">
-        <button class="p12-app" onclick="openView('engine')"><span class="p12-tile"><b>✧</b></span><span>预设</span></button>
-        <button class="p12-app" onclick="openView('dataCenter')"><span class="p12-tile"><b>▣</b></span><span>数据</span></button>
-        <button class="p12-app" onclick="openView('settings')"><span class="p12-tile"><b>◈</b></span><span>主题</span></button>
-        <button class="p12-app" onclick="openView('notifications')"><span class="p12-tile"><b>⌁</b></span><span>通知</span></button>
-      </div>
-    </div>
+  <div class="home-clockline">
+    <button class="home-clock-profile" type="button" onclick="chooseHomeAvatar()" aria-label="更换桌面头像"><span id="homeAvatarFallback">♠</span><img id="homeAvatarImage" alt=""></button>
+    <div class="p12-clock"><strong id="homeClockLarge">05:22</strong><span id="homeDate"></span></div>
+    <div class="p12-brand"><b>POKEJI</b><small>PRIVATE DIGITAL SPACE</small></div>
   </div>
-  <div class="p12-dots" id="homeDots"><b>●</b> ○</div>
-  <div class="p12-dock">
-    <button onclick="openView('chats')"><span class="p12-tile p12-tile-mini">♡</span></button>
-    <button onclick="openView('contacts')"><span class="p12-tile p12-tile-mini">♣</span></button>
-    <button onclick="openView('engine')"><span class="p12-tile p12-tile-mini">✦</span></button>
-    <button onclick="openView('settings')"><span class="p12-tile p12-tile-mini">⚙</span></button>
-  </div>
+  <div class="p12-pages" id="homePages" aria-label="可分页桌面"></div>
+  <div class="p12-dots" id="homeDots"></div>
+  <button class="home-arrange" type="button" onclick="openHomeEditor()" aria-label="整理桌面">＋</button>
   <div class="p12-gesture"></div>
   <div class="p12-editor" id="homeEditor">
     <button class="p12-editor-close" onclick="closeHomeEditor()">×</button>
-    <h2>主屏幕</h2>
-    <div class="p12-editor-row"><b>壁纸</b><button onclick="chooseHomeBackground();closeHomeEditor()">更换</button></div>
-    <div class="p12-editor-row"><b>默认壁纸</b><button onclick="clearHomeBackground();closeHomeEditor()">恢复</button></div>
-    <div class="p12-editor-row"><b>灵动岛</b><button onclick="closeHomeEditor();editDynamicIsland()">自定义</button></div>
-    <div class="p12-editor-row"><b>应用版本</b><button onclick="closeHomeEditor();checkForUpdates()">检查更新</button></div>
+    <h2>桌面布局</h2>
+    <p>整理模式下可拖动占格；组件只用于美化，不会进入任何页面。</p>
+    <div class="p12-editor-row"><b>整理桌面</b><button id="homeEditToggle" onclick="toggleHomeEditMode()">开启</button></div>
+    <div class="p12-editor-row"><b>添加组件</b><button onclick="showWidgetPicker()">照片 / 唱片</button></div>
+    <div class="p12-editor-row"><b>添加应用</b><button onclick="showAppPicker()">选择</button></div>
+    <div class="p12-editor-row"><b>桌面分页</b><button onclick="addHomePage()">新增一页</button></div>
+    <div class="p12-editor-row"><b>当前页</b><button onclick="removeCurrentHomePage()">删除空页</button></div>
+    <div class="p12-editor-row"><b>壁纸</b><button onclick="chooseHomeBackground()">更换</button></div>
+    <div class="p12-editor-row"><b>桌面图标</b><button onclick="showHomeIconManager()">逐个自定义</button></div>
+    <div class="p12-editor-row"><b>恢复默认排列</b><button onclick="resetHomeLayout()">恢复</button></div>
   </div>
 </div>
 </section>
@@ -142,7 +122,7 @@
 </section>
 
 <section id="memory" class="view app-view">
-<div class="header"><h1>记忆</h1><div class="actions"><button class="icon-btn" onclick="newMemory()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="header"><h1>记忆</h1><div class="actions"><button class="icon-btn" onclick="manualSummaryPicker()" title="手动摘要">◎</button><button class="icon-btn" onclick="newMemory()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section" id="memoryList"></div></div>
 </section>
 
@@ -185,6 +165,7 @@
 <div class="setting"><span>最大输出 Tokens</span><input id="maxTokens" type="number" min="64" max="32000" step="64"></div>
 <div class="setting"><span>历史消息条数</span><input id="maxHistory" type="number" min="4" max="100" step="1"></div>
 <div class="setting"><span>摘要保留轮数</span><input id="summaryKeepTurns" type="number" min="2" max="100" step="1"></div>
+<div class="setting"><span>自动记忆摘要</span><input id="summaryAutoEnabled" type="checkbox" style="width:auto"></div>
 <div class="setting"><span>请求超时（秒）</span><input id="timeout" type="number" min="10" max="180" step="5"></div>
 <div class="setting"><span>Prompt 缓存</span><input id="promptCache" type="checkbox" style="width:auto"></div>
 <div class="setting"><span></span><button class="primary" onclick="saveSettings()">保存并测试主聊天模型</button></div>
@@ -198,15 +179,15 @@
 <div class="setting" onclick="clearHomeBackground()"><span>恢复默认主界面背景</span><span class="muted">›</span></div>
 <div class="setting" onclick="addTheme()"><span>新增主题</span><span class="muted">追加 ›</span></div>
 <div class="setting" onclick="chooseAppIcon()"><span>应用图标</span><span class="muted">图片 ›</span></div>
+<div class="setting" onclick="showHomeIconManager()"><span>桌面应用图标</span><span class="muted">逐个上传 ›</span></div>
+<div class="setting" onclick="showFontSettings()"><span>界面字体</span><span class="muted" id="fontSettingLabel">系统字体 ›</span></div>
+<div class="setting" onclick="chooseHomeAvatar()"><span>桌面头像</span><span class="muted">图片 ›</span></div>
 <div class="setting"><span>灵动岛</span><input id="dynamicIslandEnabled" type="checkbox" style="width:auto" onchange="saveAppearanceSettings()"></div>
 <div class="setting" onclick="editDynamicIsland()"><span>自定义灵动岛</span><span class="muted">文字 · 颜色 · 尺寸 ›</span></div>
 <div class="setting"><span>全屏常驻</span><input id="fullscreenEnabled" type="checkbox" style="width:auto" onchange="saveAppearanceSettings()"></div>
 </div>
 <div class="group"><div class="group-title">数据</div>
-<div class="setting" onclick="exportData()"><span>导出最终资料</span><span class="muted">JSON ›</span></div>
-<div class="setting" onclick="importData()"><span>导入最终资料</span><span class="muted">JSON ›</span></div>
-<div class="setting" onclick="exportThemes()"><span>导出主题样式</span><span class="muted">JSON ›</span></div>
-<div class="setting" onclick="importThemes()"><span>导入主题样式</span><span class="muted">追加 ›</span></div>
+<div class="setting" onclick="openView('dataCenter')"><span>资料与主题管理</span><span class="muted">进入数据中心 ›</span></div>
 <div class="setting" onclick="resetData()"><span class="danger">清空本机全部数据</span><span class="muted">›</span></div>
 </div>
 <div class="group"><div class="group-title">关于</div>
