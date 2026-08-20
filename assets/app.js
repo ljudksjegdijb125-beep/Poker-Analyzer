@@ -1,26 +1,67 @@
 /* =========================================================
-   扑克机 · V19 ENGINE CORE
+   扑克机 · V20 ENGINE CORE
    API-only / local-first / no built-in characters
    ========================================================= */
-const STORE='pokeji_api_only_v19';
-const LEGACY_STORES=['pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION=19;
+const STORE='pokeji_api_only_v20';
+const LEGACY_STORES=['pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
+const VERSION=20;
 let startupError=null;
+const HOME_APP_CATALOG={
+ chats:{label:'聊天',view:'chats',icon:'./assets/icons/apps/chat-a-heart.webp',glyph:'♡'},
+ contacts:{label:'角色',view:'contacts',icon:'./assets/icons/apps/character-k-spade.webp',glyph:'♠'},
+ groups:{label:'群聊',view:'groups',icon:'./assets/icons/apps/group-q-club.webp',glyph:'♣'},
+ feed:{label:'动态',view:'feed',icon:'./assets/icons/apps/moments-j-diamond.webp',glyph:'◇'},
+ world:{label:'世界书',view:'world',glyph:'✦'},memory:{label:'记忆',view:'memory',glyph:'⌁'},
+ engine:{label:'规则',view:'engine',glyph:'✧'},settings:{label:'设置',view:'settings',glyph:'⚙'},
+ notifications:{label:'通知',view:'notifications',glyph:'◈'},dataCenter:{label:'资料',view:'dataCenter',glyph:'▣'}
+};
+function defaultHomeDesktop(){return{pageCount:2,items:[
+ {id:'widget_photo_main',kind:'widget',widget:'photo',page:0,x:0,y:0,w:2,h:2,color:'#6e5540',image:''},
+ {id:'app_chats',kind:'app',app:'chats',page:0,x:2,y:0,w:1,h:1},
+ {id:'app_contacts',kind:'app',app:'contacts',page:0,x:3,y:0,w:1,h:1},
+ {id:'app_groups',kind:'app',app:'groups',page:0,x:2,y:1,w:1,h:1},
+ {id:'app_feed',kind:'app',app:'feed',page:0,x:3,y:1,w:1,h:1},
+ {id:'app_world',kind:'app',app:'world',page:0,x:0,y:2,w:1,h:1},
+ {id:'app_memory',kind:'app',app:'memory',page:0,x:1,y:2,w:1,h:1},
+ {id:'app_engine',kind:'app',app:'engine',page:0,x:0,y:3,w:1,h:1},
+ {id:'app_settings',kind:'app',app:'settings',page:0,x:1,y:3,w:1,h:1},
+ {id:'widget_cd_main',kind:'widget',widget:'cd',page:0,x:2,y:2,w:2,h:2,color:'#9c6f57',image:''},
+ {id:'app_notifications',kind:'app',app:'notifications',page:1,x:0,y:0,w:1,h:1},
+ {id:'app_dataCenter',kind:'app',app:'dataCenter',page:1,x:1,y:0,w:1,h:1}
+ ]}}
+function normalizeHomeDesktop(input){
+ const base=defaultHomeDesktop();if(!input||typeof input!=='object'||!Array.isArray(input.items))return base;
+ const pageCount=Math.min(12,Math.max(1,Number(input.pageCount)||1));
+ const ids=new Set(),items=[];
+ for(const raw of input.items){
+  if(!raw||!['app','widget'].includes(raw.kind))continue;
+  if(raw.kind==='app'&&!HOME_APP_CATALOG[raw.app])continue;
+  if(raw.kind==='widget'&&!['photo','cd'].includes(raw.widget))continue;
+  const id=String(raw.id||`${raw.kind}_${crypto.randomUUID()}`);if(ids.has(id))continue;ids.add(id);
+  const w=raw.kind==='app'?1:Math.min(2,Math.max(1,Number(raw.w)||2));
+  const h=raw.kind==='app'?1:Math.min(2,Math.max(1,Number(raw.h)||2));
+  items.push({...raw,id,page:Math.min(pageCount-1,Math.max(0,Number(raw.page)||0)),x:Math.min(4-w,Math.max(0,Number(raw.x)||0)),y:Math.min(4-h,Math.max(0,Number(raw.y)||0)),w,h,color:String(raw.color||'#6e5540'),image:String(raw.image||'')});
+ }
+ return{pageCount,items};
+}
 let data=load();
 let currentChat=null;
 let abortController=null;
 let busy=false;
 let msgMenuTarget=null;
-let homePage=0, homeTouchX=0;
+let homePage=0, homeTouchX=0,homeTouchY=0,homeEditMode=false,homePointerDrag=null;
 let groupPendingSpeaker=null;
 let islandTimer=null;
+let characterImageDraft='';
+let characterOriginalImage='';
 
-function emptyModel(){return{provider:'openai',base:'',key:'',model:'',weight:100}}
+function emptyModel(){return{provider:'openai',base:'',key:'',model:'',weight:100,voice:'alloy'}}
 function defaultDynamicIsland(){return{compactText:'POKEJI',title:'扑克机',subtitle:'私人空间',symbol:'♠',accent:'#eeda9f',size:'standard'}}
 function blank(){return{
- settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,timeout:60000,maxTokens:2048,promptCache:true,fullscreenEnabled:false,randomEventsEnabled:false,randomEventChance:15,dynamicIslandEnabled:true,dynamicIsland:defaultDynamicIsland(),appIcon:'',themes:[],activeTheme:''},
+ settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,summaryAutoEnabled:true,timeout:60000,maxTokens:2048,promptCache:true,fullscreenEnabled:false,randomEventsEnabled:false,randomEventChance:15,dynamicIslandEnabled:true,dynamicIsland:defaultDynamicIsland(),appIcon:'',homeAvatar:'',homeAppIcons:{},customFont:{source:'',label:''},themes:[],activeTheme:''},
  models:{chat:emptyModel(),random:emptyModel(),voice:emptyModel(),vision:emptyModel(),summary:emptyModel()},
  characters:[],chats:{},chatSettings:{},chatSummaries:{},groups:[],posts:[],notifications:[],worlds:[],memories:[],
+ homeDesktop:defaultHomeDesktop(),
  engine:{
   worldRules:[],presetModules:[],regexRules:[],
   state:{location:'',time:'',weather:'',events:[]}
@@ -32,6 +73,8 @@ function normalize(x){
  Object.assign(d,x);
  d.settings={...d.settings,...(x.settings||{})};
  d.settings.dynamicIsland={...defaultDynamicIsland(),...(x.settings?.dynamicIsland||{})};
+ d.settings.homeAppIcons=x.settings?.homeAppIcons&&typeof x.settings.homeAppIcons==='object'?x.settings.homeAppIcons:{};
+ d.settings.customFont={source:'',label:'',...(x.settings?.customFont||{})};
  d.models={...d.models,...(x.models||{})};
  for(const k of Object.keys(d.models))d.models[k]={...emptyModel(),...(d.models[k]||{})};
  if(!d.models.chat.base&&d.settings.apiBase)d.models.chat={provider:d.settings.apiProvider||'openai',base:d.settings.apiBase||'',key:d.settings.apiKey||'',model:d.settings.apiModel||'',weight:100};
@@ -42,6 +85,7 @@ function normalize(x){
  d.groups=Array.isArray(x.groups)?x.groups:[];
  d.posts=Array.isArray(x.posts)?x.posts:[];d.notifications=Array.isArray(x.notifications)?x.notifications:[];
  d.worlds=Array.isArray(x.worlds)?x.worlds:[];d.memories=Array.isArray(x.memories)?x.memories:[];
+ d.homeDesktop=normalizeHomeDesktop(x.homeDesktop);
  d.engine={...d.engine,...(x.engine||{})};
  d.engine.worldRules=Array.isArray(d.engine.worldRules)?d.engine.worldRules:[];
  d.engine.presetModules=Array.isArray(d.engine.presetModules)?d.engine.presetModules:[];
@@ -93,6 +137,9 @@ function applyAppearance(){
  const theme=(data.settings.themes||[]).find(t=>t.id===data.settings.activeTheme);
  if(theme?.vars)Object.entries(theme.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
  applyDynamicIsland();
+ applyHomeAvatar();
+ applyCustomFont();
+ renderHomeDesktop();
 }
 function cleanIslandConfig(input=data.settings?.dynamicIsland){
  const fallback=defaultDynamicIsland(),cfg={...fallback,...(input||{})};
@@ -175,10 +222,99 @@ function show(id){collapseDynamicIsland();document.querySelectorAll('.view').for
 function openView(id){show(id);if(id==='home')applyAppearance();if(id==='engine')engineTab('world');if(id==='chats')renderChats();if(id==='contacts')renderContacts();if(id==='groups')renderGroups();if(id==='feed')renderFeed();if(id==='notifications')renderNotifications();if(id==='world')renderWorld();if(id==='memory')renderMemory();if(id==='settings')loadSettings()}
 function unlock(){show('home');clock();applyAppearance();if(data.settings.fullscreenEnabled&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(e=>errorDetail(e,'无法进入全屏'))}
 function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hl=document.getElementById('homeClockLarge');if(hl)hl.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
-function setHomePage(n){const pages=[...document.querySelectorAll('.p12-page')];if(!pages.length)return;homePage=Math.max(0,Math.min(n,pages.length-1));pages.forEach((el,i)=>el.classList.toggle('active',i===homePage));const dots=document.getElementById('homeDots');if(dots)dots.innerHTML=pages.map((_,i)=>i===homePage?'<b>●</b>':'○').join(' ')}
-function openHomeEditor(){document.getElementById('homeEditor')?.classList.add('on')}
+function safeColor(value,fallback='#6e5540'){return /^#[0-9a-f]{6}$/i.test(String(value||''))?String(value):fallback}
+function safeImageSrc(value){const s=String(value||'');return /^(?:data:image\/(?:jpeg|png|webp);base64,|\.\/assets\/)/i.test(s)?s:''}
+function homeAppIcon(key){return safeImageSrc(data.settings.homeAppIcons?.[key])||HOME_APP_CATALOG[key]?.icon||''}
+function applyHomeAvatar(){
+ const image=document.getElementById('homeAvatarImage'),fallback=document.getElementById('homeAvatarFallback');if(!image||!fallback)return;
+ const src=safeImageSrc(data.settings.homeAvatar);image.src=src;image.hidden=!src;fallback.hidden=!!src;
+}
+function chooseHomeAvatar(){
+ const input=document.createElement('input');input.type='file';input.accept='image/*';
+ input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;data.settings.homeAvatar=await readImageFile(file);save();applyHomeAvatar();toast('桌面头像已更换')}catch(error){errorDetail(error,'头像读取失败')}};input.click();
+}
+async function applyCustomFont(){
+ const cfg=data.settings.customFont||{};const root=document.documentElement;root.classList.toggle('font-custom',!!cfg.source);
+ if(!cfg.source){root.style.removeProperty('--ui-font');return}
+ try{const face=new FontFace('PokejiCustom',`url(${JSON.stringify(cfg.source)})`);await face.load();document.fonts.add(face);root.style.setProperty('--ui-font','PokejiCustom, sans-serif')}catch(error){errorDetail(error,'自定义字体加载失败')}
+}
+function showFontSettings(){
+ const cfg=data.settings.customFont||{};
+ modal(`<h2>界面字体</h2><div class="note">可上传本机字体文件，也可填写可跨域访问的字体直链。字体只改变界面，不进入聊天上下文。</div><div class="field"><label>字体直链</label><input id="fontUrl" value="${attr(cfg.source&&!cfg.source.startsWith('data:')?cfg.source:'')}" placeholder="https://.../font.woff2"></div><div class="form-actions"><button onclick="chooseFontFile()">上传字体</button><button onclick="clearCustomFont()">恢复系统字体</button><button class="primary" onclick="saveFontUrl()">应用直链</button></div>`);
+}
+function chooseFontFile(){
+ const input=document.createElement('input');input.type='file';input.accept='.woff,.woff2,.ttf,.otf,font/woff,font/woff2,font/ttf,font/otf';
+ input.onchange=()=>{const file=input.files?.[0];if(!file)return;if(file.size>6*1024*1024)return toast('字体文件请控制在 6MB 内');const reader=new FileReader();reader.onload=()=>{data.settings.customFont={source:String(reader.result),label:file.name};save();closeModal();applyCustomFont();toast('字体已上传并应用')};reader.onerror=()=>errorDetail(reader.error||Error('读取失败'),'字体读取失败');reader.readAsDataURL(file)};input.click();
+}
+function saveFontUrl(){const source=document.getElementById('fontUrl')?.value.trim();if(!/^https?:\/\//i.test(source||''))return toast('请填写完整的 http/https 字体链接');data.settings.customFont={source,label:'链接字体'};save();closeModal();applyCustomFont();toast('字体链接已应用')}
+function clearCustomFont(){data.settings.customFont={source:'',label:''};save();closeModal();applyCustomFont();toast('已恢复系统字体')}
+function homeItemMarkup(item){
+ const style=`grid-column:${item.x+1}/span ${item.w};grid-row:${item.y+1}/span ${item.h};--widget-color:${safeColor(item.color)}`;
+ if(item.kind==='app'){
+  const app=HOME_APP_CATALOG[item.app],src=homeAppIcon(item.app);
+  return `<button class="home-item home-app${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${src?`<span class="home-app-icon"><img src="${attr(src)}" alt=""></span>`:`<span class="home-app-icon home-app-glyph">${esc(app.glyph)}</span>`}<span class="home-app-label">${esc(app.label)}</span><i class="home-edit-badge">×</i></button>`;
+ }
+ const src=safeImageSrc(item.image),kind=item.widget==='cd'?' home-widget-cd':' home-widget-photo';
+ const inner=item.widget==='cd'?`<span class="home-record${item.playing?' is-playing':''}">${src?`<img src="${attr(src)}" alt="">`:'<i>♠</i>'}</span><small>PRIVATE PRESSING</small>`:(src?`<img class="home-photo-image" src="${attr(src)}" alt="">`:'<span class="home-photo-empty"><b>POKEJI</b><small>PRIVATE FRAME</small></span>');
+ return `<button class="home-item home-widget${kind}${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${inner}<i class="home-edit-badge">×</i></button>`;
+}
+function renderHomeDesktop(){
+ const pages=document.getElementById('homePages');if(!pages)return;
+ data.homeDesktop=normalizeHomeDesktop(data.homeDesktop);homePage=Math.min(homePage,data.homeDesktop.pageCount-1);
+ pages.innerHTML=Array.from({length:data.homeDesktop.pageCount},(_,page)=>`<div class="p12-page home-grid-page${page===homePage?' active':''}" data-page="${page}">${data.homeDesktop.items.filter(item=>item.page===page).map(homeItemMarkup).join('')}</div>`).join('');
+ const dots=document.getElementById('homeDots');if(dots)dots.innerHTML=Array.from({length:data.homeDesktop.pageCount},(_,i)=>`<button type="button" class="${i===homePage?'on':''}" onclick="setHomePage(${i})" aria-label="第 ${i+1} 页"></button>`).join('');
+ document.getElementById('homeDesk')?.classList.toggle('home-edit-mode',homeEditMode);
+ const toggle=document.getElementById('homeEditToggle');if(toggle)toggle.textContent=homeEditMode?'完成':'开启';
+}
+function setHomePage(n){homePage=Math.max(0,Math.min(Number(n)||0,(data.homeDesktop?.pageCount||1)-1));renderHomeDesktop()}
+function activateHomeItem(event,id){
+ if(Date.now()<(window.__homeMovedUntil||0))return;
+ const item=data.homeDesktop.items.find(x=>x.id===id);if(!item)return;
+ if(homeEditMode){event.preventDefault();editHomeItem(id);return}
+ if(item.kind==='app'){const app=HOME_APP_CATALOG[item.app];if(app)openView(app.view);return}
+ if(item.widget==='cd'){item.playing=!item.playing;renderHomeDesktop()}
+}
+function canPlaceHomeItem(page,x,y,w,h,ignoreId=''){
+ if(x<0||y<0||x+w>4||y+h>4)return false;
+ return !data.homeDesktop.items.some(item=>item.page===page&&item.id!==ignoreId&&x<item.x+item.w&&x+w>item.x&&y<item.y+item.h&&y+h>item.y);
+}
+function findHomeSlot(page,w,h,ignoreId=''){for(let y=0;y<=4-h;y++)for(let x=0;x<=4-w;x++)if(canPlaceHomeItem(page,x,y,w,h,ignoreId))return{x,y};return null}
+function homeItemPointerDown(event,id){
+ if(!homeEditMode)return;event.preventDefault();event.stopPropagation();
+ const item=data.homeDesktop.items.find(x=>x.id===id),pageEl=event.currentTarget.closest('.home-grid-page');if(!item||!pageEl)return;
+ event.currentTarget.setPointerCapture?.(event.pointerId);event.currentTarget.classList.add('is-dragging');
+ homePointerDrag={id,page:item.page,startX:event.clientX,startY:event.clientY,pageEl,node:event.currentTarget,moved:false};
+ const move=e=>{if(!homePointerDrag)return;if(Math.hypot(e.clientX-homePointerDrag.startX,e.clientY-homePointerDrag.startY)>7){homePointerDrag.moved=true;homePointerDrag.node.style.transform=`translate(${e.clientX-homePointerDrag.startX}px,${e.clientY-homePointerDrag.startY}px) scale(.95)`}};
+ const up=e=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);const drag=homePointerDrag;homePointerDrag=null;if(!drag)return;drag.node.classList.remove('is-dragging');drag.node.style.transform='';if(!drag.moved)return;const rect=drag.pageEl.getBoundingClientRect(),moving=data.homeDesktop.items.find(v=>v.id===drag.id);if(!moving)return;const rawX=Math.floor((e.clientX-rect.left)/(rect.width/4)),rawY=Math.floor((e.clientY-rect.top)/(rect.height/4)),x=Math.max(0,Math.min(4-moving.w,rawX)),y=Math.max(0,Math.min(4-moving.h,rawY));if(canPlaceHomeItem(drag.page,x,y,moving.w,moving.h,moving.id)){moving.x=x;moving.y=y;save();window.__homeMovedUntil=Date.now()+350;renderHomeDesktop()}else{toast('这里的占格已被使用');renderHomeDesktop()}};
+ window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
+}
+function openHomeEditor(){const editor=document.getElementById('homeEditor');if(editor)editor.classList.add('on');const toggle=document.getElementById('homeEditToggle');if(toggle)toggle.textContent=homeEditMode?'完成':'开启'}
 function closeHomeEditor(){document.getElementById('homeEditor')?.classList.remove('on')}
-function initHomeGestures(){const desk=document.getElementById('homeDesk');if(!desk)return;desk.addEventListener('touchstart',e=>{homeTouchX=e.touches[0].clientX},{passive:true});desk.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-homeTouchX;if(Math.abs(dx)>45)setHomePage(homePage+(dx<0?1:-1))},{passive:true})}
+function toggleHomeEditMode(){homeEditMode=!homeEditMode;closeHomeEditor();renderHomeDesktop();toast(homeEditMode?'已进入整理模式：拖动图标或组件':'桌面排列已保存')}
+function addHomePage(){if(data.homeDesktop.pageCount>=12)return toast('最多 12 页');data.homeDesktop.pageCount++;homePage=data.homeDesktop.pageCount-1;save();closeHomeEditor();renderHomeDesktop();toast('已新增桌面页')}
+function removeCurrentHomePage(){if(data.homeDesktop.pageCount<=1)return toast('至少保留一页');if(data.homeDesktop.items.some(x=>x.page===homePage))return toast('请先移走或删除当前页项目');data.homeDesktop.items.forEach(x=>{if(x.page>homePage)x.page--});data.homeDesktop.pageCount--;homePage=Math.max(0,homePage-1);save();renderHomeDesktop();toast('空白页已删除')}
+function createHomeWidget(type){
+ const w=2,h=2,slot=findHomeSlot(homePage,w,h);if(!slot)return toast('本页没有 2×2 空位，请新增页面');
+ data.homeDesktop.items.push({id:`widget_${type}_${crypto.randomUUID()}`,kind:'widget',widget:type,page:homePage,x:slot.x,y:slot.y,w,h,color:type==='cd'?'#9c6f57':'#6e5540',image:''});save();closeModal();closeHomeEditor();renderHomeDesktop();toast('组件已加入当前页');
+}
+function showWidgetPicker(){modal(`<h2>添加美化组件</h2><div class="note">照片与唱片组件均不绑定页面入口，可以删除、换图、换色和调整占格。</div><div class="home-picker"><button onclick="createHomeWidget('photo')"><b>照片</b><span>1×1 至 2×2</span></button><button onclick="createHomeWidget('cd')"><b>唱片</b><span>1×1 至 2×2</span></button></div>`)}
+function showAppPicker(){const present=new Set(data.homeDesktop.items.filter(x=>x.kind==='app').map(x=>x.app)),missing=Object.entries(HOME_APP_CATALOG).filter(([key])=>!present.has(key));modal(`<h2>添加应用</h2>${missing.length?`<div class="home-app-picker">${missing.map(([key,app])=>`<button onclick="addHomeApp('${key}')"><span>${esc(app.glyph)}</span><b>${esc(app.label)}</b></button>`).join('')}</div>`:'<div class="empty">所有功能都已放在桌面上</div>'}`)}
+function addHomeApp(key){if(!HOME_APP_CATALOG[key])return;let slot=findHomeSlot(homePage,1,1);if(!slot)return toast('本页没有空位');data.homeDesktop.items.push({id:`app_${key}_${crypto.randomUUID()}`,kind:'app',app:key,page:homePage,x:slot.x,y:slot.y,w:1,h:1});save();closeModal();closeHomeEditor();renderHomeDesktop()}
+function editHomeItem(id){
+ const item=data.homeDesktop.items.find(x=>x.id===id);if(!item)return;
+ const title=item.kind==='app'?HOME_APP_CATALOG[item.app].label:(item.widget==='cd'?'唱片组件':'照片组件');
+ modal(`<h2>${esc(title)}</h2><div class="note">当前位置：第 ${item.page+1} 页 · ${item.w}×${item.h} 占格</div>${item.kind==='widget'?`<div class="field"><label>组件颜色</label><input id="homeItemColor" type="color" value="${safeColor(item.color)}" onchange="setHomeItemColor('${attr(id)}')"></div><div class="form-actions"><button onclick="chooseHomeItemImage('${attr(id)}')">更换图片</button><button onclick="resizeHomeWidget('${attr(id)}')">切换大小</button></div>`:`<div class="form-actions"><button onclick="chooseHomeAppIcon('${item.app}')">更换图标</button><button onclick="resetHomeAppIcon('${item.app}')">恢复图标</button></div>`}<div class="form-actions"><button onclick="moveHomeItemPage('${attr(id)}',-1)">上一页</button><button onclick="moveHomeItemPage('${attr(id)}',1)">下一页</button><button class="danger" onclick="removeHomeItem('${attr(id)}')">从桌面移除</button></div>`);
+}
+function setHomeItemColor(id){const item=data.homeDesktop.items.find(x=>x.id===id),input=document.getElementById('homeItemColor');if(!item||!input)return;item.color=safeColor(input.value);save();renderHomeDesktop()}
+function chooseHomeItemImage(id){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const item=data.homeDesktop.items.find(x=>x.id===id),file=input.files?.[0];if(!item||!file)return;item.image=await readImageFile(file);save();closeModal();renderHomeDesktop();toast('组件图片已更换')}catch(error){errorDetail(error,'组件图片读取失败')}};input.click()}
+function resizeHomeWidget(id){const item=data.homeDesktop.items.find(x=>x.id===id);if(!item||item.kind!=='widget')return;const sizes=[[1,1],[2,1],[1,2],[2,2]],index=sizes.findIndex(([w,h])=>w===item.w&&h===item.h);for(let offset=1;offset<=sizes.length;offset++){const [w,h]=sizes[(index+offset)%sizes.length],slot=findHomeSlot(item.page,w,h,item.id);if(slot){item.w=w;item.h=h;item.x=slot.x;item.y=slot.y;save();closeModal();renderHomeDesktop();toast(`组件已调整为 ${w}×${h}`);return}}toast('当前页没有可用占格')}
+function moveHomeItemPage(id,delta){const item=data.homeDesktop.items.find(x=>x.id===id);if(!item)return;const target=item.page+delta;if(target<0)return toast('已经是第一页');if(target>=data.homeDesktop.pageCount)return toast('请先新增一页');const slot=findHomeSlot(target,item.w,item.h,item.id);if(!slot)return toast('目标页没有足够空位');item.page=target;item.x=slot.x;item.y=slot.y;save();closeModal();homePage=target;renderHomeDesktop()}
+function removeHomeItem(id){if(!confirm('只从桌面移除这个项目？业务资料不会被删除。'))return;data.homeDesktop.items=data.homeDesktop.items.filter(x=>x.id!==id);save();closeModal();renderHomeDesktop()}
+function chooseHomeAppIcon(key){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;data.settings.homeAppIcons[key]=await readImageFile(file);save();closeModal();renderHomeDesktop();toast('桌面图标已更换')}catch(error){errorDetail(error,'桌面图标读取失败')}};input.click()}
+function resetHomeAppIcon(key){delete data.settings.homeAppIcons[key];save();closeModal();renderHomeDesktop();toast('已恢复资源包图标')}
+function showHomeIconManager(){modal(`<h2>桌面应用图标</h2><div class="note">每个应用都可单独上传图片。资源包内的四张完整图已默认用于聊天、角色、群聊和动态。</div><div class="home-icon-manager">${Object.entries(HOME_APP_CATALOG).map(([key,app])=>`<div><b>${esc(app.label)}</b><span><button onclick="chooseHomeAppIcon('${key}')">上传</button><button onclick="resetHomeAppIcon('${key}')">恢复</button></span></div>`).join('')}</div>`)}
+function resetHomeLayout(){if(!confirm('恢复默认两页排列？自定义图标与图片资源仍会保留。'))return;data.homeDesktop=defaultHomeDesktop();homePage=0;homeEditMode=false;save();closeHomeEditor();renderHomeDesktop();toast('默认排列已恢复')}
+function initHomeGestures(){const pages=document.getElementById('homePages');if(!pages)return;pages.addEventListener('touchstart',e=>{if(homeEditMode)return;homeTouchX=e.touches[0].clientX;homeTouchY=e.touches[0].clientY},{passive:true});pages.addEventListener('touchend',e=>{if(homeEditMode||!homeTouchX)return;const dx=e.changedTouches[0].clientX-homeTouchX,dy=e.changedTouches[0].clientY-homeTouchY;homeTouchX=0;if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.25){window.__homeMovedUntil=Date.now()+350;setHomePage(homePage+(dx<0?1:-1))}},{passive:true})}
 
 setInterval(clock,1000);clock();applyAppearance();initHomeGestures();
 if(startupError)setTimeout(()=>errorDetail(startupError,'本地资料读取失败'),0);
@@ -243,10 +379,11 @@ function validAPI(){return validModel('chat')}
 function requireAPI(){if(!validAPI()){toast('请先在设置中配置 API');openView('settings');return false}return true}
 
 /* ---------- character CRUD ---------- */
-function newCharacter(){modal(`<h2>创建角色</h2><div class="field"><label>角色名称</label><input id="cn" placeholder="你的角色名称"></div><div class="field"><label>状态</label><input id="cs" placeholder="短状态"></div><div class="field"><label>角色设定</label><textarea id="cb" placeholder="身份、性格、经历、说话方式、边界等。"></textarea></div><div class="field"><label>头像 URL（可选）</label><input id="ci" placeholder="https://..."></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createCharacter()">创建</button></div>`)}
-function createCharacter(){const name=document.getElementById('cn').value.trim();if(!name)return toast('请填写角色名称');const id='c_'+crypto.randomUUID();data.characters.push({id,name,status:document.getElementById('cs').value.trim(),bio:document.getElementById('cb').value.trim(),image:document.getElementById('ci').value.trim()});data.chats[id]=[];getChatSettings(id);save();closeModal();renderContacts();toast('角色已创建')}
-function editCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)return;modal(`<h2>角色资料</h2><div class="field"><label>名称</label><input id="cn" value="${attr(c.name)}"></div><div class="field"><label>状态</label><input id="cs" value="${attr(c.status||'')}"></div><div class="field"><label>角色设定</label><textarea id="cb">${esc(c.bio||'')}</textarea></div><div class="field"><label>头像 URL</label><input id="ci" value="${attr(c.image||'')}"></div><div class="form-actions"><button class="danger" onclick="deleteCharacter('${id}')">删除</button><button onclick="clearChat('${id}')">清空聊天</button><button class="primary" onclick="updateCharacter('${id}')">保存</button></div>`)}
-function updateCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)return;c.name=document.getElementById('cn').value.trim()||c.name;c.status=document.getElementById('cs').value.trim();c.bio=document.getElementById('cb').value;c.image=document.getElementById('ci').value.trim();save();closeModal();renderContacts();renderChats();toast('已保存')}
+function newCharacter(){characterImageDraft='';characterOriginalImage='';modal(`<h2>创建角色</h2><div class="field"><label>角色名称</label><input id="cn" placeholder="你的角色名称"></div><div class="field"><label>状态</label><input id="cs" placeholder="短状态"></div><div class="field"><label>角色设定</label><textarea id="cb" placeholder="身份、性格、经历、说话方式、边界等。"></textarea></div><div class="field"><label>头像 URL（可选）</label><input id="ci" placeholder="https://..."></div><div class="form-actions"><button onclick="pickCharacterImage()">上传头像</button><button onclick="closeModal()">取消</button><button class="primary" onclick="createCharacter()">创建</button></div>`)}
+function createCharacter(){const name=document.getElementById('cn').value.trim();if(!name)return toast('请填写角色名称');const id='c_'+crypto.randomUUID();data.characters.push({id,name,status:document.getElementById('cs').value.trim(),bio:document.getElementById('cb').value.trim(),image:characterImageDraft||document.getElementById('ci').value.trim()});data.chats[id]=[];getChatSettings(id);save();closeModal();renderContacts();toast('角色已创建')}
+function editCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)return;characterImageDraft='';characterOriginalImage=c.image||'';modal(`<h2>角色资料</h2><div class="field"><label>名称</label><input id="cn" value="${attr(c.name)}"></div><div class="field"><label>状态</label><input id="cs" value="${attr(c.status||'')}"></div><div class="field"><label>角色设定</label><textarea id="cb">${esc(c.bio||'')}</textarea></div><div class="field"><label>头像 URL</label><input id="ci" value="${attr(c.image?.startsWith('data:')?'':c.image||'')}"></div><div class="form-actions"><button onclick="pickCharacterImage()">上传头像</button><button class="danger" onclick="deleteCharacter('${id}')">删除</button><button onclick="clearChat('${id}')">清空聊天</button><button class="primary" onclick="updateCharacter('${id}')">保存</button></div>`)}
+function updateCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)return;c.name=document.getElementById('cn').value.trim()||c.name;c.status=document.getElementById('cs').value.trim();c.bio=document.getElementById('cb').value;const url=document.getElementById('ci').value.trim();c.image=characterImageDraft||url||characterOriginalImage;save();closeModal();renderContacts();renderChats();toast('已保存')}
+function pickCharacterImage(){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;characterImageDraft=await readImageFile(file);toast('头像图片已选择，保存后生效')}catch(error){errorDetail(error,'角色头像读取失败')}};input.click()}
 function deleteCharacter(id){if(!confirm('删除角色以及本机保存的该角色聊天记录？'))return;data.characters=data.characters.filter(c=>c.id!==id);delete data.chats[id];delete data.chatSettings?.[id];save();closeModal();renderContacts();renderChats()}
 function clearChat(id=currentChat){if(!id)return;if(!confirm('清空这个角色的全部聊天记录？'))return;data.chats[id]=[];save();if(currentChat===id)renderMessages();closeModal();renderChats();toast('聊天记录已清空')}
 
@@ -298,13 +435,34 @@ function touchEndMsg(e){clearTimeout(msgTouchTimer)}
 
 function showMsgMenu(e,idx){e.preventDefault();e.stopPropagation();msgMenuTarget=idx;
  const arr=data.chats[currentChat]||[];const m=arr[idx];if(!m)return;
- modal(`<h2>消息操作</h2><div class="about-meta" style="margin:0 16px 14px"><div class="meta-row" style="padding:14px;cursor:pointer" onclick="copyMessage(${idx})"><span>📋 复制文本</span><span class="muted">›</span></div><div class="meta-row" style="padding:14px;cursor:pointer" onclick="editMessage(${idx})"><span>✎ 编辑消息</span><span class="muted">›</span></div><div class="meta-row" style="padding:14px;cursor:pointer;color:#cf8488" onclick="deleteMessage(${idx})"><span>🗑 删除消息</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">取消</button></div>`);
+ modal(`<h2>消息操作</h2><div class="about-meta" style="margin:0 16px 14px"><div class="meta-row" style="padding:14px;cursor:pointer" onclick="readMessage(${idx})"><span>朗读消息</span><span class="muted">声音模型 ›</span></div><div class="meta-row" style="padding:14px;cursor:pointer" onclick="copyMessage(${idx})"><span>复制文本</span><span class="muted">›</span></div><div class="meta-row" style="padding:14px;cursor:pointer" onclick="editMessage(${idx})"><span>编辑消息</span><span class="muted">›</span></div><div class="meta-row" style="padding:14px;cursor:pointer;color:#cf8488" onclick="deleteMessage(${idx})"><span>删除消息</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">取消</button></div>`);
  return false}
 
 function copyMessage(idx){const arr=data.chats[currentChat]||[];const m=arr[idx];if(!m)return;navigator.clipboard?.writeText(m.text).then(()=>toast('已复制到剪贴板')).catch(()=>{const ta=document.createElement('textarea');ta.value=m.text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('已复制')});closeModal()}
 function editMessage(idx){const arr=data.chats[currentChat]||[];const m=arr[idx];if(!m)return;closeModal();setTimeout(()=>{modal(`<h2>编辑消息</h2><div class="field"><textarea id="editMsgText">${esc(m.text)}</textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveEditMessage(${idx})">保存</button></div>`)},50)}
 function saveEditMessage(idx){const text=document.getElementById('editMsgText').value;if(!text.trim())return toast('内容不能为空');const arr=data.chats[currentChat];if(arr&&arr[idx]){arr[idx].text=text.trim();arr[idx].edited=true;save();renderMessages();toast('已编辑')}closeModal()}
 function deleteMessage(idx){if(!confirm('删除这条消息？'))return;const arr=data.chats[currentChat];if(arr){arr.splice(idx,1);save();renderMessages();toast('已删除')}closeModal()}
+
+function normalizeSpeechBase(base){
+ let value=String(base||'').trim().replace(/\/+$/,'');
+ if(/\/audio\/speech$/i.test(value))return value;
+ value=value.replace(/\/chat\/completions$/i,'');
+ if(/\/v1$/i.test(value))return value+'/audio/speech';
+ return value+'/audio/speech';
+}
+async function readMessage(idx){
+ const message=(data.chats[currentChat]||[])[idx];if(!message)return;
+ if(!validModel('voice')){closeModal();openView('settings');return toast('请先配置独立的声音模型')}
+ const profile=modelProfile('voice');if(profile.provider!=='openai'){closeModal();return errorDetail(Error('当前朗读链路需要 OpenAI 兼容的 /audio/speech 接口；不会占用主聊天模型。'),'声音模型接口不兼容')}
+ closeModal();toast('声音模型正在生成语音…');const controller=withTimeout(Number(data.settings.timeout)||60000);
+ try{
+  const response=await fetch(normalizeSpeechBase(profile.base),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+profile.key},signal:controller.signal,body:JSON.stringify({model:profile.model,input:message.text,voice:profile.voice||'alloy',response_format:'mp3'})});
+  if(!response.ok){let detail='';try{detail=await response.text()}catch{}throw Error(`HTTP ${response.status} ${response.statusText}\n${detail}`)}
+  const blob=await response.blob();if(!blob.size)throw Error('声音模型返回了空音频');
+  const url=URL.createObjectURL(blob),audio=new Audio(url);audio.onended=()=>URL.revokeObjectURL(url);audio.onerror=()=>{URL.revokeObjectURL(url);errorDetail(Error('浏览器无法播放返回的音频'),'语音播放失败')};await audio.play();
+ }catch(error){if(error?.name==='AbortError')errorDetail(error,'声音生成超时或已取消');else errorDetail(error,'声音模型调用失败')}
+ finally{releaseController(controller)}
+}
 
 /* ---------- API : multi-provider (OpenAI / Anthropic Claude / Google Gemini) ---------- */
 function normalizeBase(base){let b=String(base||'').trim().replace(/\/+$/, '');if(!b)return '';if(/\/chat\/completions$/i.test(b))return b;return b+'/chat/completions'}
@@ -386,8 +544,9 @@ function template(s,ctx){return String(s??'').replace(/\{\{\s*(world|state|memor
 function buildEngineContext(character,userMessage=''){
  const st=data.engine.state||{};
  const rules=(data.engine.worldRules||[]).filter(r=>r.global||ruleMatches(r,userMessage)).sort((a,b)=>(b.global?10000:Number(b.priority)||0)-(a.global?10000:Number(a.priority)||0));
- const globalBooks=(data.worlds||[]).filter(w=>w.global&&w.enabled!==false).map(w=>`【全局世界书:${w.name}｜强制最高优先级】\n${w.desc||''}`);
- const worldText=[...globalBooks,...rules.map(r=>`【${r.global?'全局世界书':'世界规则'}:${r.name}｜${r.global?'强制最高优先级':`优先级${r.priority??0}`}】\n${template(r.content,{state:JSON.stringify(st),message:userMessage,character:character?.name||'',role:character?.bio||''})}`)].join('\n\n');
+ const books=(data.worlds||[]).filter(w=>w.enabled!==false&&(w.global||ruleMatches(w,userMessage))).sort((a,b)=>(b.global?10000:Number(b.priority)||0)-(a.global?10000:Number(a.priority)||0));
+ const bookText=books.map(w=>`【${w.global?'全局世界书':'世界书'}:${w.name}｜${w.global?'强制最高优先级':`优先级${w.priority??70}`}】\n${template(w.desc||'',{state:JSON.stringify(st),message:userMessage,character:character?.name||'',role:character?.bio||''})}`);
+ const worldText=[...bookText,...rules.map(r=>`【${r.global?'全局规则':'世界规则'}:${r.name}｜${r.global?'强制最高优先级':`优先级${r.priority??0}`}】\n${template(r.content,{state:JSON.stringify(st),message:userMessage,character:character?.name||'',role:character?.bio||''})}`)].join('\n\n');
  const memories=(data.memories||[]).slice(0,30).map(m=>`【记忆:${m.title}】${m.text}`).join('\n');
  const base={world:worldText||'当前没有命中的世界规则。',state:JSON.stringify(st,null,2),memory:memories||'暂无记忆',character:character?.bio||'',role:character?.bio||'',message:userMessage};
  const preset=(data.engine.presetModules||[]).filter(m=>m.enabled!==false).slice().sort((a,b)=>(Number(b.weight)||0)-(Number(a.weight)||0)).map(m=>`【${m.kind||'自定义'}:${m.name}|UI ${m.weight??0}%|${priorityDirective(m.weight)}】\n${template(m.content,base)}`).join('\n\n');
@@ -403,10 +562,12 @@ function buildGroupSystemPrompt(g,activeChar,userMessage=''){
  return `这是普通的沉浸式角色群聊“${g.name}”。应用名称、图标、界面主题和视觉装饰均属于界面元信息，不属于对话上下文，不得据此推断任何剧情、活动、物品或玩法。只根据用户消息、角色资料、世界书、记忆与预设回复。所有角色资料完全来自用户。\n\n【群聊成员】\n${roster}\n\n本轮只以【${activeChar.name}】的身份回复：只输出该角色本人的发言内容，不要替其他角色说话或替他们做决定，也不要在回复里加角色名前缀（界面会自动显示发言人）。\n\n【当前发言角色】\n${activeChar.name}\n${activeChar.bio||'无'}\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n保持人物关系与对话连续性，不虚构不存在的外部数据。`;
 }
 
-async function refreshConversationSummary(chatId,signal){
+async function refreshConversationSummary(chatId,signal,force=false){
  const keep=Math.max(2,Number(data.settings.summaryKeepTurns)||12),arr=data.chats[chatId]||[];
- if(!validModel('summary')||arr.length<=keep*2)return data.chatSummaries[chatId]?.text||'';
- const cutoff=arr.length-keep*2,old=arr.slice(0,cutoff);if(cutoff<=0)return '';
+ if(!force&&data.settings.summaryAutoEnabled===false)return data.chatSummaries[chatId]?.text||'';
+ if(!validModel('summary')){if(force)throw Error('记忆摘要工具模型未完整配置');return data.chatSummaries[chatId]?.text||''}
+ let cutoff=arr.length-keep*2;if(force&&cutoff<=0)cutoff=arr.length;
+ const old=arr.slice(0,cutoff);if(cutoff<=0||!old.length)return data.chatSummaries[chatId]?.text||'';
  const fingerprint=`${old.length}:${old.at(-1)?.time||''}:${old.at(-1)?.text?.slice(-40)||''}`;
  if(data.chatSummaries[chatId]?.fingerprint===fingerprint)return data.chatSummaries[chatId].text;
  const transcript=old.map(m=>`${m.role==='user'?'用户':'AI'}：${m.text}`).join('\n');
@@ -495,15 +656,35 @@ function renderNotifications(){const e=document.getElementById('notificationList
 function clearNotifications(){data.notifications=[];save();renderNotifications();toast('已清空')}
 
 /* ---------- world & memory ---------- */
-function newWorld(){modal(`<h2>创建世界书条目</h2><div class="field"><label>名称</label><input id="wn"></div><div class="field"><label>内容</label><textarea id="wd"></textarea></div><div class="field"><label><input id="wg" type="checkbox" style="width:auto"> 常驻 / 全局（全部会话强制最高优先级）</label></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createWorld()">创建</button></div>`)}
-function createWorld(){const n=document.getElementById('wn').value.trim();if(!n)return toast('请填写名称');data.worlds.push({id:'w_'+crypto.randomUUID(),name:n,desc:document.getElementById('wd').value,global:document.getElementById('wg').checked,enabled:true});save();closeModal();renderWorld()}
-function renderWorld(){const e=document.getElementById('worldList');if(!data.worlds.length){e.innerHTML='<div class="empty"><div class="big">✦</div>还没有世界书条目</div>';return}e.innerHTML=data.worlds.map(w=>`<div class="card" style="padding:15px;margin-bottom:10px" onclick="editWorld('${w.id}')"><div class="module-head"><b>${esc(w.name)}</b><span class="pill">${w.global?'全局常驻':'普通条目'}</span></div><div class="muted" style="line-height:1.7;margin-top:7px">${esc(w.desc||'')}</div></div>`).join('')}
-function editWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;modal(`<h2>编辑世界书条目</h2><div class="field"><label>名称</label><input id="wn" value="${attr(w.name)}"></div><div class="field"><label>内容</label><textarea id="wd">${esc(w.desc||'')}</textarea></div><div class="field"><label><input id="wg" type="checkbox" style="width:auto" ${w.global?'checked':''}> 常驻 / 全局</label></div><div class="form-actions"><button class="danger" onclick="deleteWorld('${id}')">删除</button><button class="primary" onclick="updateWorld('${id}')">保存</button></div>`)}
-function updateWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;w.name=document.getElementById('wn').value.trim()||w.name;w.desc=document.getElementById('wd').value;w.global=document.getElementById('wg').checked;save();closeModal();renderWorld();toast('世界书条目已生效')}
+function newWorld(){modal(`<h2>创建世界书条目</h2><div class="field"><label>名称</label><input id="wn"></div><div class="field"><label>触发条件</label><input id="wt" placeholder="留空=始终；支持关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="支持 {{state}} {{message}} {{character}}"></textarea></div><div class="field"><label>优先级百分比</label><input id="wp" type="range" min="0" max="100" value="70" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>70%</small></div><div class="field"><label><input id="wg" type="checkbox" style="width:auto"> 常驻 / 全局（全部会话强制最高优先级）</label></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createWorld()">创建</button></div>`)}
+function createWorld(){const n=document.getElementById('wn').value.trim();if(!n)return toast('请填写名称');data.worlds.push({id:'w_'+crypto.randomUUID(),name:n,trigger:document.getElementById('wt').value.trim(),desc:document.getElementById('wd').value,priority:Number(document.getElementById('wp').value)||70,global:document.getElementById('wg').checked,enabled:true});save();closeModal();renderWorld()}
+function renderWorld(){const e=document.getElementById('worldList');if(!data.worlds.length){e.innerHTML='<div class="empty"><div class="big">✦</div>还没有世界书条目</div>';return}e.innerHTML=data.worlds.map(w=>`<div class="card" style="padding:15px;margin-bottom:10px" onclick="editWorld('${w.id}')"><div class="module-head"><b>${esc(w.name)}</b><span class="pill">${w.enabled===false?'已停用':(w.global?'全局常驻':`优先级 ${w.priority??70}`)}</span></div><div class="muted" style="margin-top:5px">触发：${esc(w.global?'全部会话':w.trigger||'始终')}</div><div class="muted" style="line-height:1.7;margin-top:7px">${esc(w.desc||'')}</div></div>`).join('')}
+function editWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;modal(`<h2>编辑世界书条目</h2><div class="field"><label>名称</label><input id="wn" value="${attr(w.name)}"></div><div class="field"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}"></div><div class="field"><label>内容</label><textarea id="wd">${esc(w.desc||'')}</textarea></div><div class="field"><label>优先级百分比</label><input id="wp" type="range" min="0" max="100" value="${w.priority??70}" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>${w.priority??70}%</small></div><div class="field"><label><input id="we" type="checkbox" style="width:auto" ${w.enabled!==false?'checked':''}> 启用条目</label></div><div class="field"><label><input id="wg" type="checkbox" style="width:auto" ${w.global?'checked':''}> 常驻 / 全局</label></div><div class="form-actions"><button class="danger" onclick="deleteWorld('${id}')">删除</button><button class="primary" onclick="updateWorld('${id}')">保存</button></div>`)}
+function updateWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;w.name=document.getElementById('wn').value.trim()||w.name;w.trigger=document.getElementById('wt').value.trim();w.desc=document.getElementById('wd').value;w.priority=Number(document.getElementById('wp').value)||70;w.enabled=document.getElementById('we').checked;w.global=document.getElementById('wg').checked;save();closeModal();renderWorld();toast('世界书条目已进入上下文规则')}
 function deleteWorld(id){if(!confirm('删除这个世界书条目？'))return;data.worlds=data.worlds.filter(w=>w.id!==id);save();closeModal();renderWorld();toast('已删除')}
 function newMemory(){modal(`<h2>保存记忆</h2><div class="field"><label>标题</label><input id="mn"></div><div class="field"><label>内容</label><textarea id="mt"></textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createMemory()">保存</button></div>`)}
 function createMemory(){const n=document.getElementById('mn').value.trim();if(!n)return toast('请填写标题');data.memories.unshift({id:'m_'+crypto.randomUUID(),title:n,text:document.getElementById('mt').value,time:'刚刚'});save();closeModal();renderMemory()}
-function renderMemory(){const e=document.getElementById('memoryList');if(!data.memories.length){e.innerHTML='<div class="empty"><div class="big">⌁</div>还没有保存的记忆</div>';return}e.innerHTML=data.memories.map(m=>`<div class="card" style="padding:15px;margin-bottom:10px"><b>${esc(m.title)}</b><div class="muted" style="line-height:1.7;margin-top:7px">${esc(m.text)}</div><div class="muted" style="margin-top:7px">${esc(m.time||'')}</div></div>`).join('')}
+function chatDisplayName(id){const character=data.characters.find(x=>x.id===id);if(character)return character.name;const group=data.groups.find(x=>x.id===id);return group?.name||'已删除会话'}
+function renderMemory(){
+ const e=document.getElementById('memoryList'),summaries=Object.entries(data.chatSummaries||{}).filter(([,value])=>value?.text);
+ const summaryHtml=summaries.length?`<div class="group-title" style="margin:4px 0 10px">会话摘要</div>${summaries.map(([id,value])=>`<div class="card" style="padding:15px;margin-bottom:10px" onclick="viewConversationSummary('${attr(id)}')"><div class="module-head"><b>${esc(chatDisplayName(id))}</b><span class="pill">摘要模型</span></div><div class="muted memory-clamp" style="line-height:1.7;margin-top:7px">${esc(value.text)}</div><div class="muted" style="margin-top:7px">${esc(value.updatedAt?new Date(value.updatedAt).toLocaleString('zh-CN'):'')}</div></div>`).join('')}`:'';
+ const manualHtml=data.memories.length?`<div class="group-title" style="margin:18px 0 10px">手动记忆</div>${data.memories.map(m=>`<div class="card" style="padding:15px;margin-bottom:10px" onclick="editMemory('${attr(m.id)}')"><b>${esc(m.title)}</b><div class="muted" style="line-height:1.7;margin-top:7px">${esc(m.text)}</div><div class="muted" style="margin-top:7px">${esc(m.time||'')}</div></div>`).join('')}`:'';
+ e.innerHTML=summaryHtml+manualHtml||'<div class="empty"><div class="big">⌁</div>还没有保存的记忆或会话摘要</div>';
+}
+function manualSummaryPicker(){
+ const chats=Object.entries(data.chats||{}).filter(([,messages])=>Array.isArray(messages)&&messages.length);
+ if(!chats.length)return toast('还没有可摘要的会话');
+ modal(`<h2>手动生成摘要</h2><div class="note">使用独立的记忆摘要工具模型，不占用主聊天模型额度。</div><div class="summary-picker">${chats.map(([id,messages])=>`<button onclick="manualSummarizeChat('${attr(id)}')"><b>${esc(chatDisplayName(id))}</b><span>${messages.length} 条消息</span></button>`).join('')}</div>`);
+}
+async function manualSummarizeChat(id){
+ closeModal();const controller=withTimeout(Number(data.settings.timeout)||60000);toast('正在调用记忆摘要工具模型…');
+ try{await refreshConversationSummary(id,controller.signal,true);renderMemory();toast('会话摘要已更新')}catch(error){if(error?.name==='AbortError')errorDetail(error,'摘要请求超时或已取消');else errorDetail(error,'手动摘要失败')}finally{releaseController(controller)}
+}
+function viewConversationSummary(id){const value=data.chatSummaries?.[id];if(!value)return;modal(`<h2>${esc(chatDisplayName(id))}</h2><div class="preview" style="margin:0 16px 14px;max-height:50vh">${esc(value.text)}</div><div class="form-actions"><button class="danger" onclick="deleteConversationSummary('${attr(id)}')">删除摘要</button><button class="primary" onclick="closeModal()">完成</button></div>`)}
+function deleteConversationSummary(id){if(!confirm('删除这份会话摘要？原聊天记录不会被删除。'))return;delete data.chatSummaries[id];save();closeModal();renderMemory();toast('摘要已删除')}
+function editMemory(id){const memory=data.memories.find(x=>x.id===id);if(!memory)return;modal(`<h2>编辑记忆</h2><div class="field"><label>标题</label><input id="mn" value="${attr(memory.title)}"></div><div class="field"><label>内容</label><textarea id="mt">${esc(memory.text)}</textarea></div><div class="form-actions"><button class="danger" onclick="deleteMemory('${attr(id)}')">删除</button><button class="primary" onclick="updateMemory('${attr(id)}')">保存</button></div>`)}
+function updateMemory(id){const memory=data.memories.find(x=>x.id===id);if(!memory)return;memory.title=document.getElementById('mn').value.trim()||memory.title;memory.text=document.getElementById('mt').value;save();closeModal();renderMemory();toast('记忆已保存')}
+function deleteMemory(id){if(!confirm('删除这条记忆？'))return;data.memories=data.memories.filter(x=>x.id!==id);save();closeModal();renderMemory();toast('记忆已删除')}
 
 /* ---------- engine ---------- */
 function engineTab(tab){['world','preset','regex','preview'].forEach(x=>document.getElementById('tab'+x[0].toUpperCase()+x.slice(1))?.classList.toggle('on',x===tab));const e=document.getElementById('engineBody');if(tab==='world')renderEngineWorld(e);if(tab==='preset')renderEnginePreset(e);if(tab==='regex')renderEngineRegex(e);if(tab==='preview')renderEnginePreview(e)}
@@ -528,13 +709,14 @@ const PROVIDER_HINTS={openai:'例：https://api.openai.com/v1 （或任意 OpenA
 const MODEL_LABELS={chat:'主聊天模型',random:'随机事件模型',voice:'声音模型',vision:'图片识别模型',summary:'记忆摘要工具模型'};
 function updateProviderHint(){}
 function renderModelProfiles(){const e=document.getElementById('modelProfiles');if(!e)return;e.innerHTML=Object.entries(MODEL_LABELS).map(([k,label])=>{const p=modelProfile(k);return `<div class="setting" onclick="editModelProfile('${k}')"><span><b>${label}</b><small style="display:block">${esc(p.model||'未配置')} · ${esc(p.provider)} · ${p.weight}%</small></span><span class="muted">独立 ›</span></div>`}).join('')}
-function editModelProfile(kind){const p=modelProfile(kind);modal(`<h2>${MODEL_LABELS[kind]}</h2><div class="note">此项使用独立 API 配置，不占用其他模型的 Key 或调用链。百分比会转换成归一化优先级指令并实际传入请求。</div><div class="field"><label>服务商</label><select id="mpProvider">${[['openai','OpenAI 兼容'],['anthropic','Claude 原生'],['gemini','Gemini 原生']].map(([v,n])=>`<option value="${v}" ${p.provider===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" value="${attr(p.base||'')}"></div><div class="field"><label>API Key</label><input id="mpKey" type="password" value="${attr(p.key||'')}"></div><div class="field"><label>模型</label><input id="mpModel" value="${attr(p.model||'')}"></div><div class="field"><label>权重百分比</label><input id="mpWeight" type="range" min="0" max="100" value="${p.weight??100}" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>${p.weight??100}%</small></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveModelProfile('${kind}')">保存</button></div>`)}
-function saveModelProfile(kind){data.models[kind]={provider:document.getElementById('mpProvider').value,base:document.getElementById('mpBase').value.trim(),key:document.getElementById('mpKey').value.trim(),model:document.getElementById('mpModel').value.trim(),weight:Number(document.getElementById('mpWeight').value)};save();closeModal();renderModelProfiles();toast(`${MODEL_LABELS[kind]}已保存`)}
+function editModelProfile(kind){const p=modelProfile(kind);modal(`<h2>${MODEL_LABELS[kind]}</h2><div class="note">此项使用独立 API 配置，不占用其他模型的 Key 或调用链。百分比会转换成归一化优先级指令并实际传入请求。${kind==='voice'?'朗读使用 OpenAI 兼容 /audio/speech 链路。':''}</div><div class="field"><label>服务商</label><select id="mpProvider">${[['openai','OpenAI 兼容'],['anthropic','Claude 原生'],['gemini','Gemini 原生']].map(([v,n])=>`<option value="${v}" ${p.provider===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" value="${attr(p.base||'')}"></div><div class="field"><label>API Key</label><input id="mpKey" type="password" value="${attr(p.key||'')}"></div><div class="field"><label>模型</label><input id="mpModel" value="${attr(p.model||'')}"></div>${kind==='voice'?`<div class="field"><label>声音名称 / Voice ID</label><input id="mpVoice" value="${attr(p.voice||'alloy')}" placeholder="alloy"></div>`:''}<div class="field"><label>权重百分比</label><input id="mpWeight" type="range" min="0" max="100" value="${p.weight??100}" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>${p.weight??100}%</small></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveModelProfile('${kind}')">保存</button></div>`)}
+function saveModelProfile(kind){data.models[kind]={provider:document.getElementById('mpProvider').value,base:document.getElementById('mpBase').value.trim(),key:document.getElementById('mpKey').value.trim(),model:document.getElementById('mpModel').value.trim(),weight:Number(document.getElementById('mpWeight').value),voice:document.getElementById('mpVoice')?.value.trim()||data.models[kind]?.voice||'alloy'};save();closeModal();renderModelProfiles();toast(`${MODEL_LABELS[kind]}已保存`)}
 function loadSettings(){
  applyAppearance();renderModelProfiles();
  ['temperature'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=data.settings[k]??''});
  const mh=document.getElementById('maxHistory');if(mh)mh.value=data.settings.maxHistory??40;
  const sk=document.getElementById('summaryKeepTurns');if(sk)sk.value=data.settings.summaryKeepTurns??12;
+ const sa=document.getElementById('summaryAutoEnabled');if(sa)sa.checked=data.settings.summaryAutoEnabled!==false;
  const mt=document.getElementById('maxTokens');if(mt)mt.value=data.settings.maxTokens??2048;
  const to=document.getElementById('timeout');if(to)to.value=Math.round((data.settings.timeout??60000)/1000);
  const pc=document.getElementById('promptCache');if(pc)pc.checked=data.settings.promptCache!==false;
@@ -542,12 +724,14 @@ function loadSettings(){
  const re=document.getElementById('randomEventsEnabled');if(re)re.checked=data.settings.randomEventsEnabled===true;
  const rc=document.getElementById('randomEventChance');if(rc)rc.value=Math.min(100,Math.max(0,Number(data.settings.randomEventChance)||0));
  const di=document.getElementById('dynamicIslandEnabled');if(di)di.checked=data.settings.dynamicIslandEnabled!==false;
+ const fontLabel=document.getElementById('fontSettingLabel');if(fontLabel)fontLabel.textContent=(data.settings.customFont?.label||'系统字体')+' ›';
 }
 async function saveSettings(){
  data.settings={...data.settings,
   temperature:document.getElementById('temperature').value||.8,
   maxHistory:Math.min(100,Math.max(4,Number(document.getElementById('maxHistory')?.value)||40)),
   summaryKeepTurns:Math.min(100,Math.max(2,Number(document.getElementById('summaryKeepTurns')?.value)||12)),
+  summaryAutoEnabled:document.getElementById('summaryAutoEnabled')?.checked!==false,
   maxTokens:Math.min(32000,Math.max(64,Number(document.getElementById('maxTokens')?.value)||2048)),
   timeout:Math.min(180000,Math.max(10000,(Number(document.getElementById('timeout')?.value)||60)*1000)),
   promptCache:document.getElementById('promptCache')?document.getElementById('promptCache').checked:true
