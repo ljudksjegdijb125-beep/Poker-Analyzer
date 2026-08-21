@@ -1,22 +1,29 @@
 /* =========================================================
-   扑克机 · V20 ENGINE CORE
+   扑克机 · V25 ENGINE CORE
    API-only / local-first / no built-in characters
    ========================================================= */
-const STORE='pokeji_api_only_v20';
-const LEGACY_STORES=['pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION=20;
+const STORE='pokeji_api_only_v25';
+const LEGACY_STORES=['pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
+const VERSION=25;
 let startupError=null;
 const HOME_APP_CATALOG={
- chats:{label:'聊天',view:'chats',icon:'./assets/icons/apps/chat-a-heart.webp',glyph:'♡'},
- contacts:{label:'角色',view:'contacts',icon:'./assets/icons/apps/character-k-spade.webp',glyph:'♠'},
- groups:{label:'群聊',view:'groups',icon:'./assets/icons/apps/group-q-club.webp',glyph:'♣'},
- feed:{label:'动态',view:'feed',icon:'./assets/icons/apps/moments-j-diamond.webp',glyph:'◇'},
- world:{label:'世界书',view:'world',glyph:'✦'},memory:{label:'记忆',view:'memory',glyph:'⌁'},
- engine:{label:'规则',view:'engine',glyph:'✧'},settings:{label:'设置',view:'settings',glyph:'⚙'},
- notifications:{label:'通知',view:'notifications',glyph:'◈'},dataCenter:{label:'资料',view:'dataCenter',glyph:'▣'}
+ chats:{label:'聊天',view:'chats',icon:'./assets/icons/apps/chat-a-heart.webp',glyph:'♡',rank:'A',suit:'♥'},
+ contacts:{label:'角色',view:'contacts',icon:'./assets/icons/apps/character-k-spade.webp',glyph:'♠',rank:'K',suit:'♠'},
+ groups:{label:'群聊',view:'groups',icon:'./assets/icons/apps/group-q-club.webp',glyph:'♣',rank:'Q',suit:'♣'},
+ feed:{label:'动态',view:'feed',icon:'./assets/icons/apps/moments-diamond.webp',glyph:'◆',rank:'J',suit:'♦'},
+ world:{label:'世界书',view:'world',glyph:'✦',rank:'W',suit:'♠'},memory:{label:'记忆',view:'memory',glyph:'⌁',rank:'M',suit:'♥'},
+ engine:{label:'规则',view:'engine',glyph:'✧',rank:'R',suit:'♣'},settings:{label:'设置',view:'settings',glyph:'⚙',rank:'S',suit:'♦'},
+ notifications:{label:'通知',view:'notifications',glyph:'◈',rank:'N',suit:'♥'},dataCenter:{label:'资料',view:'dataCenter',glyph:'▣',rank:'D',suit:'♣'}
 };
+const HOME_GLYPH_SVGS={
+ world:'<path d="M16 4.5c1.7 6.2 4.8 9.3 11 11-6.2 1.7-9.3 4.8-11 11-1.7-6.2-4.8-9.3-11-11 6.2-1.7 9.3-4.8 11-11Z"/><circle cx="16" cy="15.5" r="2.2"/>',
+ memory:'<path class="icon-fill" d="M18.5 3.8 8.6 17h7l-1.9 11.2 10.5-14.1h-7.1l1.4-10.3Z"/>',
+ engine:'<circle cx="16" cy="16" r="9.2"/><path d="m16 7.7 2.3 6 6 2.3-6 2.3-2.3 6-2.3-6-6-2.3 6-2.3 2.3-6Z"/><circle cx="16" cy="16" r="1.8"/>',
+ settings:'<circle cx="16" cy="16" r="4.1"/><path d="M16 4.5v3M16 24.5v3M4.5 16h3M24.5 16h3M7.9 7.9l2.1 2.1M22 22l2.1 2.1M24.1 7.9 22 10M10 22l-2.1 2.1"/><circle cx="16" cy="16" r="9.1" stroke-dasharray="2 3"/>'
+};
+const HOME_DOCK_APPS=new Set(['notifications','dataCenter']);
 function defaultHomeDesktop(){return{pageCount:2,items:[
- {id:'widget_photo_main',kind:'widget',widget:'photo',page:0,x:0,y:0,w:2,h:2,color:'#6e5540',image:''},
+ {id:'widget_photo_main',kind:'widget',widget:'photo',page:0,x:0,y:0,w:2,h:2,color:'#5b452e',image:''},
  {id:'app_chats',kind:'app',app:'chats',page:0,x:2,y:0,w:1,h:1},
  {id:'app_contacts',kind:'app',app:'contacts',page:0,x:3,y:0,w:1,h:1},
  {id:'app_groups',kind:'app',app:'groups',page:0,x:2,y:1,w:1,h:1},
@@ -25,22 +32,28 @@ function defaultHomeDesktop(){return{pageCount:2,items:[
  {id:'app_memory',kind:'app',app:'memory',page:0,x:1,y:2,w:1,h:1},
  {id:'app_engine',kind:'app',app:'engine',page:0,x:0,y:3,w:1,h:1},
  {id:'app_settings',kind:'app',app:'settings',page:0,x:1,y:3,w:1,h:1},
- {id:'widget_cd_main',kind:'widget',widget:'cd',page:0,x:2,y:2,w:2,h:2,color:'#9c6f57',image:''},
- {id:'app_notifications',kind:'app',app:'notifications',page:1,x:0,y:0,w:1,h:1},
- {id:'app_dataCenter',kind:'app',app:'dataCenter',page:1,x:1,y:0,w:1,h:1}
+ {id:'widget_cd_main',kind:'widget',widget:'cd',page:0,x:2,y:2,w:2,h:2,color:'#6f5137',image:''}
  ]}}
 function normalizeHomeDesktop(input){
  const base=defaultHomeDesktop();if(!input||typeof input!=='object'||!Array.isArray(input.items))return base;
  const pageCount=Math.min(12,Math.max(1,Number(input.pageCount)||1));
- const ids=new Set(),items=[];
+ const ids=new Set(),seenApps=new Set(),items=[];
  for(const raw of input.items){
   if(!raw||!['app','widget'].includes(raw.kind))continue;
-  if(raw.kind==='app'&&!HOME_APP_CATALOG[raw.app])continue;
+  if(raw.kind==='app'&&(!HOME_APP_CATALOG[raw.app]||HOME_DOCK_APPS.has(raw.app)||seenApps.has(raw.app)))continue;
   if(raw.kind==='widget'&&!['photo','cd'].includes(raw.widget))continue;
   const id=String(raw.id||`${raw.kind}_${crypto.randomUUID()}`);if(ids.has(id))continue;ids.add(id);
-  const w=raw.kind==='app'?1:Math.min(2,Math.max(1,Number(raw.w)||2));
-  const h=raw.kind==='app'?1:Math.min(2,Math.max(1,Number(raw.h)||2));
-  items.push({...raw,id,page:Math.min(pageCount-1,Math.max(0,Number(raw.page)||0)),x:Math.min(4-w,Math.max(0,Number(raw.x)||0)),y:Math.min(4-h,Math.max(0,Number(raw.y)||0)),w,h,color:String(raw.color||'#6e5540'),image:String(raw.image||'')});
+  if(raw.kind==='app')seenApps.add(raw.app);
+  const isWidget=raw.kind==='widget',w=isWidget?2:1,h=isWidget?2:1,page=Math.min(pageCount-1,Math.max(0,Number(raw.page)||0));
+  let x=isWidget?(Number(raw.x)<2?0:2):Math.min(3,Math.max(0,Number(raw.x)||0)),y=isWidget?(Number(raw.y)<2?0:2):Math.min(3,Math.max(0,Number(raw.y)||0));
+  const overlaps=(sx,sy)=>items.some(item=>item.page===page&&sx<item.x+item.w&&sx+w>item.x&&sy<item.y+item.h&&sy+h>item.y);
+  if(overlaps(x,y)){
+   let slot=null;
+   if(isWidget){for(const [sx,sy] of [[0,0],[2,0],[0,2],[2,2]])if(!overlaps(sx,sy)){slot={x:sx,y:sy};break}}
+   else{for(let sy=0;sy<4&&!slot;sy++)for(let sx=0;sx<4;sx++)if(!overlaps(sx,sy)){slot={x:sx,y:sy};break}}
+   if(!slot)continue;x=slot.x;y=slot.y;
+  }
+  items.push({...raw,id,page,x,y,w,h,color:String(raw.color||'#6e5540'),image:String(raw.image||'')});
  }
  return{pageCount,items};
 }
@@ -58,7 +71,7 @@ let characterOriginalImage='';
 function emptyModel(){return{provider:'openai',base:'',key:'',model:'',weight:100,voice:'alloy'}}
 function defaultDynamicIsland(){return{compactText:'POKEJI',title:'扑克机',subtitle:'私人空间',symbol:'♠',accent:'#eeda9f',size:'standard'}}
 function blank(){return{
- settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,summaryAutoEnabled:true,timeout:60000,maxTokens:2048,promptCache:true,fullscreenEnabled:false,randomEventsEnabled:false,randomEventChance:15,dynamicIslandEnabled:true,dynamicIsland:defaultDynamicIsland(),appIcon:'',homeAvatar:'',homeAppIcons:{},customFont:{source:'',label:''},themes:[],activeTheme:''},
+ settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,summaryAutoEnabled:true,timeout:60000,maxTokens:2048,promptCache:true,fullscreenEnabled:false,randomEventsEnabled:false,randomEventChance:15,dynamicIslandEnabled:true,dynamicIsland:defaultDynamicIsland(),appIcon:'',homeAvatar:'',homeAppIcons:{},homeLayoutRevision:2,customFont:{source:'',label:''},themes:[],activeTheme:''},
  models:{chat:emptyModel(),random:emptyModel(),voice:emptyModel(),vision:emptyModel(),summary:emptyModel()},
  characters:[],chats:{},chatSettings:{},chatSummaries:{},groups:[],posts:[],notifications:[],worlds:[],memories:[],
  homeDesktop:defaultHomeDesktop(),
@@ -85,7 +98,8 @@ function normalize(x){
  d.groups=Array.isArray(x.groups)?x.groups:[];
  d.posts=Array.isArray(x.posts)?x.posts:[];d.notifications=Array.isArray(x.notifications)?x.notifications:[];
  d.worlds=Array.isArray(x.worlds)?x.worlds:[];d.memories=Array.isArray(x.memories)?x.memories:[];
- d.homeDesktop=normalizeHomeDesktop(x.homeDesktop);
+ d.homeDesktop=Number(x.settings?.homeLayoutRevision)===2?normalizeHomeDesktop(x.homeDesktop):defaultHomeDesktop();
+ d.settings.homeLayoutRevision=2;
  d.engine={...d.engine,...(x.engine||{})};
  d.engine.worldRules=Array.isArray(d.engine.worldRules)?d.engine.worldRules:[];
  d.engine.presetModules=Array.isArray(d.engine.presetModules)?d.engine.presetModules:[];
@@ -252,16 +266,20 @@ function homeItemMarkup(item){
  const style=`grid-column:${item.x+1}/span ${item.w};grid-row:${item.y+1}/span ${item.h};--widget-color:${safeColor(item.color)}`;
  if(item.kind==='app'){
   const app=HOME_APP_CATALOG[item.app],src=homeAppIcon(item.app);
-  return `<button class="home-item home-app${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${src?`<span class="home-app-icon"><img src="${attr(src)}" alt=""></span>`:`<span class="home-app-icon home-app-glyph">${esc(app.glyph)}</span>`}<span class="home-app-label">${esc(app.label)}</span><i class="home-edit-badge">×</i></button>`;
+  const glyphSvg=HOME_GLYPH_SVGS[item.app];
+  const icon=src?`<span class="home-app-icon home-app-image"><img src="${attr(src)}" alt=""></span>`:`<span class="home-app-icon home-app-glyph" data-rank="${attr(app.rank||'A')}" data-suit="${attr(app.suit||'♠')}">${glyphSvg?`<svg viewBox="0 0 32 32" aria-hidden="true">${glyphSvg}</svg>`:`<b>${esc(app.glyph)}</b>`}</span>`;
+  return `<button class="home-item home-app${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" aria-label="${attr(app.label)}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${icon}<span class="home-app-label">${esc(app.label)}</span><i class="home-edit-badge">×</i></button>`;
  }
  const src=safeImageSrc(item.image),kind=item.widget==='cd'?' home-widget-cd':' home-widget-photo';
- const inner=item.widget==='cd'?`<span class="home-record${item.playing?' is-playing':''}">${src?`<img src="${attr(src)}" alt="">`:'<i>♠</i>'}</span><small>PRIVATE PRESSING</small>`:(src?`<img class="home-photo-image" src="${attr(src)}" alt="">`:'<span class="home-photo-empty"><b>POKEJI</b><small>PRIVATE FRAME</small></span>');
- return `<button class="home-item home-widget${kind}${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${inner}<i class="home-edit-badge">×</i></button>`;
+ const inner=item.widget==='cd'
+  ?`<span class="home-cd-head"><i>♦</i> CD · 01</span><span class="home-record${item.playing?' is-playing':''}">${src?`<img src="${attr(src)}" alt="">`:'<i>♠</i>'}</span><span class="home-cd-foot"><b>Ⅱ</b><small>PLAY</small><em>装饰组件 ◆</em></span>`
+  :(src?`<img class="home-photo-image" src="${attr(src)}" alt=""><span class="home-photo-caption">♠ 照片档案 <em>更换图片 +</em></span>`:`<span class="home-photo-empty"><span class="home-photo-code">POKEJI A<br>FILM<br>3 · ♠</span><span class="home-photo-action"><b>♠ 照片档案</b><em>上传图片 +</em></span></span>`);
+ return `<button class="home-item home-widget${kind}${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" aria-label="${item.widget==='cd'?'唱片组件':'照片组件'}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${inner}<i class="home-edit-badge">×</i></button>`;
 }
 function renderHomeDesktop(){
  const pages=document.getElementById('homePages');if(!pages)return;
  data.homeDesktop=normalizeHomeDesktop(data.homeDesktop);homePage=Math.min(homePage,data.homeDesktop.pageCount-1);
- pages.innerHTML=Array.from({length:data.homeDesktop.pageCount},(_,page)=>`<div class="p12-page home-grid-page${page===homePage?' active':''}" data-page="${page}">${data.homeDesktop.items.filter(item=>item.page===page).map(homeItemMarkup).join('')}</div>`).join('');
+ pages.innerHTML=Array.from({length:data.homeDesktop.pageCount},(_,page)=>`<div class="p12-page home-grid-page${page===homePage?' active':''}" data-page="${page}">${homeEditMode?`<span class="home-grid-guide" aria-hidden="true">${'<i></i>'.repeat(16)}</span>`:''}${data.homeDesktop.items.filter(item=>item.page===page).map(homeItemMarkup).join('')}</div>`).join('');
  const dots=document.getElementById('homeDots');if(dots)dots.innerHTML=Array.from({length:data.homeDesktop.pageCount},(_,i)=>`<button type="button" class="${i===homePage?'on':''}" onclick="setHomePage(${i})" aria-label="第 ${i+1} 页"></button>`).join('');
  document.getElementById('homeDesk')?.classList.toggle('home-edit-mode',homeEditMode);
  const toggle=document.getElementById('homeEditToggle');if(toggle)toggle.textContent=homeEditMode?'完成':'开启';
@@ -279,14 +297,40 @@ function canPlaceHomeItem(page,x,y,w,h,ignoreId=''){
  return !data.homeDesktop.items.some(item=>item.page===page&&item.id!==ignoreId&&x<item.x+item.w&&x+w>item.x&&y<item.y+item.h&&y+h>item.y);
 }
 function findHomeSlot(page,w,h,ignoreId=''){for(let y=0;y<=4-h;y++)for(let x=0;x<=4-w;x++)if(canPlaceHomeItem(page,x,y,w,h,ignoreId))return{x,y};return null}
+function findHomeWidgetSlot(page,ignoreId=''){for(const [x,y] of [[0,0],[2,0],[0,2],[2,2]])if(canPlaceHomeItem(page,x,y,2,2,ignoreId))return{x,y};return null}
 function homeItemPointerDown(event,id){
  if(!homeEditMode)return;event.preventDefault();event.stopPropagation();
  const item=data.homeDesktop.items.find(x=>x.id===id),pageEl=event.currentTarget.closest('.home-grid-page');if(!item||!pageEl)return;
  event.currentTarget.setPointerCapture?.(event.pointerId);event.currentTarget.classList.add('is-dragging');
  homePointerDrag={id,page:item.page,startX:event.clientX,startY:event.clientY,pageEl,node:event.currentTarget,moved:false};
  const move=e=>{if(!homePointerDrag)return;if(Math.hypot(e.clientX-homePointerDrag.startX,e.clientY-homePointerDrag.startY)>7){homePointerDrag.moved=true;homePointerDrag.node.style.transform=`translate(${e.clientX-homePointerDrag.startX}px,${e.clientY-homePointerDrag.startY}px) scale(.95)`}};
- const up=e=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);const drag=homePointerDrag;homePointerDrag=null;if(!drag)return;drag.node.classList.remove('is-dragging');drag.node.style.transform='';if(!drag.moved)return;const rect=drag.pageEl.getBoundingClientRect(),moving=data.homeDesktop.items.find(v=>v.id===drag.id);if(!moving)return;const rawX=Math.floor((e.clientX-rect.left)/(rect.width/4)),rawY=Math.floor((e.clientY-rect.top)/(rect.height/4)),x=Math.max(0,Math.min(4-moving.w,rawX)),y=Math.max(0,Math.min(4-moving.h,rawY));if(canPlaceHomeItem(drag.page,x,y,moving.w,moving.h,moving.id)){moving.x=x;moving.y=y;save();window.__homeMovedUntil=Date.now()+350;renderHomeDesktop()}else{toast('这里的占格已被使用');renderHomeDesktop()}};
- window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
+ const finish=e=>{
+  window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',finish);
+  const drag=homePointerDrag;homePointerDrag=null;if(!drag)return;drag.node.classList.remove('is-dragging');drag.node.style.transform='';if(!drag.moved)return;
+  window.__homeMovedUntil=Date.now()+350;
+  const rect=drag.pageEl.getBoundingClientRect(),moving=data.homeDesktop.items.find(v=>v.id===drag.id);if(!moving||!Number.isFinite(e.clientX)||!Number.isFinite(e.clientY)){renderHomeDesktop();return}
+  let targetPage=drag.page;
+  if(e.clientX<=rect.left+24&&drag.page>0)targetPage=drag.page-1;
+  if(e.clientX>=rect.right-24&&drag.page<data.homeDesktop.pageCount-1)targetPage=drag.page+1;
+  if(targetPage!==drag.page){const slot=moving.kind==='widget'?findHomeWidgetSlot(targetPage,moving.id):findHomeSlot(targetPage,1,1,moving.id);if(!slot){toast('目标页没有合适空位');renderHomeDesktop();return}moving.page=targetPage;moving.x=slot.x;moving.y=slot.y;homePage=targetPage;save();renderHomeDesktop();toast(`已移到第 ${targetPage+1} 页`);return}
+  const css=getComputedStyle(drag.pageEl),gapX=parseFloat(css.columnGap)||0,gapY=parseFloat(css.rowGap)||0,padL=parseFloat(css.paddingLeft)||0,padR=parseFloat(css.paddingRight)||0,padT=parseFloat(css.paddingTop)||0,padB=parseFloat(css.paddingBottom)||0;
+  const cellW=(rect.width-padL-padR-gapX*3)/4,cellH=(rect.height-padT-padB-gapY*3)/4;
+  let x=Math.max(0,Math.min(4-moving.w,Math.floor((e.clientX-rect.left-padL)/(cellW+gapX)))),y=Math.max(0,Math.min(4-moving.h,Math.floor((e.clientY-rect.top-padT)/(cellH+gapY))));
+  if(moving.kind==='widget'){x=x<2?0:2;y=y<2?0:2}
+  if(x===moving.x&&y===moving.y){renderHomeDesktop();return}
+  const overlaps=data.homeDesktop.items.filter(item=>item.page===drag.page&&item.id!==moving.id&&x<item.x+item.w&&x+moving.w>item.x&&y<item.y+item.h&&y+moving.h>item.y);
+  const oldX=moving.x,oldY=moving.y;
+  if(!overlaps.length){moving.x=x;moving.y=y}
+  else if(moving.kind==='app'&&overlaps.length===1&&overlaps[0].kind==='app'){
+   moving.x=x;moving.y=y;overlaps[0].x=oldX;overlaps[0].y=oldY;
+  }else if(moving.kind==='widget'&&overlaps.length===1&&overlaps[0].kind==='widget'){
+   moving.x=x;moving.y=y;overlaps[0].x=oldX;overlaps[0].y=oldY;
+  }else if(moving.kind==='widget'&&overlaps.length===4&&overlaps.every(item=>item.kind==='app'&&item.x>=x&&item.x<x+2&&item.y>=y&&item.y<y+2)){
+   for(const item of overlaps){item.x=oldX+(item.x-x);item.y=oldY+(item.y-y)}moving.x=x;moving.y=y;
+  }else{toast(moving.kind==='widget'?'组件只能与完整四宫格或另一组件换位':'图标只能与其他图标换位');renderHomeDesktop();return}
+  save();window.__homeMovedUntil=Date.now()+350;renderHomeDesktop();
+ };
+ window.addEventListener('pointermove',move);window.addEventListener('pointerup',finish,{once:true});window.addEventListener('pointercancel',finish,{once:true});
 }
 function openHomeEditor(){const editor=document.getElementById('homeEditor');if(editor)editor.classList.add('on');const toggle=document.getElementById('homeEditToggle');if(toggle)toggle.textContent=homeEditMode?'完成':'开启'}
 function closeHomeEditor(){document.getElementById('homeEditor')?.classList.remove('on')}
@@ -294,25 +338,27 @@ function toggleHomeEditMode(){homeEditMode=!homeEditMode;closeHomeEditor();rende
 function addHomePage(){if(data.homeDesktop.pageCount>=12)return toast('最多 12 页');data.homeDesktop.pageCount++;homePage=data.homeDesktop.pageCount-1;save();closeHomeEditor();renderHomeDesktop();toast('已新增桌面页')}
 function removeCurrentHomePage(){if(data.homeDesktop.pageCount<=1)return toast('至少保留一页');if(data.homeDesktop.items.some(x=>x.page===homePage))return toast('请先移走或删除当前页项目');data.homeDesktop.items.forEach(x=>{if(x.page>homePage)x.page--});data.homeDesktop.pageCount--;homePage=Math.max(0,homePage-1);save();renderHomeDesktop();toast('空白页已删除')}
 function createHomeWidget(type){
- const w=2,h=2,slot=findHomeSlot(homePage,w,h);if(!slot)return toast('本页没有 2×2 空位，请新增页面');
- data.homeDesktop.items.push({id:`widget_${type}_${crypto.randomUUID()}`,kind:'widget',widget:type,page:homePage,x:slot.x,y:slot.y,w,h,color:type==='cd'?'#9c6f57':'#6e5540',image:''});save();closeModal();closeHomeEditor();renderHomeDesktop();toast('组件已加入当前页');
+ const w=2,h=2,slot=findHomeWidgetSlot(homePage);if(!slot)return toast('本页没有组件位，请新增页面');
+ const id=`widget_${type}_${crypto.randomUUID()}`;data.homeDesktop.items.push({id,kind:'widget',widget:type,page:homePage,x:slot.x,y:slot.y,w,h,color:type==='cd'?'#9c6f57':'#6e5540',image:''});save();closeHomeEditor();renderHomeDesktop();editHomeItem(id);
 }
-function showWidgetPicker(){modal(`<h2>添加美化组件</h2><div class="note">照片与唱片组件均不绑定页面入口，可以删除、换图、换色和调整占格。</div><div class="home-picker"><button onclick="createHomeWidget('photo')"><b>照片</b><span>1×1 至 2×2</span></button><button onclick="createHomeWidget('cd')"><b>唱片</b><span>1×1 至 2×2</span></button></div>`)}
-function showAppPicker(){const present=new Set(data.homeDesktop.items.filter(x=>x.kind==='app').map(x=>x.app)),missing=Object.entries(HOME_APP_CATALOG).filter(([key])=>!present.has(key));modal(`<h2>添加应用</h2>${missing.length?`<div class="home-app-picker">${missing.map(([key,app])=>`<button onclick="addHomeApp('${key}')"><span>${esc(app.glyph)}</span><b>${esc(app.label)}</b></button>`).join('')}</div>`:'<div class="empty">所有功能都已放在桌面上</div>'}`)}
-function addHomeApp(key){if(!HOME_APP_CATALOG[key])return;let slot=findHomeSlot(homePage,1,1);if(!slot)return toast('本页没有空位');data.homeDesktop.items.push({id:`app_${key}_${crypto.randomUUID()}`,kind:'app',app:key,page:homePage,x:slot.x,y:slot.y,w:1,h:1});save();closeModal();closeHomeEditor();renderHomeDesktop()}
+function showWidgetPicker(){modal(`<h2>添加图1尺寸组件</h2><div class="note">组件固定占一个 2×2 区块，创建后可立即上传图片。</div><div class="home-picker"><button onclick="createHomeWidget('photo')"><b>照片组件</b><span>上传自己的图片</span></button><button onclick="createHomeWidget('cd')"><b>CD 组件</b><span>图片作为唱片封面</span></button></div>`)}
+function showAppPicker(){const present=new Set(data.homeDesktop.items.filter(x=>x.kind==='app').map(x=>x.app)),missing=Object.entries(HOME_APP_CATALOG).filter(([key])=>!HOME_DOCK_APPS.has(key)&&!present.has(key));modal(`<h2>添加应用</h2>${missing.length?`<div class="home-app-picker">${missing.map(([key,app])=>`<button onclick="addHomeApp('${key}')"><span>${esc(app.glyph)}</span><b>${esc(app.label)}</b></button>`).join('')}</div>`:'<div class="empty">所有桌面功能都已放好</div>'}`)}
+function addHomeApp(key){if(!HOME_APP_CATALOG[key]||HOME_DOCK_APPS.has(key))return;if(data.homeDesktop.items.some(item=>item.kind==='app'&&item.app===key))return toast('该功能已在桌面上');let slot=findHomeSlot(homePage,1,1);if(!slot)return toast('本页没有空位');data.homeDesktop.items.push({id:`app_${key}_${crypto.randomUUID()}`,kind:'app',app:key,page:homePage,x:slot.x,y:slot.y,w:1,h:1});save();closeModal();closeHomeEditor();renderHomeDesktop()}
 function editHomeItem(id){
  const item=data.homeDesktop.items.find(x=>x.id===id);if(!item)return;
  const title=item.kind==='app'?HOME_APP_CATALOG[item.app].label:(item.widget==='cd'?'唱片组件':'照片组件');
- modal(`<h2>${esc(title)}</h2><div class="note">当前位置：第 ${item.page+1} 页 · ${item.w}×${item.h} 占格</div>${item.kind==='widget'?`<div class="field"><label>组件颜色</label><input id="homeItemColor" type="color" value="${safeColor(item.color)}" onchange="setHomeItemColor('${attr(id)}')"></div><div class="form-actions"><button onclick="chooseHomeItemImage('${attr(id)}')">更换图片</button><button onclick="resizeHomeWidget('${attr(id)}')">切换大小</button></div>`:`<div class="form-actions"><button onclick="chooseHomeAppIcon('${item.app}')">更换图标</button><button onclick="resetHomeAppIcon('${item.app}')">恢复图标</button></div>`}<div class="form-actions"><button onclick="moveHomeItemPage('${attr(id)}',-1)">上一页</button><button onclick="moveHomeItemPage('${attr(id)}',1)">下一页</button><button class="danger" onclick="removeHomeItem('${attr(id)}')">从桌面移除</button></div>`);
+ modal(`<h2>${esc(title)}</h2><div class="note">第 ${item.page+1} 页 · ${item.kind==='widget'?'固定 2×2 组件尺寸':'固定 1×1 图标格'}</div>${item.kind==='widget'?`<div class="field"><label>组件颜色</label><input id="homeItemColor" type="color" value="${safeColor(item.color)}" onchange="setHomeItemColor('${attr(id)}')"></div><div class="form-actions"><button class="primary" onclick="chooseHomeItemImage('${attr(id)}')">上传 / 更换图片</button><button onclick="clearHomeItemImage('${attr(id)}')">清除图片</button></div>`:`<div class="form-actions"><button onclick="chooseHomeAppIcon('${item.app}')">更换图标</button><button onclick="resetHomeAppIcon('${item.app}')">恢复图标</button></div>`}<div class="form-actions"><button onclick="moveHomeItemPage('${attr(id)}',-1)">上一页</button><button onclick="moveHomeItemPage('${attr(id)}',1)">下一页</button><button class="danger" onclick="removeHomeItem('${attr(id)}')">从桌面移除</button></div>`);
 }
 function setHomeItemColor(id){const item=data.homeDesktop.items.find(x=>x.id===id),input=document.getElementById('homeItemColor');if(!item||!input)return;item.color=safeColor(input.value);save();renderHomeDesktop()}
 function chooseHomeItemImage(id){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const item=data.homeDesktop.items.find(x=>x.id===id),file=input.files?.[0];if(!item||!file)return;item.image=await readImageFile(file);save();closeModal();renderHomeDesktop();toast('组件图片已更换')}catch(error){errorDetail(error,'组件图片读取失败')}};input.click()}
-function resizeHomeWidget(id){const item=data.homeDesktop.items.find(x=>x.id===id);if(!item||item.kind!=='widget')return;const sizes=[[1,1],[2,1],[1,2],[2,2]],index=sizes.findIndex(([w,h])=>w===item.w&&h===item.h);for(let offset=1;offset<=sizes.length;offset++){const [w,h]=sizes[(index+offset)%sizes.length],slot=findHomeSlot(item.page,w,h,item.id);if(slot){item.w=w;item.h=h;item.x=slot.x;item.y=slot.y;save();closeModal();renderHomeDesktop();toast(`组件已调整为 ${w}×${h}`);return}}toast('当前页没有可用占格')}
-function moveHomeItemPage(id,delta){const item=data.homeDesktop.items.find(x=>x.id===id);if(!item)return;const target=item.page+delta;if(target<0)return toast('已经是第一页');if(target>=data.homeDesktop.pageCount)return toast('请先新增一页');const slot=findHomeSlot(target,item.w,item.h,item.id);if(!slot)return toast('目标页没有足够空位');item.page=target;item.x=slot.x;item.y=slot.y;save();closeModal();homePage=target;renderHomeDesktop()}
+function clearHomeItemImage(id){const item=data.homeDesktop.items.find(x=>x.id===id);if(!item||item.kind!=='widget')return;item.image='';save();closeModal();renderHomeDesktop();toast('组件图片已清除')}
+function moveHomeItemPage(id,delta){const item=data.homeDesktop.items.find(x=>x.id===id);if(!item)return;const target=item.page+delta;if(target<0)return toast('已经是第一页');if(target>=data.homeDesktop.pageCount)return toast('请先新增一页');const slot=item.kind==='widget'?findHomeWidgetSlot(target,item.id):findHomeSlot(target,1,1,item.id);if(!slot)return toast('目标页没有足够空位');item.page=target;item.x=slot.x;item.y=slot.y;save();closeModal();homePage=target;renderHomeDesktop()}
 function removeHomeItem(id){if(!confirm('只从桌面移除这个项目？业务资料不会被删除。'))return;data.homeDesktop.items=data.homeDesktop.items.filter(x=>x.id!==id);save();closeModal();renderHomeDesktop()}
 function chooseHomeAppIcon(key){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;data.settings.homeAppIcons[key]=await readImageFile(file);save();closeModal();renderHomeDesktop();toast('桌面图标已更换')}catch(error){errorDetail(error,'桌面图标读取失败')}};input.click()}
 function resetHomeAppIcon(key){delete data.settings.homeAppIcons[key];save();closeModal();renderHomeDesktop();toast('已恢复资源包图标')}
-function showHomeIconManager(){modal(`<h2>桌面应用图标</h2><div class="note">每个应用都可单独上传图片。资源包内的四张完整图已默认用于聊天、角色、群聊和动态。</div><div class="home-icon-manager">${Object.entries(HOME_APP_CATALOG).map(([key,app])=>`<div><b>${esc(app.label)}</b><span><button onclick="chooseHomeAppIcon('${key}')">上传</button><button onclick="resetHomeAppIcon('${key}')">恢复</button></span></div>`).join('')}</div>`)}
+function showHomeIconManager(){modal(`<h2>桌面应用图标</h2><div class="note">四张主图标已统一裁切与尺寸；每个桌面应用仍可单独上传。</div><div class="home-icon-manager">${Object.entries(HOME_APP_CATALOG).filter(([key])=>!HOME_DOCK_APPS.has(key)).map(([key,app])=>`<div><b>${esc(app.label)}</b><span><button onclick="chooseHomeAppIcon('${key}')">上传</button><button onclick="resetHomeAppIcon('${key}')">恢复</button></span></div>`).join('')}</div>`)}
+function showPageOverview(){modal(`<h2>桌面分页</h2><div class="summary-picker">${Array.from({length:data.homeDesktop.pageCount},(_,i)=>`<button onclick="goHomePage(${i})"><b>第 ${i+1} 页</b><span>${data.homeDesktop.items.filter(item=>item.page===i).length} 项${i===homePage?' · 当前':''}</span></button>`).join('')}</div>`)}
+function goHomePage(page){setHomePage(page);closeModal()}
 function resetHomeLayout(){if(!confirm('恢复默认两页排列？自定义图标与图片资源仍会保留。'))return;data.homeDesktop=defaultHomeDesktop();homePage=0;homeEditMode=false;save();closeHomeEditor();renderHomeDesktop();toast('默认排列已恢复')}
 function initHomeGestures(){const pages=document.getElementById('homePages');if(!pages)return;pages.addEventListener('touchstart',e=>{if(homeEditMode)return;homeTouchX=e.touches[0].clientX;homeTouchY=e.touches[0].clientY},{passive:true});pages.addEventListener('touchend',e=>{if(homeEditMode||!homeTouchX)return;const dx=e.changedTouches[0].clientX-homeTouchX,dy=e.changedTouches[0].clientY-homeTouchY;homeTouchX=0;if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.25){window.__homeMovedUntil=Date.now()+350;setHomePage(homePage+(dx<0?1:-1))}},{passive:true})}
 
