@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokeji-v25.0';
+const CACHE_NAME = 'pokeji-v27.0';
 const ASSETS = [
   './',
   './index.html',
