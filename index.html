@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eee9e4">
 <meta name="description" content="API 驱动的虚拟手机式 AI 空间">
-<title>扑克机 · Private AI Space · V20</title>
+<title>扑克机 · Private AI Space · V25</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" id="appleTouchIcon" href="./assets/icon-192.png">
 <link rel="icon" id="appFavicon" href="./assets/icon-192.png">
@@ -71,14 +71,27 @@
   </div>
   <div class="p12-pages" id="homePages" aria-label="可分页桌面"></div>
   <div class="p12-dots" id="homeDots"></div>
-  <button class="home-arrange" type="button" onclick="openHomeEditor()" aria-label="整理桌面">＋</button>
+  <nav class="p12-dock" aria-label="桌面底栏">
+    <button type="button" onclick="openView('notifications')" aria-label="通知">
+      <span class="dock-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"/><path d="M6 16h20M16 6c3.2 3 4.6 6.3 4.6 10S19.2 23 16 26M16 6c-3.2 3-4.6 6.3-4.6 10S12.8 23 16 26"/></svg></span><i>♠</i>
+    </button>
+    <button type="button" onclick="openView('dataCenter')" aria-label="资料">
+      <span class="dock-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 6h14a2 2 0 0 1 2 2v19l-9-5-9 5V8a2 2 0 0 1 2-2Z"/><path d="M12 11h8M12 15h6"/></svg></span><i>♥</i>
+    </button>
+    <button type="button" onclick="showPageOverview()" aria-label="桌面分页">
+      <span class="dock-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 5 11 6-11 6L5 11l11-6Z"/><path d="m7 16 9 5 9-5M7 21l9 5 9-5"/></svg></span><i>♣</i>
+    </button>
+    <button type="button" onclick="openHomeEditor()" aria-label="整理桌面">
+      <span class="dock-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 9h18M7 16h18M7 23h18"/><circle cx="12" cy="9" r="2.2"/><circle cx="21" cy="16" r="2.2"/><circle cx="14" cy="23" r="2.2"/></svg></span><i>♦</i>
+    </button>
+  </nav>
   <div class="p12-gesture"></div>
   <div class="p12-editor" id="homeEditor">
     <button class="p12-editor-close" onclick="closeHomeEditor()">×</button>
     <h2>桌面布局</h2>
-    <p>整理模式下可拖动占格；组件只用于美化，不会进入任何页面。</p>
+    <p>组件可与整组四宫格换位，图标也可单独拖动互换。</p>
     <div class="p12-editor-row"><b>整理桌面</b><button id="homeEditToggle" onclick="toggleHomeEditMode()">开启</button></div>
-    <div class="p12-editor-row"><b>添加组件</b><button onclick="showWidgetPicker()">照片 / 唱片</button></div>
+    <div class="p12-editor-row"><b>添加图1尺寸组件</b><button onclick="showWidgetPicker()">照片 / CD</button></div>
     <div class="p12-editor-row"><b>添加应用</b><button onclick="showAppPicker()">选择</button></div>
     <div class="p12-editor-row"><b>桌面分页</b><button onclick="addHomePage()">新增一页</button></div>
     <div class="p12-editor-row"><b>当前页</b><button onclick="removeCurrentHomePage()">删除空页</button></div>
@@ -175,13 +188,9 @@
 <div class="setting"><span>触发概率</span><input id="randomEventChance" type="number" min="0" max="100" step="1" onchange="saveRandomEventSettings()"></div>
 </div>
 <div class="group"><div class="group-title">美化与应用</div>
-<div class="setting" onclick="chooseHomeBackground()"><span>更换主界面背景</span><span class="muted">图片 ›</span></div>
-<div class="setting" onclick="clearHomeBackground()"><span>恢复默认主界面背景</span><span class="muted">›</span></div>
 <div class="setting" onclick="addTheme()"><span>新增主题</span><span class="muted">追加 ›</span></div>
-<div class="setting" onclick="chooseAppIcon()"><span>应用图标</span><span class="muted">图片 ›</span></div>
-<div class="setting" onclick="showHomeIconManager()"><span>桌面应用图标</span><span class="muted">逐个上传 ›</span></div>
+<div class="setting" onclick="chooseAppIcon()"><span>安装图标</span><span class="muted">PWA 图片 ›</span></div>
 <div class="setting" onclick="showFontSettings()"><span>界面字体</span><span class="muted" id="fontSettingLabel">系统字体 ›</span></div>
-<div class="setting" onclick="chooseHomeAvatar()"><span>桌面头像</span><span class="muted">图片 ›</span></div>
 <div class="setting"><span>灵动岛</span><input id="dynamicIslandEnabled" type="checkbox" style="width:auto" onchange="saveAppearanceSettings()"></div>
 <div class="setting" onclick="editDynamicIsland()"><span>自定义灵动岛</span><span class="muted">文字 · 颜色 · 尺寸 ›</span></div>
 <div class="setting"><span>全屏常驻</span><input id="fullscreenEnabled" type="checkbox" style="width:auto" onchange="saveAppearanceSettings()"></div>
