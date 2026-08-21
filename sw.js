@@ -1,13 +1,13 @@
-const CACHE_NAME = 'pokeji-v28.0';
+const CACHE_NAME = 'pokeji-v29.0';
 const APP_ENTRY = './index.html';
 const APP_SHELL = [
   './',
   APP_ENTRY,
-  './assets/app.css',
-  './assets/app.js',
-  './manifest.json',
-  './assets/icon-192.png',
-  './assets/icon-512.png',
+  './assets/app.css?v=29',
+  './assets/app.js?v=29',
+  './manifest.json?v=29',
+  './assets/icon-192.png?v=29',
+  './assets/icon-512.png?v=29',
   './assets/icons/apps/chat-a-heart.webp',
   './assets/icons/apps/character-k-spade.webp',
   './assets/icons/apps/group-q-club.webp',
@@ -34,16 +34,18 @@ async function warmAppShell() {
 }
 
 self.addEventListener('install', event => {
-  // Installation only creates the cache. Asset downloads run after activation,
-  // so a slow or missing file cannot hold the PWA in the installing state.
-  event.waitUntil(caches.open(CACHE_NAME));
-  self.skipWaiting();
+  // Do not download or open caches here. Chrome can activate this worker
+  // immediately; all offline downloads happen later in the background.
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys.filter(key => key.startsWith('pokeji-') && key !== CACHE_NAME).map(key => caches.delete(key)));
+    if (self.registration.navigationPreload) {
+      try { await self.registration.navigationPreload.enable(); } catch {}
+    }
     await self.clients.claim();
   })());
 });
@@ -56,7 +58,8 @@ self.addEventListener('fetch', event => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     try {
-      const response = await fetch(event.request);
+      const preload = event.request.mode === 'navigate' ? await event.preloadResponse : null;
+      const response = preload || await fetch(event.request);
       if (response.ok) {
         try { await cache.put(event.request, response.clone()); } catch {}
       }

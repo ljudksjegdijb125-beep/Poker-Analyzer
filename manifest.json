@@ -3,16 +3,18 @@
   "short_name": "扑克机",
   "description": "本地优先、可安装的手机化 AI 角色聊天空间",
   "id": "./",
-  "start_url": "./",
+  "start_url": "./index.html?source=pwa&v=29",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "prefer_related_applications": false,
   "lang": "zh-CN",
   "dir": "ltr",
   "background_color": "#07070a",
   "theme_color": "#eee9e4",
   "orientation": "portrait",
   "icons": [
-    {"src":"./assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"./assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {"src":"./assets/icon-192.png?v=29","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"./assets/icon-512.png?v=29","sizes":"512x512","type":"image/png","purpose":"any"}
   ]
 }
