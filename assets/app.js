@@ -1,10 +1,10 @@
 /* =========================================================
-   扑克机 · V29 ENGINE CORE
+   扑克机 · V34 ENGINE CORE
    API-only / local-first / no built-in characters
    ========================================================= */
-const STORE='pokeji_api_only_v29';
-const LEGACY_STORES=['pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION=29;
+const STORE='pokeji_api_only_v34';
+const LEGACY_STORES=['pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
+const VERSION=34;
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -64,19 +64,34 @@ let data=load();
 let currentChat=null;
 let abortController=null;
 let busy=false;
+let activeBackgroundTaskId='';
+let wakeLockSentinel=null;
+let chatListMode='online';
+let proactiveTimer=null;
+let proactiveBusy=false;
+const summaryTasks=new Set();
 let msgMenuTarget=null;
 let homePage=0, homeTouchX=0,homeTouchY=0,homeEditMode=false,homePointerDrag=null;
 let groupPendingSpeaker=null;
 let islandTimer=null;
 let characterImageDraft='';
 let characterOriginalImage='';
+let characterEditorDraft=null;
+let characterEditorTab='profile';
+let characterEditorReturn='contacts';
+let personaEditorDraft=null;
+let personaManagerReturn='contacts';
+let personaEditorTab='identity';
 
-function emptyModel(){return{provider:'openai',base:'',key:'',model:'',weight:100,voice:'alloy'}}
+function emptyModel(){return{provider:'openai',base:'',key:'',model:'',voice:'alloy'}}
+function defaultPersona(){return{id:'persona_default',name:'我',nickname:'',pronouns:'',age:'',identity:'',description:'',personality:'',background:'',appearance:'',likes:'',dislikes:'',speechStyle:'',relationship:'',boundaries:'',goals:'',notes:'',image:''}}
+function normalizeCharacter(c={}){return{id:String(c.id||('c_'+crypto.randomUUID())),name:String(c.name||''),nickname:String(c.nickname||''),status:String(c.status||''),pronouns:String(c.pronouns||''),tags:String(c.tags||''),bio:String(c.bio||''),personality:String(c.personality||''),background:String(c.background||''),appearance:String(c.appearance||''),speechStyle:String(c.speechStyle||''),relationship:String(c.relationship||''),scenario:String(c.scenario||''),firstMessage:String(c.firstMessage||''),exampleDialogue:String(c.exampleDialogue||''),systemPrompt:String(c.systemPrompt||''),boundaries:String(c.boundaries||''),image:String(c.image||''),proactiveEnabled:c.proactiveEnabled===true}}
+function normalizePersona(p={}){return{id:String(p.id||('persona_'+crypto.randomUUID())),name:String(p.name||'我'),nickname:String(p.nickname||''),pronouns:String(p.pronouns||''),age:String(p.age||''),identity:String(p.identity||''),description:String(p.description||''),personality:String(p.personality||''),background:String(p.background||''),appearance:String(p.appearance||''),likes:String(p.likes||''),dislikes:String(p.dislikes||''),speechStyle:String(p.speechStyle||''),relationship:String(p.relationship||''),boundaries:String(p.boundaries||''),goals:String(p.goals||''),notes:String(p.notes||''),image:String(p.image||'')}}
 function defaultDynamicIsland(){return{compactText:'POKEJI',title:'扑克机',subtitle:'私人空间',symbol:'♠',accent:'#eeda9f',size:'standard'}}
 function blank(){return{
- settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,summaryAutoEnabled:true,timeout:60000,maxTokens:2048,promptCache:true,fullscreenEnabled:false,randomEventsEnabled:false,randomEventChance:15,dynamicIslandEnabled:true,dynamicIsland:defaultDynamicIsland(),appIcon:'',homeAvatar:'',homeAppIcons:{},homeLayoutRevision:2,customFont:{source:'',label:''},themes:[],activeTheme:''},
+ settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,summaryAutoEnabled:true,timeout:60000,maxTokens:2048,promptCache:true,backgroundRelayEnabled:true,backgroundNotificationEnabled:false,screenWakeLockEnabled:true,proactiveEnabled:false,proactiveMinMinutes:60,proactiveMaxMinutes:180,fullscreenEnabled:false,randomEventsEnabled:false,randomEventChance:15,dynamicIslandEnabled:true,dynamicIsland:defaultDynamicIsland(),appIcon:'',homeAvatar:'',homeAppIcons:{},homeLayoutRevision:2,customFont:{source:'',label:''},themes:[],activeTheme:''},
  models:{chat:emptyModel(),random:emptyModel(),voice:emptyModel(),vision:emptyModel(),summary:emptyModel()},
- characters:[],chats:{},chatSettings:{},chatSummaries:{},groups:[],posts:[],notifications:[],worlds:[],memories:[],
+ characters:[],personas:[defaultPersona()],activePersonaId:'persona_default',chats:{},chatSettings:{},chatSummaries:{},proactiveSchedule:{},groups:[],posts:[],notifications:[],worlds:[],memories:[],
  homeDesktop:defaultHomeDesktop(),
  engine:{
   worldRules:[],presetModules:[],regexRules:[],
@@ -92,20 +107,24 @@ function normalize(x){
  d.settings.homeAppIcons=x.settings?.homeAppIcons&&typeof x.settings.homeAppIcons==='object'?x.settings.homeAppIcons:{};
  d.settings.customFont={source:'',label:'',...(x.settings?.customFont||{})};
  d.models={...d.models,...(x.models||{})};
- for(const k of Object.keys(d.models))d.models[k]={...emptyModel(),...(d.models[k]||{})};
- if(!d.models.chat.base&&d.settings.apiBase)d.models.chat={provider:d.settings.apiProvider||'openai',base:d.settings.apiBase||'',key:d.settings.apiKey||'',model:d.settings.apiModel||'',weight:100};
- d.characters=Array.isArray(x.characters)?x.characters:[];
+ for(const k of Object.keys(d.models)){const raw=d.models[k]||{},profile={...raw};delete profile.weight;d.models[k]={...emptyModel(),...profile}}
+ if(!d.models.chat.base&&d.settings.apiBase)d.models.chat={provider:d.settings.apiProvider||'openai',base:d.settings.apiBase||'',key:d.settings.apiKey||'',model:d.settings.apiModel||'',voice:'alloy'};
+ d.characters=Array.isArray(x.characters)?x.characters.map(normalizeCharacter):[];
+ d.personas=Array.isArray(x.personas)&&x.personas.length?x.personas.map(normalizePersona):[defaultPersona()];
+ d.activePersonaId=d.personas.some(p=>p.id===x.activePersonaId)?x.activePersonaId:d.personas[0].id;
  d.chats=x.chats&&typeof x.chats==='object'&&!Array.isArray(x.chats)?x.chats:{};
  d.chatSummaries=x.chatSummaries&&typeof x.chatSummaries==='object'?x.chatSummaries:{};
  d.chatSettings=x.chatSettings&&typeof x.chatSettings==='object'&&!Array.isArray(x.chatSettings)?x.chatSettings:{};
+ d.proactiveSchedule=x.proactiveSchedule&&typeof x.proactiveSchedule==='object'&&!Array.isArray(x.proactiveSchedule)?x.proactiveSchedule:{};
+ for(const [id,cfg] of Object.entries(d.chatSettings))d.chatSettings[id]={background:String(cfg?.background||''),personaId:String(cfg?.personaId||'')};
  d.groups=Array.isArray(x.groups)?x.groups:[];
  d.posts=Array.isArray(x.posts)?x.posts:[];d.notifications=Array.isArray(x.notifications)?x.notifications:[];
- d.worlds=Array.isArray(x.worlds)?x.worlds:[];d.memories=Array.isArray(x.memories)?x.memories:[];
+ d.worlds=Array.isArray(x.worlds)?x.worlds.map(w=>{const entry={...w,scope:['global','character','group'].includes(w.scope)?w.scope:'global',activation:['persistent','trigger'].includes(w.activation)?w.activation:(w.global||!String(w.trigger||'').trim()?'persistent':'trigger'),targetIds:Array.isArray(w.targetIds)?w.targetIds.map(String):[]};delete entry.priority;delete entry.weight;delete entry.global;return entry}):[];d.memories=Array.isArray(x.memories)?x.memories:[];
  d.homeDesktop=Number(x.settings?.homeLayoutRevision)===2?normalizeHomeDesktop(x.homeDesktop):defaultHomeDesktop();
  d.settings.homeLayoutRevision=2;
  d.engine={...d.engine,...(x.engine||{})};
- d.engine.worldRules=Array.isArray(d.engine.worldRules)?d.engine.worldRules:[];
- d.engine.presetModules=Array.isArray(d.engine.presetModules)?d.engine.presetModules:[];
+ d.engine.worldRules=Array.isArray(d.engine.worldRules)?d.engine.worldRules.map(r=>{const rule={...r,activation:['persistent','trigger'].includes(r.activation)?r.activation:(r.global||!String(r.trigger||'').trim()?'persistent':'trigger')};delete rule.priority;delete rule.weight;delete rule.global;return rule}):[];
+ d.engine.presetModules=Array.isArray(d.engine.presetModules)?d.engine.presetModules.map(m=>{const module={...m};delete module.priority;delete module.weight;return module}):[];
  d.engine.regexRules=Array.isArray(d.engine.regexRules)?d.engine.regexRules:[];
  d.engine.state={...blank().engine.state,...(d.engine.state||{})};
  return d;
@@ -152,7 +171,7 @@ function updateInstallStatus(){
  status.textContent='Chrome 检测中…';
 }
 function showInstallSystemNotice(){
- modal(`<h2>系统安装未完成</h2><div class="note">网页安装条件已经通过，Chrome 也已接收安装请求；当前卡住的是 Android 的 WebAPK/桌面快捷方式服务。请先在应用抽屉搜索“扑克机”。若没有，请允许 Chrome 创建桌面快捷方式后重新打开本页。</div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="primary" onclick="location.reload()">重新检测</button></div>`);
+ modal(`<h2>安装尚未完成</h2><div class="note">Chrome 已接收请求，但没有返回安装完成事件。请关闭这个页面后重新打开，再从 Chrome 菜单选择“安装应用”。</div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="primary" onclick="location.reload()">重新检测</button></div>`);
 }
 async function installPWA(){
  if(document.body?.dataset.singleFile==='true')return toast('单文件仅供预览，请使用静态部署包安装');
@@ -194,7 +213,7 @@ function applyHomeBackground(){
 }
 function applyAppearance(){
  applyHomeBackground();
- const icon=data.settings?.appIcon||'./assets/icon-192.png?v=29';
+ const icon=data.settings?.appIcon||'./assets/icon-192.png?v=34';
  document.getElementById('appFavicon')?.setAttribute('href',icon);
  document.getElementById('appleTouchIcon')?.setAttribute('href',icon);
  const theme=(data.settings.themes||[]).find(t=>t.id===data.settings.activeTheme);
@@ -245,9 +264,17 @@ function applyChatBackground(){
 }
 function getChatSettings(id){
   data.chatSettings??={};
-  data.chatSettings[id]??={background:''};
+  data.chatSettings[id]??={background:'',personaId:''};
+  data.chatSettings[id]={background:String(data.chatSettings[id].background||''),personaId:String(data.chatSettings[id].personaId||'')};
   return data.chatSettings[id];
 }
+const OFFLINE_CHAT_PREFIX='offline__';
+function offlineChatId(characterId){return OFFLINE_CHAT_PREFIX+String(characterId||'')}
+function chatModeForId(chatId=currentChat){return String(chatId||'').startsWith(OFFLINE_CHAT_PREFIX)?'offline':'online'}
+function directCharacterId(chatId=currentChat){const id=String(chatId||'');return id.startsWith(OFFLINE_CHAT_PREFIX)?id.slice(OFFLINE_CHAT_PREFIX.length):id}
+function directChatId(characterId,mode='online'){return mode==='offline'?offlineChatId(characterId):String(characterId||'')}
+function directCharacterForChat(chatId=currentChat){return data.characters.find(character=>character.id===directCharacterId(chatId))}
+function isGroupChatId(chatId=currentChat){return data.groups.some(group=>group.id===chatId)}
 function readImageFile(file){
   return new Promise((resolve,reject)=>{
     if(!file||!file.type.startsWith('image/'))return reject(new Error('image'));
@@ -424,9 +451,25 @@ if(startupError)setTimeout(()=>errorDetail(startupError,'本地资料读取失�
 function avatar(c){const a=document.createElement('div');a.className='avatar';if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';a.appendChild(im)}return a.outerHTML}
 
 /* ---------- chats & contacts ---------- */
-function renderChats(){const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase();const arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有聊天<br>请先创建角色。</div>`;return}e.innerHTML=arr.map(c=>{const m=(data.chats[c.id]||[]).at(-1);return `<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${esc(m?.text||'尚未开始聊天')}</div></div><span class="muted">${esc(m?.time||'')}</span></div>`}).join('')}
+function setChatListMode(mode){chatListMode=mode==='offline'?'offline':'online';renderChats()}
+function showCharacterChatEntrances(id){const character=data.characters.find(item=>item.id===id);if(!character)return;modal(`<h2>${esc(character.name)}</h2><div class="note">线上与线下是两套独立记录；线下模式不会混入线上消息。</div><div class="chat-entry-picker"><button onclick="closeModal();openChat('${attr(id)}','online')"><span>◉</span><b>线上消息</b><small>手机消息式交流 · 可主动来信</small></button><button onclick="closeModal();openChat('${attr(id)}','offline')"><span>◇</span><b>线下相遇</b><small>面对面剧情 · 独立情境记录</small></button></div>`)}
+function renderChats(){
+ const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase(),mode=chatListMode;
+ document.querySelectorAll('#chatModeEntrances button').forEach(button=>button.classList.toggle('on',button.dataset.mode===mode));
+ const label=document.getElementById('chatModeCaption');if(label)label.textContent=mode==='offline'?'面对面剧情 · 与线上记录分开':'手机消息式交流 · 支持活人感主动来信';
+ const arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));
+ if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">${mode==='offline'?'◇':'♡'}</div>${q?'没有匹配的角色':'还没有角色<br>请先创建角色。'}</div>`;return}
+ e.innerHTML=arr.map(c=>{const chatId=directChatId(c.id,mode),m=(data.chats[chatId]||[]).at(-1),proactive=mode==='online'&&data.settings.proactiveEnabled===true&&c.proactiveEnabled?'<span class="chat-live-badge">主动</span>':'';return `<div class="row card chat-channel-row" onclick="openChat('${attr(c.id)}','${mode}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)} ${proactive}</b><div class="muted">${esc(m?.text||(mode==='offline'?'尚未开始线下剧情':'尚未开始线上聊天'))}</div></div><span class="muted">${esc(m?.time||'')}</span></div>`}).join('');
+}
 
-function renderContacts(q=''){const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase()));if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>还没有角色<br>创建角色后才会出现在这里。</div>`;return}e.innerHTML=arr.map(c=>`<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat('${c.id}')">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.status||'')}</div></div><button class="icon-btn" onclick="event.stopPropagation();editCharacter('${c.id}')">⋯</button></div>`).join('')}
+function renderContacts(q=''){
+ const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase()));
+ const characterCount=document.getElementById('characterCount'),personaCount=document.getElementById('personaCount');
+ if(characterCount)characterCount.textContent=`${data.characters.length} 个角色`;
+ if(personaCount)personaCount.textContent=`${data.personas.length} 张面具`;
+ if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>${q?'没有匹配的角色':'还没有角色<br>从上方角色设置中心开始创建。'}</div>`;return}
+ e.innerHTML=arr.map(c=>`<div class="row card character-list-row" onclick="showCharacterChatEntrances('${c.id}')">${avatar(c)}<div class="character-list-copy"><b>${esc(c.name)}</b><div class="muted">${esc(c.status||c.bio||'尚未填写角色摘要')}</div></div><button class="icon-btn" aria-label="编辑角色" onclick="event.stopPropagation();editCharacter('${c.id}')">⋯</button></div>`).join('')
+}
 
 /* ---------- group chat ---------- */
 function avatarStack(members){return `<div class="avatar-stack">${members.slice(0,3).map(c=>avatar(c)).join('')}</div>`}
@@ -455,9 +498,10 @@ function createGroup(){
 }
 function editGroup(id){
  const g=data.groups.find(x=>x.id===id);if(!g)return;
- modal(`<h2>群聊设置</h2><div class="field"><label>群聊名称</label><input id="gn" value="${attr(g.name)}"></div><div class="field"><label>成员</label><div class="muted" style="line-height:1.9">${g.memberIds.map(mid=>data.characters.find(c=>c.id===mid)?.name).filter(Boolean).join('、')||'成员已被删除'}</div></div><div class="group" style="margin:14px 0"><div class="group-title">聊天外观</div><div class="setting" onclick="chooseChatBackground()"><span>更换聊天背景</span><span class="muted">图片 ›</span></div><div class="setting" onclick="clearChatBackground()"><span>恢复默认聊天背景</span><span class="muted">›</span></div></div><div class="form-actions"><button class="danger" onclick="deleteGroup('${id}')">解散群聊</button><button onclick="clearChat('${id}')">清空聊天</button><button class="primary" onclick="updateGroup('${id}')">保存</button></div>`);
+ const personaId=getChatSettings(id).personaId||'';
+ modal(`<h2>群聊设置</h2><div class="field"><label>群聊名称</label><input id="gn" value="${attr(g.name)}"></div><div class="field"><label>成员</label><div class="muted" style="line-height:1.9">${g.memberIds.map(mid=>data.characters.find(c=>c.id===mid)?.name).filter(Boolean).join('、')||'成员已被删除'}</div></div><div class="field"><label>用户面具</label><select id="groupPersona"><option value="">跟随默认面具</option>${data.personas.map(p=>`<option value="${attr(p.id)}" ${personaId===p.id?'selected':''}>${esc(p.name)}${data.activePersonaId===p.id?' · 默认':''}</option>`).join('')}</select></div><div class="group" style="margin:14px 0"><div class="group-title">聊天外观</div><div class="setting" onclick="chooseChatBackground()"><span>更换聊天背景</span><span class="muted">图片 ›</span></div><div class="setting" onclick="clearChatBackground()"><span>恢复默认聊天背景</span><span class="muted">›</span></div></div><div class="form-actions"><button class="danger" onclick="deleteGroup('${id}')">解散群聊</button><button onclick="clearChat('${id}')">清空聊天</button><button class="primary" onclick="updateGroup('${id}')">保存</button></div>`);
 }
-function updateGroup(id){const g=data.groups.find(x=>x.id===id);if(!g)return;g.name=document.getElementById('gn').value.trim()||g.name;save();closeModal();renderGroups();toast('已保存')}
+function updateGroup(id){const g=data.groups.find(x=>x.id===id);if(!g)return;g.name=document.getElementById('gn').value.trim()||g.name;getChatSettings(id).personaId=document.getElementById('groupPersona')?.value||'';save();closeModal();renderGroups();toast('群聊设置已保存')}
 function deleteGroup(id){if(!confirm('解散这个群聊？聊天记录也会被删除。'))return;data.groups=data.groups.filter(g=>g.id!==id);delete data.chats[id];delete data.chatSettings?.[id];if(currentChat===id)currentChat=null;save();closeModal();renderGroups();openView('groups')}
 function renderSpeakerPicker(g){
  const el=document.getElementById('speakerPicker');if(!el)return;
@@ -466,7 +510,7 @@ function renderSpeakerPicker(g){
  el.innerHTML=chips.join('');
 }
 function pickSpeaker(id){groupPendingSpeaker=id;const g=data.groups.find(x=>x.id===currentChat);if(g)renderSpeakerPicker(g)}
-function backFromChat(){const g=data.groups.find(x=>x.id===currentChat);openView(g?'groups':'chats')}
+function backFromChat(){openView(isGroupChatId(currentChat)?'groups':'chats')}
 
 function modelProfile(kind='chat'){return data.models?.[kind]||emptyModel()}
 function validModel(kind='chat'){const p=modelProfile(kind);return !!(p.base&&p.key&&p.model)}
@@ -474,19 +518,111 @@ function validAPI(){return validModel('chat')}
 function requireAPI(){if(!validAPI()){toast('请先在设置中配置 API');openView('settings');return false}return true}
 
 /* ---------- character CRUD ---------- */
-function newCharacter(){characterImageDraft='';characterOriginalImage='';modal(`<h2>创建角色</h2><div class="field"><label>角色名称</label><input id="cn" placeholder="你的角色名称"></div><div class="field"><label>状态</label><input id="cs" placeholder="短状态"></div><div class="field"><label>角色设定</label><textarea id="cb" placeholder="身份、性格、经历、说话方式、边界等。"></textarea></div><div class="field"><label>头像 URL（可选）</label><input id="ci" placeholder="https://..."></div><div class="form-actions"><button onclick="pickCharacterImage()">上传头像</button><button onclick="closeModal()">取消</button><button class="primary" onclick="createCharacter()">创建</button></div>`)}
-function createCharacter(){const name=document.getElementById('cn').value.trim();if(!name)return toast('请填写角色名称');const id='c_'+crypto.randomUUID();data.characters.push({id,name,status:document.getElementById('cs').value.trim(),bio:document.getElementById('cb').value.trim(),image:characterImageDraft||document.getElementById('ci').value.trim()});data.chats[id]=[];getChatSettings(id);save();closeModal();renderContacts();toast('角色已创建')}
-function editCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)return;characterImageDraft='';characterOriginalImage=c.image||'';modal(`<h2>角色资料</h2><div class="field"><label>名称</label><input id="cn" value="${attr(c.name)}"></div><div class="field"><label>状态</label><input id="cs" value="${attr(c.status||'')}"></div><div class="field"><label>角色设定</label><textarea id="cb">${esc(c.bio||'')}</textarea></div><div class="field"><label>头像 URL</label><input id="ci" value="${attr(c.image?.startsWith('data:')?'':c.image||'')}"></div><div class="form-actions"><button onclick="pickCharacterImage()">上传头像</button><button class="danger" onclick="deleteCharacter('${id}')">删除</button><button onclick="clearChat('${id}')">清空聊天</button><button class="primary" onclick="updateCharacter('${id}')">保存</button></div>`)}
-function updateCharacter(id){const c=data.characters.find(x=>x.id===id);if(!c)return;c.name=document.getElementById('cn').value.trim()||c.name;c.status=document.getElementById('cs').value.trim();c.bio=document.getElementById('cb').value;const url=document.getElementById('ci').value.trim();c.image=characterImageDraft||url||characterOriginalImage;save();closeModal();renderContacts();renderChats();toast('已保存')}
-function pickCharacterImage(){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;characterImageDraft=await readImageFile(file);toast('头像图片已选择，保存后生效')}catch(error){errorDetail(error,'角色头像读取失败')}};input.click()}
-function deleteCharacter(id){if(!confirm('删除角色以及本机保存的该角色聊天记录？'))return;data.characters=data.characters.filter(c=>c.id!==id);delete data.chats[id];delete data.chatSettings?.[id];save();closeModal();renderContacts();renderChats()}
-function clearChat(id=currentChat){if(!id)return;if(!confirm('清空这个角色的全部聊天记录？'))return;data.chats[id]=[];save();if(currentChat===id)renderMessages();closeModal();renderChats();toast('聊天记录已清空')}
+const CHARACTER_TABS={profile:'档案',personality:'人格',dialogue:'对话',binding:'绑定'};
+function newCharacter(){openCharacterEditor(null,'profile','contacts')}
+function editCharacter(id,tab='profile',returnView='contacts'){openCharacterEditor(id,tab,returnView)}
+function openCharacterEditor(id=null,tab='profile',returnView='contacts'){
+ const source=id?data.characters.find(c=>c.id===id):null;if(id&&!source)return;
+ characterEditorDraft=normalizeCharacter(source||{id:'c_'+crypto.randomUUID()});
+ characterEditorDraft.__new=!source;
+ characterEditorDraft.boundPersonaId=source?(getChatSettings(source.id).personaId||data.activePersonaId):data.activePersonaId;
+ characterEditorTab=CHARACTER_TABS[tab]?tab:'profile';characterEditorReturn=returnView;
+ characterImageDraft='';characterOriginalImage=characterEditorDraft.image||'';
+ show('characterEditor');renderCharacterEditor();
+}
+function closeCharacterEditor(){characterEditorDraft=null;if(characterEditorReturn==='chat'&&currentChat){show('chat');renderMessages();applyChatBackground()}else openView(characterEditorReturn||'contacts')}
+function characterField(id){return document.getElementById(id)}
+function collectCharacterEditorPage(){
+ const d=characterEditorDraft;if(!d)return;
+ const take=(key,id)=>{const el=characterField(id);if(el)d[key]=el.value.trim()};
+ if(characterEditorTab==='profile'){
+  ['name','nickname','status','pronouns','tags'].forEach(k=>take(k,'char_'+k));
+  const imageUrl=characterField('char_image_url');
+  if(imageUrl){const value=imageUrl.value.trim();if(value)d.image=value;else if(!String(d.image||'').startsWith('data:'))d.image=''}
+ }
+ if(characterEditorTab==='personality')['bio','personality','background','appearance','speechStyle','relationship'].forEach(k=>take(k,'char_'+k));
+ if(characterEditorTab==='dialogue')['scenario','firstMessage','exampleDialogue','systemPrompt','boundaries'].forEach(k=>take(k,'char_'+k));
+ if(characterEditorTab==='binding'){const persona=characterField('char_persona'),proactive=characterField('char_proactive');if(persona)d.boundPersonaId=persona.value;if(proactive)d.proactiveEnabled=proactive.checked===true}
+}
+function setCharacterEditorTab(tab){if(!CHARACTER_TABS[tab])return;collectCharacterEditorPage();characterEditorTab=tab;renderCharacterEditor()}
+function characterEditorHero(d){return `<div class="editor-hero"><div class="editor-avatar">${d.image?`<img src="${attr(d.image)}" alt="">`:'<span>♠</span>'}</div><div><small>${d.__new?'NEW CHARACTER':'CHARACTER PROFILE'}</small><h2>${esc(d.name||'未命名角色')}</h2><p>${esc(d.status||'在这里定义完整角色')}</p></div><button onclick="pickCharacterImage()">更换头像</button></div>`}
+function characterProfilePage(d){return `<div class="editor-section-title"><span>01</span><div><b>基础档案</b><small>用于列表、聊天标题与身份识别</small></div></div><div class="editor-grid"><div class="field"><label>角色名称 *</label><input id="char_name" value="${attr(d.name)}" placeholder="角色的正式名称"></div><div class="field"><label>昵称 / 称呼</label><input id="char_nickname" value="${attr(d.nickname)}" placeholder="希望被用户怎样称呼"></div><div class="field"><label>状态短句</label><input id="char_status" value="${attr(d.status)}" placeholder="显示在角色列表中"></div><div class="field"><label>代词 / 称谓</label><input id="char_pronouns" value="${attr(d.pronouns)}" placeholder="例如：她 / 他 / TA"></div><div class="field editor-wide"><label>标签</label><input id="char_tags" value="${attr(d.tags)}" placeholder="例如：现代、搭档、慢热"></div><div class="field editor-wide"><label>头像 URL（可选）</label><input id="char_image_url" value="${attr(String(d.image||'').startsWith('data:')?'':d.image)}" placeholder="https://..."></div></div><div class="editor-inline-actions"><button onclick="pickCharacterImage()">上传本机图片</button><button onclick="clearCharacterImage()">移除头像</button></div>`}
+function characterPersonalityPage(d){return `<div class="editor-section-title"><span>02</span><div><b>人格与经历</b><small>这些内容会真正进入角色上下文</small></div></div><div class="editor-grid"><div class="field editor-wide"><label>身份概要</label><textarea id="char_bio" placeholder="身份、职业、核心背景">${esc(d.bio)}</textarea></div><div class="field editor-wide"><label>性格</label><textarea id="char_personality" placeholder="稳定特质、偏好、矛盾点">${esc(d.personality)}</textarea></div><div class="field editor-wide"><label>过往经历</label><textarea id="char_background" placeholder="成长、重要事件与已知事实">${esc(d.background)}</textarea></div><div class="field"><label>外貌与气质</label><textarea id="char_appearance">${esc(d.appearance)}</textarea></div><div class="field"><label>说话方式</label><textarea id="char_speechStyle">${esc(d.speechStyle)}</textarea></div><div class="field editor-wide"><label>与用户的关系</label><textarea id="char_relationship" placeholder="初始关系、称呼、相处边界">${esc(d.relationship)}</textarea></div></div>`}
+function characterDialoguePage(d){return `<div class="editor-section-title"><span>03</span><div><b>对话行为</b><small>开场、示例和角色专属规则</small></div></div><div class="editor-grid"><div class="field editor-wide"><label>当前情境</label><textarea id="char_scenario" placeholder="对话开始时所在的地点、时间与关系状态">${esc(d.scenario)}</textarea></div><div class="field editor-wide"><label>首条消息</label><textarea id="char_firstMessage" placeholder="新建角色后显示的第一条角色消息">${esc(d.firstMessage)}</textarea></div><div class="field editor-wide"><label>对话示例</label><textarea class="editor-tall" id="char_exampleDialogue" placeholder="用户：…&#10;角色：…">${esc(d.exampleDialogue)}</textarea></div><div class="field editor-wide"><label>角色专属指令</label><textarea class="editor-tall" id="char_systemPrompt" placeholder="只影响这个角色的行为规则">${esc(d.systemPrompt)}</textarea></div><div class="field editor-wide"><label>边界与禁区</label><textarea id="char_boundaries" placeholder="不应代替用户做决定，以及其他边界">${esc(d.boundaries)}</textarea></div></div>`}
+function characterBindingPage(d){
+ const isNew=d.__new,appearanceChatId=!isNew&&characterEditorReturn==='chat'&&directCharacterId(currentChat)===d.id?currentChat:d.id,settings=isNew?{background:'',personaId:d.boundPersonaId}:getChatSettings(appearanceChatId);
+ return `<div class="editor-section-title"><span>04</span><div><b>会话绑定</b><small>为这个角色选择用户身份、主动来信与聊天外观</small></div></div><div class="editor-grid"><div class="field editor-wide"><label>此聊天使用的用户面具</label><select id="char_persona"><option value="">跟随默认面具</option>${data.personas.map(p=>`<option value="${attr(p.id)}" ${(d.boundPersonaId||settings.personaId)===p.id?'selected':''}>${esc(p.name)}${data.activePersonaId===p.id?' · 默认':''}</option>`).join('')}</select></div><label class="editor-toggle editor-wide"><span><b>允许活人感主动来信</b><small>只在“线上消息”中按随机频率主动发消息</small></span><input id="char_proactive" type="checkbox" ${d.proactiveEnabled?'checked':''}></label></div><div class="binding-cards"><button onclick="openPersonaManager('characterEditor')"><span>◈</span><b>管理用户面具</b><small>${data.personas.length} 张可用面具</small></button><button ${isNew?'disabled':''} onclick="chooseCharacterChatBackground()"><span>▧</span><b>聊天背景</b><small>${isNew?'保存角色后可设置':(settings.background?'已设置图片':'使用默认背景')}</small></button><button onclick="exportCharacterCard('${d.id}')"><span>⇩</span><b>导出角色卡</b><small>完整资料与角色绑定世界书</small></button></div>${isNew?'':`<div class="editor-danger-zone"><b>本地会话数据</b><button onclick="clearCharacterConversations('${d.id}')">清空线上与线下</button><button class="danger" onclick="deleteCharacter('${d.id}')">删除角色</button></div>`}`
+}
+function renderCharacterEditor(){
+ const d=characterEditorDraft,body=document.getElementById('characterEditorBody'),title=document.getElementById('characterEditorTitle');if(!d||!body)return;
+ if(title)title.textContent=d.__new?'新建角色':'角色设置';
+ const pages={profile:characterProfilePage,personality:characterPersonalityPage,dialogue:characterDialoguePage,binding:characterBindingPage};
+ body.innerHTML=`${characterEditorHero(d)}<div class="editor-tabs">${Object.entries(CHARACTER_TABS).map(([key,label])=>`<button class="${characterEditorTab===key?'on':''}" onclick="setCharacterEditorTab('${key}')"><span>${label}</span></button>`).join('')}</div><div class="editor-page">${pages[characterEditorTab](d)}</div>`;
+}
+function saveCharacterEditor(){
+ collectCharacterEditorPage();const d=characterEditorDraft;if(!d)return;if(!d.name)return toast('请填写角色名称');
+ const isNew=d.__new,id=d.id,boundPersonaId=d.boundPersonaId||'';delete d.__new;delete d.boundPersonaId;
+ if(isNew)data.characters.push(normalizeCharacter(d));else{const index=data.characters.findIndex(c=>c.id===id);if(index<0)return;data.characters[index]=normalizeCharacter(d)}
+ data.chats[id]??=[];getChatSettings(id).personaId=boundPersonaId;
+ if(isNew&&d.firstMessage)data.chats[id].push({role:'assistant',text:d.firstMessage,time:time(),systemGreeting:true});
+ if(d.proactiveEnabled)scheduleNextProactive(id,true);else delete data.proactiveSchedule[id];
+ save();renderContacts();renderChats();characterEditorDraft=null;toast(isNew?'角色已创建':'角色设置已保存');
+ if(characterEditorReturn==='chat'&&!isNew)openChat(id,chatModeForId(currentChat));else openView('contacts');
+}
+function pickCharacterImage(){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;const image=await readImageFile(file);if(characterEditorDraft){characterEditorDraft.image=image;renderCharacterEditor()}else characterImageDraft=image;toast('头像图片已选择，保存后生效')}catch(error){errorDetail(error,'角色头像读取失败')}};input.click()}
+function clearCharacterImage(){if(!characterEditorDraft)return;characterEditorDraft.image='';renderCharacterEditor()}
+function chooseCharacterChatBackground(){
+ const id=characterEditorDraft?.id;if(!id||characterEditorDraft.__new)return toast('请先保存角色');
+ const targetId=characterEditorReturn==='chat'&&directCharacterId(currentChat)===id?currentChat:id;
+ const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;getChatSettings(targetId).background=await readImageFile(file);save();renderCharacterEditor();toast('当前入口的聊天背景已更换')}catch(error){errorDetail(error,'聊天背景读取失败')}};input.click();
+}
+function deleteCharacter(id){if(!confirm('删除角色以及本机保存的线上、线下聊天记录？'))return;const offlineId=offlineChatId(id);data.characters=data.characters.filter(c=>c.id!==id);delete data.chats[id];delete data.chats[offlineId];delete data.chatSettings?.[id];delete data.chatSettings?.[offlineId];delete data.chatSummaries?.[id];delete data.chatSummaries?.[offlineId];delete data.proactiveSchedule?.[id];for(const g of data.groups)g.memberIds=g.memberIds.filter(mid=>mid!==id);if(directCharacterId(currentChat)===id)currentChat=null;save();characterEditorDraft=null;closeModal();renderContacts();renderChats();openView('contacts');toast('角色已删除')}
+
+function exportCharacterCard(id){
+ let character=data.characters.find(c=>c.id===id);if(characterEditorDraft?.id===id){collectCharacterEditorPage();character=characterEditorDraft}
+ if(!character?.name)return toast('请先填写角色名称');
+ const cleanCharacter=normalizeCharacter(character);delete cleanCharacter.id;
+ const worldEntries=(data.worlds||[]).filter(w=>w.scope==='character'&&(w.targetIds||[]).includes(id)).map(w=>{const copy={...w};delete copy.id;delete copy.targetIds;delete copy.global;return copy});
+ downloadJSON({format:'pokeji-character-card',version:1,exportedAt:new Date().toISOString(),character:cleanCharacter,worldEntries},`pokeji-character-${character.name.replace(/[\\/:*?"<>|]/g,'_')}.json`);toast('角色卡已导出')
+}
+function importCharacterCard(){
+ const input=document.createElement('input');input.type='file';input.accept='.json,application/json';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;const card=JSON.parse(await file.text());if(card?.format!=='pokeji-character-card'||!card.character||typeof card.character!=='object')throw Error('只支持扑克机角色卡 JSON');const id='c_'+crypto.randomUUID(),character=normalizeCharacter({...card.character,id});if(!character.name)throw Error('角色卡缺少名称');data.characters.push(character);data.chats[id]=character.firstMessage?[{role:'assistant',text:character.firstMessage,time:time(),systemGreeting:true}]:[];getChatSettings(id).personaId='';for(const raw of Array.isArray(card.worldEntries)?card.worldEntries:[]){data.worlds.push({id:'w_'+crypto.randomUUID(),name:String(raw.name||`${character.name}的世界书`),desc:String(raw.desc||''),trigger:String(raw.trigger||''),scope:'character',targetIds:[id],activation:raw.activation==='trigger'?'trigger':'persistent',enabled:raw.enabled!==false})}save();renderContacts();renderChats();toast('角色卡已导入');openCharacterEditor(id,'profile','contacts')}catch(error){errorDetail(error,'角色卡导入失败')}};input.click();
+}
+
+/* ---------- user personas ---------- */
+function activePersonaFor(chatId=currentChat){const configured=chatId?(getChatSettings(chatId).personaId||(chatModeForId(chatId)==='offline'?getChatSettings(directCharacterId(chatId)).personaId:'')):'';return data.personas.find(p=>p.id===configured)||data.personas.find(p=>p.id===data.activePersonaId)||data.personas[0]||defaultPersona()}
+function personaContext(p=activePersonaFor()){return [`名称：${p.name||'我'}`,p.nickname&&`昵称：${p.nickname}`,p.pronouns&&`代词 / 称谓：${p.pronouns}`,p.age&&`年龄或年龄段：${p.age}`,p.identity&&`身份：${p.identity}`,p.description&&`身份描述：${p.description}`,p.personality&&`性格：${p.personality}`,p.background&&`个人经历：${p.background}`,p.appearance&&`外貌与气质：${p.appearance}`,p.likes&&`偏好：${p.likes}`,p.dislikes&&`不喜欢：${p.dislikes}`,p.speechStyle&&`表达习惯：${p.speechStyle}`,p.relationship&&`希望与角色的关系：${p.relationship}`,p.boundaries&&`互动边界：${p.boundaries}`,p.goals&&`当前目标：${p.goals}`,p.notes&&`补充信息：${p.notes}`].filter(Boolean).join('\n')}
+function openPersonaManager(returnView='contacts'){if(returnView==='characterEditor')collectCharacterEditorPage();personaManagerReturn=returnView;show('personaManager');renderPersonaManager()}
+function closePersonaManager(){if(personaManagerReturn==='characterEditor'&&characterEditorDraft){show('characterEditor');renderCharacterEditor()}else openView(personaManagerReturn||'contacts')}
+function renderPersonaManager(){
+ const e=document.getElementById('personaManagerBody');if(!e)return;const active=data.personas.find(p=>p.id===data.activePersonaId)||data.personas[0];
+ e.innerHTML=`<div class="persona-hero"><small>USER PERSONAS</small><h2>用户面具</h2><p>这里定义聊天中的“你”。身份、人格、经历和互动边界都会进入当前会话的系统上下文，并可按角色或群聊分别绑定。</p><div><b>${esc(active?.name||'我')}</b><span>当前默认 · ${data.personas.length} 张</span></div></div><div class="persona-list">${data.personas.map(p=>{const count=Object.values(data.chatSettings||{}).filter(s=>s?.personaId===p.id).length;return `<article class="persona-card ${p.id===data.activePersonaId?'is-active':''}" onclick="editPersona('${p.id}')">${avatar(p)}<div><b>${esc(p.name)}</b><small>${esc(p.identity||p.description||p.pronouns||'尚未填写详细设定')}</small><em>${count} 个会话绑定</em></div><button onclick="event.stopPropagation();setDefaultPersona('${p.id}')">${p.id===data.activePersonaId?'默认':'设为默认'}</button></article>`}).join('')}</div>`;
+}
+function newPersona(){openPersonaEditor(null)}
+function editPersona(id){openPersonaEditor(id)}
+const PERSONA_TABS={identity:'身份',profile:'人格',interaction:'互动'};
+function openPersonaEditor(id=null){const source=id?data.personas.find(p=>p.id===id):null;if(id&&!source)return;personaEditorDraft=normalizePersona(source||{id:'persona_'+crypto.randomUUID(),name:''});personaEditorDraft.__new=!source;personaEditorTab='identity';show('personaEditor');renderPersonaEditor()}
+function closePersonaEditor(){personaEditorDraft=null;personaEditorTab='identity';show('personaManager');renderPersonaManager()}
+function collectPersonaEditorPage(){const d=personaEditorDraft;if(!d)return;const take=key=>{const el=document.getElementById('persona_'+key);if(el)d[key]=el.value.trim()};const fields=personaEditorTab==='identity'?['name','nickname','pronouns','age','identity','description']:personaEditorTab==='profile'?['personality','background','appearance','likes','dislikes']:['speechStyle','relationship','boundaries','goals','notes'];fields.forEach(take);if(personaEditorTab==='identity'){const url=document.getElementById('persona_image_url')?.value.trim();if(url)d.image=url;else if(!String(d.image||'').startsWith('data:'))d.image=''}}
+function switchPersonaEditorTab(tab){if(!PERSONA_TABS[tab])return;collectPersonaEditorPage();personaEditorTab=tab;renderPersonaEditor()}
+function personaIdentityPage(d){return `<div class="editor-section-title"><span>01</span><div><b>身份档案</b><small>角色眼中的名字、称谓与客观身份</small></div></div><div class="editor-grid"><div class="field"><label>面具名称 *</label><input id="persona_name" value="${attr(d.name)}" placeholder="例如：本名、侦探、旅人"></div><div class="field"><label>昵称</label><input id="persona_nickname" value="${attr(d.nickname)}"></div><div class="field"><label>代词 / 称谓</label><input id="persona_pronouns" value="${attr(d.pronouns)}"></div><div class="field"><label>年龄或年龄段</label><input id="persona_age" value="${attr(d.age)}"></div><div class="field editor-wide"><label>身份 / 职业</label><textarea id="persona_identity" placeholder="职业、阵营、社会身份或在故事中的位置">${esc(d.identity)}</textarea></div><div class="field editor-wide"><label>身份描述</label><textarea id="persona_description" placeholder="希望角色明确知道的客观资料与关系事实">${esc(d.description)}</textarea></div><div class="field editor-wide"><label>头像 URL（可选）</label><input id="persona_image_url" value="${attr(String(d.image||'').startsWith('data:')?'':d.image)}" placeholder="https://..."></div></div><div class="editor-inline-actions"><button onclick="pickPersonaImage()">上传本机图片</button><button onclick="clearPersonaImage()">移除头像</button></div>`}
+function personaProfilePage(d){return `<div class="editor-section-title"><span>02</span><div><b>人格与经历</b><small>这些内容只随当前选中的 USER 身份进入会话</small></div></div><div class="editor-grid"><div class="field editor-wide"><label>性格</label><textarea id="persona_personality" placeholder="稳定性格、情绪倾向、矛盾点与处事方式">${esc(d.personality)}</textarea></div><div class="field editor-wide"><label>个人经历</label><textarea id="persona_background" placeholder="成长背景、重要事件、已知事实">${esc(d.background)}</textarea></div><div class="field editor-wide"><label>外貌与气质</label><textarea id="persona_appearance" placeholder="外貌、穿着、气质与显著特征">${esc(d.appearance)}</textarea></div><div class="field"><label>偏好</label><textarea id="persona_likes" placeholder="喜欢的事物与互动方式">${esc(d.likes)}</textarea></div><div class="field"><label>不喜欢</label><textarea id="persona_dislikes" placeholder="反感、雷点或希望避免的内容">${esc(d.dislikes)}</textarea></div></div>`}
+function personaInteractionPage(d){return `<div class="editor-section-title"><span>03</span><div><b>互动设定</b><small>定义 USER 如何表达，以及角色应如何理解双方关系</small></div></div><div class="editor-grid"><div class="field editor-wide"><label>表达习惯</label><textarea id="persona_speechStyle" placeholder="语气、措辞、交流节奏与称呼习惯">${esc(d.speechStyle)}</textarea></div><div class="field editor-wide"><label>希望与角色的关系</label><textarea id="persona_relationship" placeholder="关系定位、相处模式和希望角色如何称呼自己">${esc(d.relationship)}</textarea></div><div class="field editor-wide"><label>互动边界</label><textarea id="persona_boundaries" placeholder="角色不能替 USER 说话、行动或决定；也可补充其他边界">${esc(d.boundaries)}</textarea></div><div class="field editor-wide"><label>当前目标</label><textarea id="persona_goals" placeholder="当前想完成的事、长期目标或剧情动机">${esc(d.goals)}</textarea></div><div class="field editor-wide"><label>补充信息</label><textarea id="persona_notes" placeholder="只在使用这张面具的聊天中生效">${esc(d.notes)}</textarea></div></div>`}
+function renderPersonaEditor(){const d=personaEditorDraft,e=document.getElementById('personaEditorBody'),title=document.getElementById('personaEditorTitle');if(!d||!e)return;if(title)title.textContent=d.__new?'新建 USER':'USER 设定';const pages={identity:personaIdentityPage,profile:personaProfilePage,interaction:personaInteractionPage};e.innerHTML=`<div class="editor-hero persona-editor-hero"><div class="editor-avatar">${d.image?`<img src="${attr(d.image)}" alt="">`:'<span>◈</span>'}</div><div><small>USER PERSONA</small><h2>${esc(d.name||'新的用户面具')}</h2><p>完整定义聊天中的你，并可按会话单独绑定</p></div><button onclick="pickPersonaImage()">更换头像</button></div><div class="editor-tabs persona-tabs">${Object.entries(PERSONA_TABS).map(([key,label])=>`<button class="${personaEditorTab===key?'on':''}" onclick="switchPersonaEditorTab('${key}')">${label}</button>`).join('')}</div><div class="editor-page">${pages[personaEditorTab](d)}${d.__new?'':`<div class="editor-danger-zone"><b>USER 管理</b><button onclick="setDefaultPersona('${d.id}')">设为默认</button><button class="danger" onclick="deletePersona('${d.id}')">删除面具</button></div>`}</div>`}
+function savePersonaEditor(){const d=personaEditorDraft;if(!d)return;collectPersonaEditorPage();if(!d.name)return toast('请填写面具名称');const isNew=d.__new,id=d.id;delete d.__new;if(isNew)data.personas.push(normalizePersona(d));else{const i=data.personas.findIndex(p=>p.id===id);if(i<0)return;data.personas[i]=normalizePersona(d)}if(!data.activePersonaId)data.activePersonaId=id;save();personaEditorDraft=null;personaEditorTab='identity';show('personaManager');renderPersonaManager();toast(isNew?'USER 设定已创建':'USER 设定已保存')}
+function pickPersonaImage(){collectPersonaEditorPage();const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;personaEditorDraft.image=await readImageFile(file);renderPersonaEditor();toast('USER 头像已选择')}catch(error){errorDetail(error,'USER 头像读取失败')}};input.click()}
+function clearPersonaImage(){if(!personaEditorDraft)return;collectPersonaEditorPage();personaEditorDraft.image='';renderPersonaEditor()}
+function setDefaultPersona(id){if(!data.personas.some(p=>p.id===id))return;data.activePersonaId=id;save();if(personaEditorDraft?.id===id)toast('已设为默认用户面具');else{renderPersonaManager();toast('默认用户面具已更新')}}
+function deletePersona(id){if(data.personas.length<=1)return toast('至少保留一张用户面具');if(!confirm('删除这张用户面具？已绑定会话将改为跟随默认面具。'))return;data.personas=data.personas.filter(p=>p.id!==id);if(data.activePersonaId===id)data.activePersonaId=data.personas[0].id;for(const cfg of Object.values(data.chatSettings||{}))if(cfg?.personaId===id)cfg.personaId='';save();personaEditorDraft=null;show('personaManager');renderPersonaManager();toast('用户面具已删除')}
+function clearChat(id=currentChat){if(!id)return;if(!confirm('清空当前入口的全部聊天记录？'))return;data.chats[id]=[];save();if(currentChat===id)renderMessages();closeModal();renderChats();toast('当前聊天记录已清空')}
+function clearCharacterConversations(id){if(!confirm('同时清空这个角色的线上与线下聊天记录？'))return;data.chats[id]=[];data.chats[offlineChatId(id)]=[];delete data.chatSummaries?.[id];delete data.chatSummaries?.[offlineChatId(id)];scheduleNextProactive(id,true);save();closeModal();if(directCharacterId(currentChat)===id)renderMessages();renderChats();toast('线上与线下记录已清空')}
 
 /* ---------- chat: FIXED openChat ---------- */
-function openChat(id){
-  currentChat=id;
+function openChat(id,mode='online'){
   groupPendingSpeaker=null;
   const g=data.groups.find(x=>x.id===id);
+  currentChat=g?id:directChatId(id,mode);
+  data.chats[currentChat]??=[];
   const ava=document.getElementById('chatAvatar');
   ava.innerHTML='';
   const sub=document.getElementById('chatSub');
@@ -502,15 +638,21 @@ function openChat(id){
   }else{
    const c=data.characters.find(x=>x.id===id);
    if(!c)return;
+   chatListMode=mode==='offline'?'offline':'online';
    document.getElementById('chatName').textContent=c.name;
-   if(sub)sub.textContent='AI 对话';
+   if(sub)sub.textContent=mode==='offline'?'线下相遇 · 面对面剧情':'线上消息 · 手机聊天';
    ava.classList.remove('avatar-stack');ava.classList.add('avatar');
    if(c.image){const im=document.createElement('img');im.src=c.image;im.alt='';im.loading='lazy';ava.appendChild(im)}
    if(picker)picker.style.display='none';
   }
+  const input=document.getElementById('messageInput');if(input)input.placeholder=g?'发送群聊消息…':(mode==='offline'?'描述你在线下说的话或行动…':'输入线上消息…');
   show('chat');
   applyChatBackground();
   renderMessages();
+}
+function openChatFromChatId(chatId){
+ if(isGroupChatId(chatId))return openChat(chatId);
+ const characterId=directCharacterId(chatId);if(data.characters.some(character=>character.id===characterId))openChat(characterId,chatModeForId(chatId));
 }
 
 function renderMessages(){
@@ -519,7 +661,8 @@ function renderMessages(){
  const g=data.groups.find(x=>x.id===currentChat);
  e.innerHTML=arr.map((m,i)=>{
   const speakerName=(g&&m.role==='assistant')?(data.characters.find(c=>c.id===m.speaker)?.name||''):'';
-  return `<div class="msg ${m.role==='user'?'me':''}" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})" ontouchstart="touchStartMsg(event,${i})" ontouchend="touchEndMsg(event)"><div>${speakerName?`<div class="msg-speaker">${esc(speakerName)}</div>`:''}<div class="bubble" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span style="opacity:.4;font-size:8px;margin-left:4px">(已编辑)</span>':''}</div></div><span class="msg-time">${esc(m.time||'')}</span></div>`;
+  const label=speakerName||(m.proactive?'主动来信':'');
+  return `<div class="msg ${m.role==='user'?'me':''}" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})" ontouchstart="touchStartMsg(event,${i})" ontouchend="touchEndMsg(event)"><div>${label?`<div class="msg-speaker">${esc(label)}</div>`:''}<div class="bubble" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span style="opacity:.4;font-size:8px;margin-left:4px">(已编辑)</span>':''}</div></div><span class="msg-time">${esc(m.time||'')}</span></div>`;
  }).join('');
  const s=e.parentElement;if(s)s.scrollTop=s.scrollHeight}
 
@@ -572,10 +715,8 @@ function extractProviderContent(provider,j){if(provider==='anthropic')return ext
    - OpenAI(GPT)：命中前缀自动缓存（≥1024 tokens 自动生效），这里额外传 prompt_cache_key 让同一角色的请求稳定路由到同一缓存分区。
    - Anthropic(Claude)：显式 cache_control，把 system 提示词和"历史消息中除最后一条外"的部分标记为可缓存断点。
    - Google(Gemini)：2.5 系列模型对稳定的 system_instruction + 历史前缀有隐式缓存，这里保持结构稳定以提升命中率。 */
-function priorityDirective(percent=100){const p=Math.min(100,Math.max(0,Number(percent)||0));const tier=p>=90?'HIGHEST':p>=70?'HIGH':p>=40?'NORMAL':'LOW';return `[CONTEXT_PRIORITY tier=${tier} normalized=${(p/100).toFixed(2)}]`;}
-function buildProviderRequest({provider,base,key,model,system,history,temperature,maxTokens,cacheKey,enableCache,priorityPercent=100}){
+function buildProviderRequest({provider,base,key,model,system,history,temperature,maxTokens,cacheKey,enableCache}){
  const temp=Math.max(0,Number(temperature)||0);
- system=`${priorityDirective(priorityPercent)}\n${system}`;
  if(provider==='anthropic'){
   const t=Math.min(1,temp);
   const msgs=history.map((m,i)=>{
@@ -617,16 +758,121 @@ function withTimeout(ms){
  return c;
 }
 function releaseController(c){if(c?.__timer)clearTimeout(c.__timer);if(abortController===c)abortController=null}
-function stopGeneration(){if(abortController){abortController.abort();abortController=null;busy=false;setBusy(false);toast('已停止生成')}}
-function setBusy(v){busy=v;const btn=document.querySelector('.send');if(btn){btn.disabled=v;btn.textContent=v?'■':'↑';btn.title=v?'停止生成':'发送'}const input=document.getElementById('messageInput');if(input)input.disabled=v}
+async function syncScreenWakeLock(){
+ const shouldHold=data.settings.screenWakeLockEnabled!==false&&busy&&document.visibilityState==='visible'&&'wakeLock' in navigator;
+ if(!shouldHold){if(wakeLockSentinel){try{await wakeLockSentinel.release()}catch{}wakeLockSentinel=null}return}
+ if(wakeLockSentinel)return;
+ try{
+  const lock=await navigator.wakeLock.request('screen');wakeLockSentinel=lock;
+  lock.addEventListener('release',()=>{if(wakeLockSentinel===lock)wakeLockSentinel=null});
+ }catch{}
+}
+function stopGeneration(){if(abortController){abortController.abort();abortController=null;activeBackgroundTaskId='';busy=false;setBusy(false);toast('已停止生成')}}
+function setBusy(v){
+ busy=v;
+ const btn=document.querySelector('.send');if(btn){btn.disabled=false;btn.textContent=v?'■':'↑';btn.title=v?'停止生成':'发送'}
+ const retry=document.getElementById('regenerateBtn');if(retry)retry.disabled=v;
+ const input=document.getElementById('messageInput');if(input)input.disabled=v;
+ void syncScreenWakeLock();
+}
 
-async function invokeModel(kind,{system,history,temperature=0,maxTokens=1024,cacheKey='',signal}={}){
+function notificationCapability(){return 'Notification' in window&&'serviceWorker' in navigator&&document.body?.dataset.singleFile!=='true'}
+function shouldUseBackgroundNotification(){return data.settings.backgroundNotificationEnabled===true&&notificationCapability()&&Notification.permission==='granted'}
+async function ensureBackgroundNotificationPermission(){
+ if(!notificationCapability())return false;
+ if(Notification.permission==='granted')return true;
+ if(Notification.permission==='denied')return false;
+ try{return await Notification.requestPermission()==='granted'}catch{return false}
+}
+
+async function backgroundWorker(){
+ if(document.body?.dataset.singleFile==='true'||!('serviceWorker' in navigator))return null;
+ try{
+  await navigator.serviceWorker.ready;
+  for(let attempt=0;attempt<24;attempt++){
+   const registration=await navigator.serviceWorker.getRegistration('/');
+   const candidates=[registration?.active,navigator.serviceWorker.controller].filter(Boolean);
+   const worker=candidates.find(candidate=>candidate.state==='activated'&&/\/sw-v34\.js(?:$|\?)/.test(candidate.scriptURL||''));
+   if(worker)return worker;
+   await new Promise(resolve=>setTimeout(resolve,250));
+  }
+ }catch{}
+ return null;
+}
+async function acknowledgeBackgroundResult(taskId){
+ if(!taskId)return;const worker=await backgroundWorker();worker?.postMessage({type:'POKEJI_ACK_BACKGROUND_RESULT',taskId});
+}
+async function relayProviderRequest(req,{taskId,meta,signal,timeoutMs}){
+ const worker=await backgroundWorker();if(!worker)throw Error('后台接力服务尚未就绪，请刷新页面后重试');
+ return new Promise((resolve,reject)=>{
+  const channel=new MessageChannel();let settled=false;
+  const finish=(fn,value)=>{if(settled)return;settled=true;signal?.removeEventListener('abort',onAbort);try{channel.port1.close()}catch{}fn(value)};
+  const onAbort=()=>{worker.postMessage({type:'POKEJI_CANCEL_BACKGROUND_FETCH',taskId});finish(reject,new DOMException('请求已取消','AbortError'))};
+  if(signal?.aborted)return onAbort();
+  signal?.addEventListener('abort',onAbort,{once:true});
+  channel.port1.onmessage=event=>{
+   const message=event.data;if(message?.type!=='POKEJI_BACKGROUND_RESULT'||message.taskId!==taskId)return;
+   const result=message.result||{};
+   if(!result.ok)finish(reject,Error(result.error||`HTTP ${result.status||0} ${result.statusText||''}`));
+   else finish(resolve,result);
+  };
+  channel.port1.onmessageerror=()=>finish(reject,Error('后台接力返回了无法读取的数据'));
+  worker.postMessage({type:'POKEJI_BACKGROUND_FETCH',taskId,request:{url:req.url,headers:req.headers,body:JSON.stringify(req.body)},meta,timeoutMs},[channel.port2]);
+ });
+}
+function parseProviderResponse(provider,text){
+ let json;try{json=JSON.parse(text)}catch(error){throw Error(`API 返回了无法解析的 JSON：${error.message}`)}
+ const output=extractProviderContent(provider,json);if(!output)throw Error(`API 返回为空\n${JSON.stringify(json,null,2)}`);return output;
+}
+async function invokeModel(kind,{system,history,temperature=0,maxTokens=1024,cacheKey='',signal,background=false,backgroundTaskId='',backgroundMeta=null}={}){
  const p=modelProfile(kind);if(!validModel(kind))throw Error(`${kind} 模型未完整配置`);
- const req=buildProviderRequest({provider:p.provider,base:p.base,key:p.key,model:p.model,system,history,temperature,maxTokens,cacheKey,enableCache:data.settings.promptCache!==false,priorityPercent:p.weight});
+ const req=buildProviderRequest({provider:p.provider,base:p.base,key:p.key,model:p.model,system,history,temperature,maxTokens,cacheKey,enableCache:data.settings.promptCache!==false});
+ if(background&&data.settings.backgroundRelayEnabled!==false&&document.body?.dataset.singleFile!=='true'){
+  const taskId=backgroundTaskId||('bg_'+crypto.randomUUID());
+  activeBackgroundTaskId=taskId;
+  try{
+   const result=await relayProviderRequest(req,{taskId,meta:{...(backgroundMeta||{}),kind,provider:p.provider},signal,timeoutMs:Number(data.settings.timeout)||60000});
+   return parseProviderResponse(p.provider,result.text||'');
+  }catch(error){if(!/后台接力服务尚未就绪/.test(error?.message||''))throw error;activeBackgroundTaskId=''}
+ }
  const res=await fetch(req.url,{method:'POST',headers:req.headers,signal,body:JSON.stringify(req.body)});
  if(!res.ok){let detail='';try{detail=await res.text()}catch{}throw Error(`HTTP ${res.status} ${res.statusText}\n${detail}`)}
- let j;try{j=await res.json()}catch(e){throw Error(`API 返回了无法解析的 JSON：${e.message}`)}
- const out=extractProviderContent(p.provider,j);if(!out)throw Error(`API 返回为空\n${JSON.stringify(j,null,2)}`);return out;
+ return parseProviderResponse(p.provider,await res.text());
+}
+async function claimBackgroundResults(){
+ if(data.settings.backgroundRelayEnabled===false)return[];const worker=await backgroundWorker();if(!worker)return[];
+ return new Promise(resolve=>{
+  const channel=new MessageChannel();let done=false;
+  const finish=results=>{if(done)return;done=true;clearTimeout(timer);try{channel.port1.close()}catch{}resolve(Array.isArray(results)?results:[])};
+  const timer=setTimeout(()=>finish([]),3000);
+  channel.port1.onmessage=event=>{if(event.data?.type==='POKEJI_BACKGROUND_RESULTS')finish(event.data.results)};
+  channel.port1.onmessageerror=()=>finish([]);
+  worker.postMessage({type:'POKEJI_CLAIM_BACKGROUND_RESULTS'},[channel.port2]);
+ });
+}
+async function recoverBackgroundResults(){
+ const results=await claimBackgroundResults();if(!results.length)return;
+ let changed=false,restored=0,failed=0;
+ for(const result of results){
+  const taskId=String(result?.taskId||''),meta=result?.meta||{};if(!taskId)continue;
+  const duplicate=Object.values(data.chats||{}).some(messages=>Array.isArray(messages)&&messages.some(message=>message.backgroundTaskId===taskId));
+  if(duplicate){await acknowledgeBackgroundResult(taskId);continue}
+  if(!['chat','proactive'].includes(meta.operation)){await acknowledgeBackgroundResult(taskId);continue}
+  const chatId=String(meta.chatId||''),messages=data.chats?.[chatId];
+  if(!Array.isArray(messages)){await acknowledgeBackgroundResult(taskId);continue}
+  if(!result.ok){data.notifications.unshift({text:`后台回复失败：${String(result.error||result.statusText||'请求未完成').slice(0,120)}`,time:'刚刚',type:'chat'});failed++;changed=true;await acknowledgeBackgroundResult(taskId);continue}
+  try{
+   const rawReply=parseProviderResponse(meta.provider||'openai',result.text||'');parseState(rawReply);
+   const reply=applyRegexPipeline(rawReply,'AI 回复').replace(/<state>[\s\S]*?<\/state>/gi,'').trim();
+   const message={role:'assistant',text:reply||rawReply,time:time(),backgroundTaskId:taskId,restoredFromBackground:true,proactive:meta.operation==='proactive'};
+   const group=meta.groupId&&data.groups.find(item=>item.id===meta.groupId);
+   if(group){message.speaker=meta.speakerId||'';group.turnIndex=(group.turnIndex+1)%Math.max(1,group.memberIds.length)}
+   if(meta.operation==='proactive'&&meta.speakerId)scheduleNextProactive(meta.speakerId,true);
+   messages.push(message);data.notifications.unshift({text:`${meta.notificationName||'AI'}已在后台完成回复`,time:'刚刚',type:'chat'});restored++;changed=true;
+  }catch(error){data.notifications.unshift({text:`后台回复无法恢复：${redactSensitive(error.message||String(error)).slice(0,120)}`,time:'刚刚',type:'chat'});failed++;changed=true}
+  await acknowledgeBackgroundResult(taskId);
+ }
+ if(changed){save();if(currentChat)renderMessages();renderNotifications();renderChats();if(restored)toast(`已恢复 ${restored} 条后台回复`);else if(failed)toast('后台任务未完成，请查看通知')}
 }
 async function testAPI(showMsg=true){const c=withTimeout(Number(data.settings.timeout)||60000);try{await invokeModel('chat',{system:'You are a connection test.',history:[{role:'user',content:'Reply with OK only.'}],temperature:0,maxTokens:64,signal:c.signal});if(showMsg)toast('主聊天模型连接成功');return true}catch(e){if(showMsg)errorDetail(e,'API 测试失败');return false}finally{releaseController(c)}}
 
@@ -635,26 +881,45 @@ function applyRegexPipeline(text,target='AI 回复'){let out=String(text??'');fo
 function regexPreflight(text){return applyRegexPipeline(text,'用户消息')}
 function parseState(raw){const match=String(raw||'').match(/<state>([\s\S]*?)<\/state>/i);if(!match)return;for(const line of match[1].split(/\r?\n/)){const m=line.match(/^\s*([^=:#]+?)\s*[=:]\s*(.*?)\s*$/);if(m)data.engine.state[m[1].trim()]=m[2].trim()}}
 function ruleMatches(r,input){if(r.enabled===false)return false;const hay=String(input||'').toLowerCase();const trig=String(r.trigger||'').trim();if(!trig)return true;const st=data.engine.state||{};if(trig.startsWith('/')&&trig.lastIndexOf('/')>0){const k=trig.lastIndexOf('/');try{return new RegExp(trig.slice(1,k),trig.slice(k+1)||'i').test(input)}catch{return false}}const parts=trig.split(/[|,，、]/).map(x=>x.trim().toLowerCase()).filter(Boolean);return parts.some(p=>hay.includes(p)||JSON.stringify(st).toLowerCase().includes(p))}
-function template(s,ctx){return String(s??'').replace(/\{\{\s*(world|state|memory|character|message|role)\s*\}\}/gi,(_,k)=>ctx[k.toLowerCase()]??'')}
-function buildEngineContext(character,userMessage=''){
- const st=data.engine.state||{};
- const rules=(data.engine.worldRules||[]).filter(r=>r.global||ruleMatches(r,userMessage)).sort((a,b)=>(b.global?10000:Number(b.priority)||0)-(a.global?10000:Number(a.priority)||0));
- const books=(data.worlds||[]).filter(w=>w.enabled!==false&&(w.global||ruleMatches(w,userMessage))).sort((a,b)=>(b.global?10000:Number(b.priority)||0)-(a.global?10000:Number(a.priority)||0));
- const bookText=books.map(w=>`【${w.global?'全局世界书':'世界书'}:${w.name}｜${w.global?'强制最高优先级':`优先级${w.priority??70}`}】\n${template(w.desc||'',{state:JSON.stringify(st),message:userMessage,character:character?.name||'',role:character?.bio||''})}`);
- const worldText=[...bookText,...rules.map(r=>`【${r.global?'全局规则':'世界规则'}:${r.name}｜${r.global?'强制最高优先级':`优先级${r.priority??0}`}】\n${template(r.content,{state:JSON.stringify(st),message:userMessage,character:character?.name||'',role:character?.bio||''})}`)].join('\n\n');
- const memories=(data.memories||[]).slice(0,30).map(m=>`【记忆:${m.title}】${m.text}`).join('\n');
- const base={world:worldText||'当前没有命中的世界规则。',state:JSON.stringify(st,null,2),memory:memories||'暂无记忆',character:character?.bio||'',role:character?.bio||'',message:userMessage};
- const preset=(data.engine.presetModules||[]).filter(m=>m.enabled!==false).slice().sort((a,b)=>(Number(b.weight)||0)-(Number(a.weight)||0)).map(m=>`【${m.kind||'自定义'}:${m.name}|UI ${m.weight??0}%|${priorityDirective(m.weight)}】\n${template(m.content,base)}`).join('\n\n');
- return {...base,preset,world:worldText||'当前没有命中的世界规则。'};
+function template(s,ctx){return String(s??'').replace(/\{\{\s*(world|state|memory|character|message|role|user|persona)\s*\}\}/gi,(_,k)=>ctx[k.toLowerCase()]??'')}
+function characterContext(c={}){return [`名称：${c.name||'未命名'}`,c.nickname&&`昵称：${c.nickname}`,c.pronouns&&`称谓：${c.pronouns}`,c.tags&&`标签：${c.tags}`,c.bio&&`身份概要：${c.bio}`,c.personality&&`性格：${c.personality}`,c.background&&`过往经历：${c.background}`,c.appearance&&`外貌与气质：${c.appearance}`,c.speechStyle&&`说话方式：${c.speechStyle}`,c.relationship&&`与用户关系：${c.relationship}`,c.scenario&&`当前情境：${c.scenario}`,c.exampleDialogue&&`对话示例：\n${c.exampleDialogue}`,c.boundaries&&`边界与禁区：${c.boundaries}`,c.systemPrompt&&`角色专属指令：${c.systemPrompt}`].filter(Boolean).join('\n')}
+function semanticWorldLayer(item){const scope=item.__engineRule?'global':(item.scope||'global'),activation=item.activation||'persistent',scopeLayer=scope==='group'?4:scope==='character'?2:0;return scopeLayer+(activation==='trigger'?1:0)}
+function compileSemanticLayers(items,formatter,limit=10000){
+ const prepared=items.map((item,index)=>({item,index,layer:semanticWorldLayer(item),raw:String(formatter(item)||'').trim()})).filter(x=>x.raw);
+ const retained=[];let used=0;
+ for(const entry of prepared.slice().sort((a,b)=>b.layer-a.layer||a.index-b.index)){const remaining=limit-used;if(remaining<80)break;entry.chunk=entry.raw.length>remaining?entry.raw.slice(0,Math.max(0,remaining-18))+'\n【按上下文预算截断】':entry.raw;retained.push(entry);used+=entry.chunk.length+2;if(entry.raw.length>remaining)break}
+ return retained.sort((a,b)=>a.layer-b.layer||a.index-b.index).map(x=>x.chunk).join('\n\n');
 }
-function buildSystemPrompt(c,userMessage=''){
- const x=buildEngineContext(c,userMessage);
- return `这是普通的沉浸式角色聊天。应用名称、图标、界面主题和视觉装饰均属于界面元信息，不属于对话上下文，不得据此推断任何剧情、活动、物品或玩法。只根据用户消息、角色资料、世界书、记忆与预设回复。\n你不是预置角色；当前角色资料完全来自用户。\n\n【角色】\n${c.name}\n${c.bio||'无'}\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n世界规则决定当前可用背景；预设模块负责组合与优先级；正则负责请求前处理、回复后处理和状态反馈。保持连续性，不虚构不存在的外部数据。`;
+function compileOrderedModules(items,formatter,limit=10000){const chunks=[];let used=0;for(const item of items){const raw=String(formatter(item)||'').trim();if(!raw)continue;const remaining=limit-used;if(remaining<80)break;const chunk=raw.length>remaining?raw.slice(0,Math.max(0,remaining-18))+'\n【按上下文预算截断】':raw;chunks.push(chunk);used+=chunk.length+2;if(raw.length>remaining)break}return chunks.join('\n\n')}
+function worldScopeMatches(w,character,userMessage='',chatId=currentChat){
+ if(w.enabled===false)return false;const scope=w.scope||'global',targets=Array.isArray(w.targetIds)?w.targetIds:[],group=data.groups.find(g=>g.id===chatId);
+ const inScope=scope==='global'||(scope==='character'&&!!character&&targets.includes(character.id))||(scope==='group'&&!!group&&targets.includes(group.id));
+ if(!inScope)return false;if((w.activation||'persistent')==='persistent')return true;return !!String(w.trigger||'').trim()&&ruleMatches(w,userMessage);
+}
+function worldScopeLabel(w){return w.scope==='character'?'角色绑定':w.scope==='group'?'分组绑定':'全局'}
+function buildEngineContext(character,userMessage='',chatId=currentChat){
+ const st=data.engine.state||{},persona=activePersonaFor(chatId),charText=characterContext(character),personaText=personaContext(persona);
+ const baseTemplate={state:JSON.stringify(st),message:userMessage,character:charText,role:charText,user:personaText,persona:personaText};
+ const books=(data.worlds||[]).filter(w=>worldScopeMatches(w,character,userMessage,chatId));
+ const rules=(data.engine.worldRules||[]).filter(r=>(r.activation||'persistent')==='persistent'||ruleMatches(r,userMessage)).map(r=>({...r,__engineRule:true}));
+ const worldText=compileSemanticLayers([...books,...rules],entry=>entry.__engineRule?`【世界规则：${entry.name}】\n${template(entry.content,baseTemplate)}`:`【世界书：${entry.name}】\n${template(entry.desc||'',baseTemplate)}`,12000);
+ const memories=(data.memories||[]).slice(0,30).map(m=>`【记忆:${m.title}】${m.text}`).join('\n');
+ const base={world:worldText||'当前没有命中的世界规则。',state:JSON.stringify(st,null,2),memory:memories||'暂无记忆',character:charText,role:charText,user:personaText,persona:personaText,message:userMessage};
+ const preset=compileOrderedModules((data.engine.presetModules||[]).filter(m=>m.enabled!==false),m=>`【${m.kind||'自定义'}：${m.name}】\n${template(m.content,base)}`,10000);
+ return {...base,preset};
+}
+function buildSystemPrompt(c,userMessage='',chatId=currentChat){
+ const x=buildEngineContext(c,userMessage,chatId);
+ return `这是普通的沉浸式角色聊天。应用名称、图标、界面主题和视觉装饰均属于界面元信息，不属于对话上下文，不得据此推断任何剧情、活动、物品或玩法。只根据用户消息、角色资料、USER 设定、世界书、记忆与预设回复。\n当前角色和 USER 身份均完全来自本机资料。\n\n【当前角色】\n${x.character}\n\n【USER 设定】\n${x.persona}\n角色必须把用户理解为该身份，但不得代替用户说话、行动、作决定或补写用户未表达的想法。\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n世界书已按全局、角色绑定、分组绑定以及常驻、普通触发完成本地筛选；不属于当前会话的内容不得进入本次请求。预设按用户排列顺序编译。保持角色连续性，不虚构不存在的外部数据。`;
+}
+function buildOfflineSystemPrompt(c,userMessage='',chatId=currentChat){
+ const x=buildEngineContext(c,userMessage,chatId);
+ return `这是“线下相遇”入口中的面对面沉浸式剧情。应用界面、手机图标和线上聊天形式均不属于剧情。只根据用户输入、角色资料、USER 设定、世界书、记忆与预设继续现场互动。\n\n【当前角色】\n${x.character}\n\n【USER 设定】\n${x.persona}\n角色必须把用户理解为该身份，但绝不能代替 USER 说话、行动、思考、感受或作决定。\n\n【现场世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【线下表达规则】\n以面对面场景继续，可以描写角色自身的动作、神态、语气与必要环境反馈；角色说话与叙事保持自然连贯。不得把回复写成手机消息提示，不得补写 USER 未表达的行为和内心。`;
 }
 function buildGroupSystemPrompt(g,activeChar,userMessage=''){
- const x=buildEngineContext(activeChar,userMessage);
- const roster=g.memberIds.map(id=>data.characters.find(c=>c.id===id)).filter(Boolean).map(m=>`- ${m.name}：${(m.bio||'（无设定）').slice(0,140)}`).join('\n');
- return `这是普通的沉浸式角色群聊“${g.name}”。应用名称、图标、界面主题和视觉装饰均属于界面元信息，不属于对话上下文，不得据此推断任何剧情、活动、物品或玩法。只根据用户消息、角色资料、世界书、记忆与预设回复。所有角色资料完全来自用户。\n\n【群聊成员】\n${roster}\n\n本轮只以【${activeChar.name}】的身份回复：只输出该角色本人的发言内容，不要替其他角色说话或替他们做决定，也不要在回复里加角色名前缀（界面会自动显示发言人）。\n\n【当前发言角色】\n${activeChar.name}\n${activeChar.bio||'无'}\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n保持人物关系与对话连续性，不虚构不存在的外部数据。`;
+ const x=buildEngineContext(activeChar,userMessage,g.id);
+ const roster=g.memberIds.map(id=>data.characters.find(c=>c.id===id)).filter(Boolean).map(m=>`- ${m.name}：${characterContext(m).slice(0,420)}`).join('\n');
+ return `这是普通的沉浸式角色群聊“${g.name}”。应用名称、图标、界面主题和视觉装饰均属于界面元信息，不属于对话上下文。所有人物资料均来自本机。\n\n【群聊成员】\n${roster}\n\n本轮只以【${activeChar.name}】的身份回复：只输出该角色本人的发言内容，不替其他角色或 USER 说话、行动或作决定，也不要添加角色名前缀。\n\n【当前发言角色】\n${x.character}\n\n【USER 设定】\n${x.persona}\n角色必须把用户理解为该身份，但不得替 USER 补写未表达的想法、动作或决定。\n\n【动态世界】\n${x.world}\n\n【世界状态】\n${x.state}\n\n【本地记忆】\n${x.memory}\n\n【预设编译结果】\n${x.preset||'无'}\n\n【执行原则】\n世界书已按当前群聊、当前发言角色和触发条件完成本地筛选。保持人物关系与对话连续性，不虚构不存在的外部数据。`;
 }
 
 async function refreshConversationSummary(chatId,signal,force=false){
@@ -669,32 +934,112 @@ async function refreshConversationSummary(chatId,signal,force=false){
  const summary=await invokeModel('summary',{system:'你是独立的对话记忆摘要工具。忠实压缩人物、事实、关系、承诺、偏好、未完成事项与时间线；不续写，不对话。',history:[{role:'user',content:`已有摘要：\n${data.chatSummaries[chatId]?.text||'无'}\n\n待压缩对话：\n${transcript}`}],temperature:0.1,maxTokens:1200,signal});
  data.chatSummaries[chatId]={text:summary.trim(),fingerprint,updatedAt:new Date().toISOString()};save();return summary.trim();
 }
+function queueConversationSummary(chatId){
+ if(data.settings.summaryAutoEnabled===false||!validModel('summary')||summaryTasks.has(chatId))return;
+ summaryTasks.add(chatId);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),Math.min(180000,Math.max(10000,Number(data.settings.timeout)||60000)));
+ refreshConversationSummary(chatId,controller.signal).catch(error=>{if(error?.name!=='AbortError')console.warn(redactSensitive(`自动摘要稍后重试：${error?.message||error}`))}).finally(()=>{clearTimeout(timer);summaryTasks.delete(chatId)});
+}
 async function createNarrativeRandomEvent({chatId,group,activeChar,userMessage,signal}){
  if(data.settings.randomEventsEnabled!==true)return '';
  const chance=Math.min(100,Math.max(0,Number(data.settings.randomEventChance)||0));
  if(chance<=0||Math.random()*100>=chance)return '';
  if(!validModel('random'))throw Error('随机事件已开启，但随机事件模型未完整配置');
  const recent=(data.chats[chatId]||[]).slice(-10).map(m=>`${m.role==='user'?'用户':(data.characters.find(c=>c.id===m.speaker)?.name||activeChar.name)}：${m.text}`).join('\n');
- const engine=buildEngineContext(activeChar,userMessage);
+ const engine=buildEngineContext(activeChar,userMessage,chatId);
  const scope=group?`群聊：${group.name}`:`私聊角色：${activeChar.name}`;
- const event=await invokeModel('random',{
-  system:'你是独立的角色剧情随机事件工具。只生成一条能自然进入当前情境的偶发事件，不扮演角色、不输出对话、不解释机制、不提及应用界面或品牌。事件必须与角色设定和世界规则兼容，避免强行改写既有事实。只输出事件描述。',
-  history:[{role:'user',content:`${scope}\n角色资料：${activeChar.bio||'无'}\n当前世界：${engine.world}\n世界状态：${engine.state}\n最近对话：\n${recent||'无'}\n用户刚刚说：${userMessage}`}],
-  temperature:1,maxTokens:360,cacheKey:`pokeji_random_${activeChar.id}`,signal
- });
+ const taskId='random_'+crypto.randomUUID();let event;
+ try{
+  event=await invokeModel('random',{
+   system:'你是独立的角色剧情随机事件工具。只生成一条能自然进入当前情境的偶发事件，不扮演角色、不输出对话、不解释机制、不提及应用界面或品牌。事件必须与角色设定和世界规则兼容，避免强行改写既有事实。只输出事件描述。',
+   history:[{role:'user',content:`${scope}\n角色资料：\n${characterContext(activeChar)}\n用户面具：\n${personaContext(activePersonaFor(chatId))}\n当前世界：${engine.world}\n世界状态：${engine.state}\n最近对话：\n${recent||'无'}\n用户刚刚说：${userMessage}`}],
+   temperature:1,maxTokens:360,cacheKey:`pokeji_random_${activeChar.id}`,signal,background:true,backgroundTaskId:taskId,backgroundMeta:{operation:'auxiliary',chatId,speakerId:activeChar.id,groupId:group?.id||'',mode:group?'group':chatModeForId(chatId),notificationName:activeChar.name,showNotification:false,startedAt:new Date().toISOString()}
+  });
+  await acknowledgeBackgroundResult(taskId);
+ }catch(error){await acknowledgeBackgroundResult(taskId);throw error}
+ finally{if(activeBackgroundTaskId===taskId)activeBackgroundTaskId=''}
  const text=String(event||'').trim().slice(0,1200);if(!text)throw Error('随机事件模型返回为空');
  const events=Array.isArray(data.engine.state.events)?data.engine.state.events:[];
  events.unshift({id:'event_'+crypto.randomUUID(),chatId,characterId:activeChar.id,text,at:new Date().toISOString()});
  data.engine.state.events=events.slice(0,30);save();return text;
 }
 
+function proactiveDelayRange(){
+ let min=Math.min(1440,Math.max(1,Number(data.settings.proactiveMinMinutes)||60));
+ let max=Math.min(1440,Math.max(1,Number(data.settings.proactiveMaxMinutes)||180));
+ if(min>max)[min,max]=[max,min];
+ return{min,max};
+}
+function scheduleNextProactive(characterId,reset=false){
+ data.proactiveSchedule??={};
+ const character=data.characters.find(item=>item.id===characterId);
+ if(!character?.proactiveEnabled){delete data.proactiveSchedule[characterId];return false}
+ const existing=Number(data.proactiveSchedule[characterId]);
+ if(!reset&&Number.isFinite(existing)&&existing>0)return false;
+ const {min,max}=proactiveDelayRange(),minutes=min+Math.random()*(max-min);
+ data.proactiveSchedule[characterId]=Date.now()+Math.round(minutes*60000);
+ return true;
+}
+function primeProactiveSchedules(reset=false){
+ data.proactiveSchedule??={};let changed=false;
+ const liveIds=new Set(data.characters.filter(character=>character.proactiveEnabled).map(character=>character.id));
+ for(const id of Object.keys(data.proactiveSchedule))if(!liveIds.has(id)){delete data.proactiveSchedule[id];changed=true}
+ if(data.settings.proactiveEnabled===true)for(const id of liveIds)changed=scheduleNextProactive(id,reset)||changed;
+ return changed;
+}
+function startProactiveScheduler(){
+ clearInterval(proactiveTimer);proactiveTimer=null;
+ if(primeProactiveSchedules(false))save();
+ proactiveTimer=setInterval(()=>{void checkProactiveMessages()},30000);
+ setTimeout(()=>{void checkProactiveMessages()},2200);
+}
+async function generateProactiveMessage(character){
+ if(!character?.proactiveEnabled||proactiveBusy||busy||!validAPI())return;
+ const chatId=directChatId(character.id,'online'),s=data.settings;
+ data.chats[chatId]??=[];
+ proactiveBusy=true;setBusy(true);scheduleNextProactive(character.id,true);save();
+ const controller=withTimeout(Number(s.timeout)||60000);let backgroundTaskId='';
+ try{
+  let system=buildSystemPrompt(character,'',chatId);
+  const summary=data.chatSummaries?.[chatId]?.text;if(summary)system+=`\n\n【自动记忆摘要】\n${summary}`;
+  system+=`\n\n【主动来信任务】\n现在是角色主动联系 USER 的时机。结合最近对话、人物关系与当前情境，自然发出一条新的线上消息。只输出角色实际发送的消息；不要提及任务、计时器、频率、系统或应用。不要代替 USER 回复。`;
+  const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(message=>({role:message.role==='assistant'?'assistant':'user',content:message.text}));
+  history.push({role:'user',content:'【内部触发】请现在以角色身份主动发来一条自然的线上消息。'});
+  backgroundTaskId='proactive_'+crypto.randomUUID();
+  const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:`pokeji_chat_online_${character.id}`,signal:controller.signal,background:true,backgroundTaskId,backgroundMeta:{operation:'proactive',chatId,speakerId:character.id,groupId:'',mode:'online',notificationName:character.name,showNotification:shouldUseBackgroundNotification(),startedAt:new Date().toISOString()}});
+  parseState(rawReply);
+  const reply=applyRegexPipeline(rawReply,'AI 回复').replace(/<state>[\s\S]*?<\/state>/gi,'').trim();
+  data.chats[chatId].push({role:'assistant',text:reply||rawReply,time:time(),backgroundTaskId,proactive:true});
+  data.notifications.unshift({text:`${character.name}主动发来消息`,time:'刚刚',type:'chat'});
+  scheduleNextProactive(character.id,true);save();if(currentChat===chatId)renderMessages();renderChats();renderNotifications();
+  await acknowledgeBackgroundResult(backgroundTaskId);
+ }catch(error){
+  if(backgroundTaskId)await acknowledgeBackgroundResult(backgroundTaskId);
+  data.notifications.unshift({text:`${character.name}的主动来信未完成：${redactSensitive(error?.message||String(error)).slice(0,100)}`,time:'刚刚',type:'chat'});
+  scheduleNextProactive(character.id,true);save();renderNotifications();
+  if(error?.name==='AbortError')toast('已停止主动来信生成');
+ }finally{
+  if(activeBackgroundTaskId===backgroundTaskId)activeBackgroundTaskId='';
+  releaseController(controller);proactiveBusy=false;setBusy(false);
+ }
+}
+async function checkProactiveMessages(){
+ if(data.settings.proactiveEnabled!==true||proactiveBusy||busy||!validAPI())return;
+ if(primeProactiveSchedules(false))save();
+ const now=Date.now(),due=data.characters.filter(character=>character.proactiveEnabled&&Number(data.proactiveSchedule?.[character.id])<=now).sort((a,b)=>Number(data.proactiveSchedule[a.id])-Number(data.proactiveSchedule[b.id]))[0];
+ if(!due)return;
+ const input=document.getElementById('messageInput');
+ if(currentChat===due.id&&input?.value.trim()){data.proactiveSchedule[due.id]=Date.now()+5*60000;save();return}
+ await generateProactiveMessage(due);
+}
+
 async function sendMessage(){
  if(busy){stopGeneration();return}
  if(!validAPI()){toast('API 未配置');openView('settings');return}
  const input=document.getElementById('messageInput'),raw=input.value.trim();if(!raw||!currentChat)return;
- const text=regexPreflight(raw);data.chats[currentChat]??=[];data.chats[currentChat].push({role:'user',text,time:time()});save();input.value='';renderMessages();setBusy(true);
- const s=data.settings,group=data.groups.find(x=>x.id===currentChat);
+ const chatId=currentChat,text=regexPreflight(raw);data.chats[chatId]??=[];data.chats[chatId].push({role:'user',text,time:time()});save();input.value='';renderMessages();setBusy(true);
+ const s=data.settings,group=data.groups.find(x=>x.id===chatId),mode=group?'group':chatModeForId(chatId);
  const controller=withTimeout(Number(s.timeout)||60000);
+ let backgroundTaskId='';
  try{
   let system,activeChar,notifName;
   if(group){
@@ -704,38 +1049,43 @@ async function sendMessage(){
    system=buildGroupSystemPrompt(group,activeChar,text);
    notifName=`${group.name} · ${activeChar.name}`;
   }else{
-   activeChar=data.characters.find(x=>x.id===currentChat);
+   activeChar=directCharacterForChat(chatId);
    if(!activeChar)throw Error('角色不存在');
-   system=buildSystemPrompt(activeChar,text);
+   system=mode==='offline'?buildOfflineSystemPrompt(activeChar,text,chatId):buildSystemPrompt(activeChar,text,chatId);
    notifName=activeChar.name;
+   if(mode==='online'&&activeChar.proactiveEnabled){scheduleNextProactive(activeChar.id,true);save()}
   }
-  const summary=await refreshConversationSummary(currentChat,controller.signal);
+  const summary=data.chatSummaries?.[chatId]?.text||'';
   if(summary)system+=`\n\n【自动记忆摘要】\n${summary}`;
   try{
-   const randomEvent=await createNarrativeRandomEvent({chatId:currentChat,group,activeChar,userMessage:text,signal:controller.signal});
+   const randomEvent=await createNarrativeRandomEvent({chatId,group,activeChar,userMessage:text,signal:controller.signal});
    if(randomEvent)system+=`\n\n【本轮随机剧情事件｜高优先级】\n${randomEvent}\n请让事件自然进入当前剧情，并保持角色身份与既有连续性。不要说明事件来自工具。`;
   }catch(eventError){
    if(eventError?.name==='AbortError')throw eventError;
    errorDetail(eventError,'随机事件模型异常');
   }
-  const history=data.chats[currentChat].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>{
+  const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>{
    if(m.role==='user')return{role:'user',content:m.text};
    if(group){const spk=data.characters.find(x=>x.id===m.speaker);return{role:'assistant',content:`[${spk?spk.name:'角色'}] ${m.text}`}}
    return{role:'assistant',content:m.text};
   });
-  const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'pokeji_chat_'+(group?group.id+'_'+activeChar.id:activeChar.id),signal:controller.signal});
+  backgroundTaskId='chat_'+crypto.randomUUID();
+  const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'pokeji_chat_'+(group?group.id+'_'+activeChar.id:mode+'_'+activeChar.id),signal:controller.signal,background:true,backgroundTaskId,backgroundMeta:{operation:'chat',chatId,speakerId:activeChar.id,groupId:group?.id||'',mode,notificationName:notifName,showNotification:shouldUseBackgroundNotification(),startedAt:new Date().toISOString()}});
   parseState(rawReply);
   const reply=applyRegexPipeline(rawReply,'AI 回复').replace(/<state>[\s\S]*?<\/state>/gi,'').trim();
-  const msg={role:'assistant',text:reply||rawReply,time:time()};
+  const msg={role:'assistant',text:reply||rawReply,time:time(),backgroundTaskId};
   if(group){msg.speaker=activeChar.id;group.turnIndex=(group.turnIndex+1)%group.memberIds.length;groupPendingSpeaker=null;renderSpeakerPicker(group)}
-  data.chats[currentChat].push(msg);data.notifications.unshift({text:`${notifName}回复了你`,time:'刚刚',type:'chat'});save();renderMessages();
- }catch(err){if(err.name==='AbortError'){errorDetail(err,'请求超时或已停止生成');}else{errorDetail(err,'API / 内部异常');}renderMessages()}
- finally{releaseController(controller);setBusy(false)}
+  data.chats[chatId].push(msg);data.notifications.unshift({text:`${notifName}回复了你`,time:'刚刚',type:'chat'});if(!group&&mode==='online'&&activeChar.proactiveEnabled)scheduleNextProactive(activeChar.id,true);save();if(currentChat===chatId)renderMessages();
+  await acknowledgeBackgroundResult(backgroundTaskId);
+  queueConversationSummary(chatId);
+ }catch(err){if(backgroundTaskId)await acknowledgeBackgroundResult(backgroundTaskId);if(err.name==='AbortError'){errorDetail(err,'请求超时或已停止生成');}else{errorDetail(err,'API / 内部异常');}renderMessages()}
+ finally{if(activeBackgroundTaskId===backgroundTaskId)activeBackgroundTaskId='';releaseController(controller);setBusy(false)}
 }
 
 async function regenerateLast(){
  if(busy||!currentChat)return;const arr=data.chats[currentChat]||[];
  if(arr.at(-1)?.role!=='assistant')return toast('末尾没有可撤回的 AI 回复');
+ if(arr.at(-1)?.proactive){const character=directCharacterForChat(currentChat);if(!character?.proactiveEnabled)return toast('请先在角色绑定中允许主动来信');arr.pop();save();renderMessages();await generateProactiveMessage(character);return}
  arr.pop();save();renderMessages();
  const lastUser=[...arr].reverse().find(m=>m.role==='user');if(!lastUser)return toast('缺少用户消息');
  document.getElementById('messageInput').value=lastUser.text;
@@ -751,15 +1101,21 @@ function renderNotifications(){const e=document.getElementById('notificationList
 function clearNotifications(){data.notifications=[];save();renderNotifications();toast('已清空')}
 
 /* ---------- world & memory ---------- */
-function newWorld(){modal(`<h2>创建世界书条目</h2><div class="field"><label>名称</label><input id="wn"></div><div class="field"><label>触发条件</label><input id="wt" placeholder="留空=始终；支持关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="支持 {{state}} {{message}} {{character}}"></textarea></div><div class="field"><label>优先级百分比</label><input id="wp" type="range" min="0" max="100" value="70" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>70%</small></div><div class="field"><label><input id="wg" type="checkbox" style="width:auto"> 常驻 / 全局（全部会话强制最高优先级）</label></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createWorld()">创建</button></div>`)}
-function createWorld(){const n=document.getElementById('wn').value.trim();if(!n)return toast('请填写名称');data.worlds.push({id:'w_'+crypto.randomUUID(),name:n,trigger:document.getElementById('wt').value.trim(),desc:document.getElementById('wd').value,priority:Number(document.getElementById('wp').value)||70,global:document.getElementById('wg').checked,enabled:true});save();closeModal();renderWorld()}
-function renderWorld(){const e=document.getElementById('worldList');if(!data.worlds.length){e.innerHTML='<div class="empty"><div class="big">✦</div>还没有世界书条目</div>';return}e.innerHTML=data.worlds.map(w=>`<div class="card" style="padding:15px;margin-bottom:10px" onclick="editWorld('${w.id}')"><div class="module-head"><b>${esc(w.name)}</b><span class="pill">${w.enabled===false?'已停用':(w.global?'全局常驻':`优先级 ${w.priority??70}`)}</span></div><div class="muted" style="margin-top:5px">触发：${esc(w.global?'全部会话':w.trigger||'始终')}</div><div class="muted" style="line-height:1.7;margin-top:7px">${esc(w.desc||'')}</div></div>`).join('')}
-function editWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;modal(`<h2>编辑世界书条目</h2><div class="field"><label>名称</label><input id="wn" value="${attr(w.name)}"></div><div class="field"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}"></div><div class="field"><label>内容</label><textarea id="wd">${esc(w.desc||'')}</textarea></div><div class="field"><label>优先级百分比</label><input id="wp" type="range" min="0" max="100" value="${w.priority??70}" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>${w.priority??70}%</small></div><div class="field"><label><input id="we" type="checkbox" style="width:auto" ${w.enabled!==false?'checked':''}> 启用条目</label></div><div class="field"><label><input id="wg" type="checkbox" style="width:auto" ${w.global?'checked':''}> 常驻 / 全局</label></div><div class="form-actions"><button class="danger" onclick="deleteWorld('${id}')">删除</button><button class="primary" onclick="updateWorld('${id}')">保存</button></div>`)}
-function updateWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;w.name=document.getElementById('wn').value.trim()||w.name;w.trigger=document.getElementById('wt').value.trim();w.desc=document.getElementById('wd').value;w.priority=Number(document.getElementById('wp').value)||70;w.enabled=document.getElementById('we').checked;w.global=document.getElementById('wg').checked;save();closeModal();renderWorld();toast('世界书条目已进入上下文规则')}
+function worldTargetPicker(scope='global',selected=[]){return `<div class="field world-targets" id="worldCharacterTargets" style="display:${scope==='character'?'block':'none'}"><label>绑定角色（可多选）</label><div class="target-checks">${data.characters.length?data.characters.map(c=>`<label><input class="world-character-target" type="checkbox" value="${attr(c.id)}" ${selected.includes(c.id)?'checked':''}>${esc(c.name)}</label>`).join(''):'<small>还没有角色</small>'}</div></div><div class="field world-targets" id="worldGroupTargets" style="display:${scope==='group'?'block':'none'}"><label>绑定分组（可多选）</label><div class="target-checks">${data.groups.length?data.groups.map(g=>`<label><input class="world-group-target" type="checkbox" value="${attr(g.id)}" ${selected.includes(g.id)?'checked':''}>${esc(g.name)}</label>`).join(''):'<small>还没有群聊分组</small>'}</div></div>`}
+function worldEditorFields(w={scope:'global',activation:'persistent',targetIds:[],enabled:true}){return `<div class="field"><label>名称</label><input id="wn" value="${attr(w.name||'')}"></div><div class="field"><label>作用范围</label><select id="ws" onchange="updateWorldEditorVisibility()"><option value="global" ${w.scope==='global'?'selected':''}>全局 · 所有私聊与群聊</option><option value="character" ${w.scope==='character'?'selected':''}>角色绑定 · 指定角色</option><option value="group" ${w.scope==='group'?'selected':''}>分组绑定 · 指定群聊</option></select></div>${worldTargetPicker(w.scope,w.targetIds||[])}<div class="field"><label>激活方式</label><select id="wa" onchange="updateWorldEditorVisibility()"><option value="persistent" ${w.activation!=='trigger'?'selected':''}>常驻 · 对应范围内每轮生效</option><option value="trigger" ${w.activation==='trigger'?'selected':''}>普通 · 命中条件时才生效</option></select></div><div class="field" id="worldTriggerField" style="display:${w.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}" placeholder="关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="支持 {{state}} {{message}} {{character}} {{user}}">${esc(w.desc||'')}</textarea></div>`}
+function updateWorldEditorVisibility(){const scope=document.getElementById('ws')?.value,activation=document.getElementById('wa')?.value;const chars=document.getElementById('worldCharacterTargets'),groups=document.getElementById('worldGroupTargets'),trigger=document.getElementById('worldTriggerField');if(chars)chars.style.display=scope==='character'?'block':'none';if(groups)groups.style.display=scope==='group'?'block':'none';if(trigger)trigger.style.display=activation==='trigger'?'block':'none'}
+function collectWorldEditor(){const scope=document.getElementById('ws').value,activation=document.getElementById('wa').value,targetSelector=scope==='character'?'.world-character-target:checked':scope==='group'?'.world-group-target:checked':'';return{name:document.getElementById('wn').value.trim(),scope,activation,targetIds:targetSelector?[...document.querySelectorAll(targetSelector)].map(el=>el.value):[],trigger:document.getElementById('wt')?.value.trim()||'',desc:document.getElementById('wd').value}}
+function validateWorldEntry(w){if(!w.name){toast('请填写名称');return false}if(w.scope!=='global'&&!w.targetIds.length){toast(w.scope==='character'?'请选择绑定角色':'请选择绑定分组');return false}if(w.activation==='trigger'&&!w.trigger){toast('普通条目需要填写触发条件');return false}return true}
+function newWorld(){modal(`<h2>创建世界书条目</h2><div class="note" style="padding:0 16px 14px">范围决定条目能进入哪些会话；常驻每轮进入，普通只有命中条件才进入。</div>${worldEditorFields()}<div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createWorld()">创建</button></div>`)}
+function createWorld(){const w=collectWorldEditor();if(!validateWorldEntry(w))return;data.worlds.push({...w,id:'w_'+crypto.randomUUID(),enabled:true});save();closeModal();renderWorld();toast('世界书条目已创建')}
+function worldTargetNames(w){if(w.scope==='character')return (w.targetIds||[]).map(id=>data.characters.find(c=>c.id===id)?.name).filter(Boolean).join('、')||'未绑定角色';if(w.scope==='group')return (w.targetIds||[]).map(id=>data.groups.find(g=>g.id===id)?.name).filter(Boolean).join('、')||'未绑定分组';return '全部会话'}
+function renderWorld(){const e=document.getElementById('worldList');if(!data.worlds.length){e.innerHTML='<div class="empty"><div class="big">✦</div>还没有世界书条目</div>';return}e.innerHTML=data.worlds.slice().sort((a,b)=>semanticWorldLayer(a)-semanticWorldLayer(b)).map(w=>`<div class="card world-card" onclick="editWorld('${w.id}')"><div class="module-head"><b>${esc(w.name)}</b><span class="pill">${w.enabled===false?'已停用':'已启用'}</span></div><div class="world-card-meta"><span>${esc(worldScopeLabel(w))}</span><span>${w.activation==='trigger'?'普通触发':'常驻'}</span></div><div class="muted">范围：${esc(worldTargetNames(w))}</div>${w.activation==='trigger'?`<div class="muted">触发：${esc(w.trigger)}</div>`:''}<div class="muted world-card-copy">${esc(w.desc||'')}</div></div>`).join('')}
+function editWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;modal(`<h2>编辑世界书条目</h2>${worldEditorFields(w)}<div class="field"><label><input id="we" type="checkbox" style="width:auto" ${w.enabled!==false?'checked':''}> 启用条目</label></div><div class="form-actions"><button class="danger" onclick="deleteWorld('${id}')">删除</button><button class="primary" onclick="updateWorld('${id}')">保存</button></div>`)}
+function updateWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;const updated=collectWorldEditor();if(!validateWorldEntry(updated))return;Object.assign(w,updated,{enabled:document.getElementById('we').checked});delete w.global;delete w.priority;delete w.weight;save();closeModal();renderWorld();toast('世界书范围与激活方式已保存')}
 function deleteWorld(id){if(!confirm('删除这个世界书条目？'))return;data.worlds=data.worlds.filter(w=>w.id!==id);save();closeModal();renderWorld();toast('已删除')}
 function newMemory(){modal(`<h2>保存记忆</h2><div class="field"><label>标题</label><input id="mn"></div><div class="field"><label>内容</label><textarea id="mt"></textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createMemory()">保存</button></div>`)}
 function createMemory(){const n=document.getElementById('mn').value.trim();if(!n)return toast('请填写标题');data.memories.unshift({id:'m_'+crypto.randomUUID(),title:n,text:document.getElementById('mt').value,time:'刚刚'});save();closeModal();renderMemory()}
-function chatDisplayName(id){const character=data.characters.find(x=>x.id===id);if(character)return character.name;const group=data.groups.find(x=>x.id===id);return group?.name||'已删除会话'}
+function chatDisplayName(id){const character=directCharacterForChat(id);if(character)return `${character.name}${chatModeForId(id)==='offline'?' · 线下':' · 线上'}`;const group=data.groups.find(x=>x.id===id);return group?.name||'已删除会话'}
 function renderMemory(){
  const e=document.getElementById('memoryList'),summaries=Object.entries(data.chatSummaries||{}).filter(([,value])=>value?.text);
  const summaryHtml=summaries.length?`<div class="group-title" style="margin:4px 0 10px">会话摘要</div>${summaries.map(([id,value])=>`<div class="card" style="padding:15px;margin-bottom:10px" onclick="viewConversationSummary('${attr(id)}')"><div class="module-head"><b>${esc(chatDisplayName(id))}</b><span class="pill">摘要模型</span></div><div class="muted memory-clamp" style="line-height:1.7;margin-top:7px">${esc(value.text)}</div><div class="muted" style="margin-top:7px">${esc(value.updatedAt?new Date(value.updatedAt).toLocaleString('zh-CN'):'')}</div></div>`).join('')}`:'';
@@ -783,29 +1139,32 @@ function deleteMemory(id){if(!confirm('删除这条记忆？'))return;data.memor
 
 /* ---------- engine ---------- */
 function engineTab(tab){['world','preset','regex','preview'].forEach(x=>document.getElementById('tab'+x[0].toUpperCase()+x.slice(1))?.classList.toggle('on',x===tab));const e=document.getElementById('engineBody');if(tab==='world')renderEngineWorld(e);if(tab==='preset')renderEnginePreset(e);if(tab==='regex')renderEngineRegex(e);if(tab==='preview')renderEnginePreview(e)}
-function renderEngineWorld(e){const rules=data.engine.worldRules||[],st=data.engine.state||{};e.innerHTML=`<div class="engine-card"><h3>♠ &nbsp;动态世界</h3><p>世界规则不再全部无条件塞进 Prompt。每条规则可以按关键词、状态或正则触发，并按优先级参与本次上下文。</p><div class="engine-flow"><div class="flowbox"><b>世界状态</b><span>地点：${esc(st.location||'未设置')}<br>天气：${esc(st.weather||'未设置')}<br>时间：${esc(st.time||'未设置')}</span></div><div class="flowbox"><b>当前规则</b><span>${rules.filter(x=>x.enabled!==false).length} 条</span></div></div><button class="primary" style="margin-top:10px" onclick="newWorldRule()">＋ 新建世界规则</button></div><div class="engine-card"><h3>♠ &nbsp;世界规则</h3>${rules.length?rules.map((r,i)=>`<div class="module"><div class="module-head"><b>${esc(r.name)}</b><span class="pill">${r.enabled===false?'停用':'启用'} · ${r.priority??0}</span></div><small>${esc(r.trigger||'始终')}</small><div class="muted" style="margin-top:6px">${esc(r.content||'')}</div><div style="margin-top:9px;display:flex;gap:7px"><button class="icon-btn" onclick="editWorldRule(${i})">⋯</button><button class="icon-btn" onclick="toggleWorldRule(${i})">◉</button></div></div>`).join(''):'<div class="empty">还没有世界规则。</div>'}</div>`}
-function newWorldRule(){modal(`<h2>世界规则</h2><div class="field"><label>名称</label><input id="erN"></div><div class="field"><label>触发条件</label><input id="erT" placeholder="留空=始终；也可写词语或 /正则/i"></div><div class="field"><label>注入内容</label><textarea id="erC" placeholder="支持 {{state}} {{message}} {{character}}"></textarea></div><div class="field"><label>权重（UI 百分比）</label><input id="erP" type="range" min="0" max="100" value="80" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>80%</small></div><div class="field"><label><input id="erG" type="checkbox" style="width:auto"> 常驻 / 全局（强制最高优先级）</label></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveWorldRule()">保存</button></div>`)}
-function saveWorldRule(idx=null){const r={name:document.getElementById('erN').value.trim(),trigger:document.getElementById('erT').value.trim(),content:document.getElementById('erC').value,priority:Number(document.getElementById('erP').value)||80,global:document.getElementById('erG').checked,enabled:true};if(!r.name)return toast('请填写名称');if(idx===null)data.engine.worldRules.push(r);else data.engine.worldRules[idx]={...data.engine.worldRules[idx],...r};save();closeModal();engineTab('world')}
-function editWorldRule(i){const r=data.engine.worldRules[i];modal(`<h2>编辑世界规则</h2><div class="field"><label>名称</label><input id="erN" value="${attr(r.name)}"></div><div class="field"><label>触发条件</label><input id="erT" value="${attr(r.trigger||'')}"></div><div class="field"><label>注入内容</label><textarea id="erC">${esc(r.content||'')}</textarea></div><div class="field"><label>权重（UI 百分比）</label><input id="erP" type="range" min="0" max="100" value="${r.priority||80}" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>${r.priority||80}%</small></div><div class="field"><label><input id="erG" type="checkbox" style="width:auto" ${r.global?'checked':''}> 常驻 / 全局</label></div><div class="form-actions"><button class="danger" onclick="data.engine.worldRules.splice(${i},1);save();closeModal();engineTab('world')">删除</button><button class="primary" onclick="saveWorldRule(${i})">保存</button></div>`)}
+function renderEngineWorld(e){const rules=data.engine.worldRules||[],st=data.engine.state||{};e.innerHTML=`<div class="engine-card"><h3>♠ &nbsp;动态世界</h3><p>这里的规则属于全局动态层。常驻规则每轮进入，普通规则只有命中关键词、状态或正则时才进入请求。</p><div class="engine-flow"><div class="flowbox"><b>世界状态</b><span>地点：${esc(st.location||'未设置')}<br>天气：${esc(st.weather||'未设置')}<br>时间：${esc(st.time||'未设置')}</span></div><div class="flowbox"><b>当前规则</b><span>${rules.filter(x=>x.enabled!==false).length} 条</span></div></div><button class="primary" style="margin-top:10px" onclick="newWorldRule()">＋ 新建世界规则</button></div><div class="engine-card"><h3>♠ &nbsp;世界规则</h3>${rules.length?rules.map((r,i)=>`<div class="module"><div class="module-head"><b>${esc(r.name)}</b><span class="pill">${r.enabled===false?'停用':(r.activation==='trigger'?'普通触发':'常驻')}</span></div><small>${r.activation==='trigger'?esc(r.trigger||'尚未填写触发条件'):'所有会话每轮生效'}</small><div class="muted" style="margin-top:6px">${esc(r.content||'')}</div><div style="margin-top:9px;display:flex;gap:7px"><button class="icon-btn" onclick="editWorldRule(${i})">⋯</button><button class="icon-btn" onclick="toggleWorldRule(${i})">◉</button></div></div>`).join(''):'<div class="empty">还没有世界规则。</div>'}</div>`}
+function engineWorldRuleFields(r={activation:'persistent'}){return `<div class="field"><label>名称</label><input id="erN" value="${attr(r.name||'')}"></div><div class="field"><label>激活方式</label><select id="erA" onchange="updateEngineWorldRuleVisibility()"><option value="persistent" ${r.activation!=='trigger'?'selected':''}>常驻 · 每轮生效</option><option value="trigger" ${r.activation==='trigger'?'selected':''}>普通 · 命中条件时生效</option></select></div><div class="field" id="engineWorldTrigger" style="display:${r.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="erT" value="${attr(r.trigger||'')}" placeholder="词语、逗号分隔或 /正则/i"></div><div class="field"><label>注入内容</label><textarea id="erC" placeholder="支持 {{state}} {{message}} {{character}} {{user}}">${esc(r.content||'')}</textarea></div>`}
+function updateEngineWorldRuleVisibility(){const field=document.getElementById('engineWorldTrigger');if(field)field.style.display=document.getElementById('erA')?.value==='trigger'?'block':'none'}
+function newWorldRule(){modal(`<h2>世界规则</h2><div class="note" style="padding:0 16px 14px">选择常驻或普通触发，系统会在发送请求前完成筛选。</div>${engineWorldRuleFields()}<div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveWorldRule()">保存</button></div>`)}
+function saveWorldRule(idx=null){const activation=document.getElementById('erA').value,r={name:document.getElementById('erN').value.trim(),activation,trigger:document.getElementById('erT')?.value.trim()||'',content:document.getElementById('erC').value,enabled:true};if(!r.name)return toast('请填写名称');if(activation==='trigger'&&!r.trigger)return toast('普通规则需要填写触发条件');if(idx===null)data.engine.worldRules.push(r);else data.engine.worldRules[idx]={...data.engine.worldRules[idx],...r};save();closeModal();engineTab('world')}
+function editWorldRule(i){const r=data.engine.worldRules[i];modal(`<h2>编辑世界规则</h2>${engineWorldRuleFields(r)}<div class="form-actions"><button class="danger" onclick="data.engine.worldRules.splice(${i},1);save();closeModal();engineTab('world')">删除</button><button class="primary" onclick="saveWorldRule(${i})">保存</button></div>`)}
 function toggleWorldRule(i){data.engine.worldRules[i].enabled=data.engine.worldRules[i].enabled===false;save();engineTab('world')}
-function renderEnginePreset(e){const ms=data.engine.presetModules||[];e.innerHTML=`<div class="engine-card"><h3>♣ &nbsp;预设编译器</h3><p>预设模块按权重编译，并支持 {{world}}、{{state}}、{{memory}}、{{character}}、{{message}}。它不是一段固定 Prompt。</p><div class="engine-flow"><div class="flowbox"><b>世界</b><span>检索触发</span></div><div class="flowbox"><b>预设</b><span>权重编译</span></div><div class="flowbox"><b>API</b><span>唯一 AI 来源</span></div><div class="flowbox"><b>正则</b><span>前后处理 + 状态</span></div></div><button class="primary" style="margin-top:10px" onclick="newPresetModule()">＋ 新建模块</button></div><div class="engine-card"><h3>♣ &nbsp;模块顺序</h3>${ms.length?ms.map((m,i)=>`<div class="module"><div class="module-head"><b>${esc(m.name)}</b><span class="pill">权重 ${m.weight??0}</span></div><small>${esc(m.kind||'自定义')} · ${m.enabled===false?'停用':'启用'}</small><div style="margin-top:7px;color:#777;font-size:11px">${esc(m.content||'')}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="icon-btn" onclick="movePreset(${i},-1)">↑</button><button class="icon-btn" onclick="movePreset(${i},1)">↓</button><button class="icon-btn" onclick="editPreset(${i})">⋯</button></div></div>`).join(''):'<div class="empty">还没有预设模块。</div>'}</div>`}
-function newPresetModule(){modal(`<h2>预设模块</h2><div class="field"><label>名称</label><input id="pmN"></div><div class="field"><label>类型</label><select id="pmK"><option>身份层</option><option>世界层</option><option>角色层</option><option>行为规则</option><option>风格层</option><option>输出格式</option><option>记忆层</option><option>动态上下文</option><option>自定义</option></select></div><div class="field"><label>权重</label><input id="pmW" type="number" value="80"></div><div class="field"><label>内容</label><textarea id="pmC" placeholder="可使用 {{world}} {{state}} {{memory}} {{character}} {{message}}"></textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="savePreset()">保存</button></div>`)}
-function savePreset(idx=null){const m={name:document.getElementById('pmN').value.trim(),kind:document.getElementById('pmK').value,weight:Number(document.getElementById('pmW').value)||80,content:document.getElementById('pmC').value,enabled:true};if(!m.name)return toast('请填写名称');if(idx===null)data.engine.presetModules.push(m);else data.engine.presetModules[idx]={...data.engine.presetModules[idx],...m};save();closeModal();engineTab('preset')}
-function editPreset(i){const m=data.engine.presetModules[i];modal(`<h2>编辑预设模块</h2><div class="field"><label>名称</label><input id="pmN" value="${attr(m.name)}"></div><div class="field"><label>类型</label><select id="pmK">${['身份层','世界层','角色层','行为规则','风格层','输出格式','记忆层','动态上下文','自定义'].map(x=>`<option ${x===m.kind?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>权重</label><input id="pmW" type="number" value="${m.weight??80}"></div><div class="field"><label>内容</label><textarea id="pmC">${esc(m.content||'')}</textarea></div><div class="form-actions"><button class="danger" onclick="data.engine.presetModules.splice(${i},1);save();closeModal();engineTab('preset')">删除</button><button class="primary" onclick="savePreset(${i})">保存</button></div>`)}
+function renderEnginePreset(e){const ms=data.engine.presetModules||[];e.innerHTML=`<div class="engine-card"><h3>♣ &nbsp;预设编译器</h3><p>启用的模块按这里显示的顺序拼进系统上下文；越靠上越先进入，并在预算不足时先保留。支持 {{world}}、{{state}}、{{memory}}、{{character}}、{{user}}、{{message}}。</p><div class="engine-flow"><div class="flowbox"><b>启用</b><span>排除停用模块</span></div><div class="flowbox"><b>顺序</b><span>按列表实际编译</span></div><div class="flowbox"><b>系统层</b><span>发送最终文本</span></div><div class="flowbox"><b>正则</b><span>前后处理 + 状态</span></div></div><button class="primary" style="margin-top:10px" onclick="newPresetModule()">＋ 新建模块</button></div><div class="engine-card"><h3>♣ &nbsp;模块顺序</h3>${ms.length?ms.map((m,i)=>`<div class="module"><div class="module-head"><b>${esc(m.name)}</b><span class="pill">${m.enabled===false?'停用':'启用'}</span></div><small>${esc(m.kind||'自定义')} · 可用箭头调整真实编译顺序</small><div style="margin-top:7px;color:#777;font-size:11px">${esc(m.content||'')}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="icon-btn" onclick="movePreset(${i},-1)">↑</button><button class="icon-btn" onclick="movePreset(${i},1)">↓</button><button class="icon-btn" onclick="editPreset(${i})">⋯</button></div></div>`).join(''):'<div class="empty">还没有预设模块。</div>'}</div>`}
+function presetFields(m={kind:'身份层'}){return `<div class="field"><label>名称</label><input id="pmN" value="${attr(m.name||'')}"></div><div class="field"><label>类型</label><select id="pmK">${['身份层','世界层','角色层','行为规则','风格层','输出格式','记忆层','动态上下文','自定义'].map(x=>`<option ${x===m.kind?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>内容</label><textarea id="pmC" placeholder="可使用 {{world}} {{state}} {{memory}} {{character}} {{user}} {{message}}">${esc(m.content||'')}</textarea></div>`}
+function newPresetModule(){modal(`<h2>预设模块</h2><div class="note" style="padding:0 16px 14px">保存后可在模块列表用上下箭头调整实际编译顺序。</div>${presetFields()}<div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="savePreset()">保存</button></div>`)}
+function savePreset(idx=null){const m={name:document.getElementById('pmN').value.trim(),kind:document.getElementById('pmK').value,content:document.getElementById('pmC').value,enabled:true};if(!m.name)return toast('请填写名称');if(idx===null)data.engine.presetModules.push(m);else data.engine.presetModules[idx]={...data.engine.presetModules[idx],...m};save();closeModal();engineTab('preset')}
+function editPreset(i){const m=data.engine.presetModules[i];modal(`<h2>编辑预设模块</h2>${presetFields(m)}<div class="form-actions"><button class="danger" onclick="data.engine.presetModules.splice(${i},1);save();closeModal();engineTab('preset')">删除</button><button class="primary" onclick="savePreset(${i})">保存</button></div>`)}
 function movePreset(i,d){const a=data.engine.presetModules,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();engineTab('preset')}
 function renderEngineRegex(e){const rs=data.engine.regexRules||[];e.innerHTML=`<div class="engine-card"><h3>♦ &nbsp;正则处理管线</h3><p>规则可以分别作用于用户消息、AI 回复、全部消息或状态解析。AI 回复会先解析状态，再清理展示标签。</p><div class="engine-flow"><div class="flowbox"><b>用户输入</b><span>预处理</span></div><div class="flowbox"><b>API</b><span>上下文编译</span></div><div class="flowbox"><b>AI 输出</b><span>后处理</span></div><div class="flowbox"><b>状态</b><span>反馈世界</span></div></div><button class="primary" style="margin-top:10px" onclick="newRegexRule()">＋ 新建规则</button></div><div class="engine-card"><h3>♦ &nbsp;规则链</h3>${rs.length?rs.map((r,i)=>`<div class="module"><div class="module-head"><b>${esc(r.name)}</b><span class="pill">${esc(r.target||'AI 回复')}</span></div><small>${r.enabled===false?'停用':'启用'} · 顺序 ${i+1}</small><div class="muted" style="margin-top:6px">/${esc(r.pattern)}/${esc(r.flags||'g')} → ${esc(r.replace||'')}</div><div style="margin-top:8px"><button class="icon-btn" onclick="editRegex(${i})">⋯</button></div></div>`).join(''):'<div class="empty">还没有正则规则。</div>'}</div>`}
 function newRegexRule(){modal(`<h2>正则规则</h2><div class="field"><label>名称</label><input id="rxN"></div><div class="field"><label>匹配模式</label><input id="rxP" placeholder="例如：<state>([\\s\\S]*?)</state>"></div><div class="field"><label>替换内容</label><input id="rxR"></div><div class="field"><label>处理对象</label><select id="rxT"><option>AI 回复</option><option>用户消息</option><option>全部消息</option><option>状态解析</option></select></div><div class="field"><label>Flags</label><input id="rxG" value="g" placeholder="g / gi / gm / gis"></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveRegex()">保存</button></div>`)}
 function saveRegex(idx=null){const r={name:document.getElementById('rxN').value.trim(),pattern:document.getElementById('rxP').value,replace:document.getElementById('rxR').value,target:document.getElementById('rxT').value,flags:document.getElementById('rxG').value||'g',enabled:true};if(!r.name||!r.pattern)return toast('名称和匹配模式不能为空');try{new RegExp(r.pattern,getRegexFlags(r))}catch{return toast('正则表达式无效')}if(idx===null)data.engine.regexRules.push(r);else data.engine.regexRules[idx]={...data.engine.regexRules[idx],...r};save();closeModal();engineTab('regex')}
 function editRegex(i){const r=data.engine.regexRules[i];modal(`<h2>编辑正则规则</h2><div class="field"><label>名称</label><input id="rxN" value="${attr(r.name)}"></div><div class="field"><label>匹配模式</label><input id="rxP" value="${attr(r.pattern)}"></div><div class="field"><label>替换内容</label><input id="rxR" value="${attr(r.replace||'')}"></div><div class="field"><label>处理对象</label><select id="rxT">${['AI 回复','用户消息','全部消息','状态解析'].map(x=>`<option ${x===r.target?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Flags</label><input id="rxG" value="${attr(r.flags||'g')}"></div><div class="form-actions"><button class="danger" onclick="data.engine.regexRules.splice(${i},1);save();closeModal();engineTab('regex')">删除</button><button class="primary" onclick="saveRegex(${i})">保存</button></div>`)}
-function renderEnginePreview(e){const c=currentChat&&data.characters.find(x=>x.id===currentChat);const last=(currentChat&&data.chats[currentChat]?.filter(x=>x.role==='user').at(-1)?.text)||'';const x=c?buildEngineContext(c,last):null;const prompt=c?buildSystemPrompt(c,last):'尚未进入聊天。创建角色并输入消息后，这里会显示本次上下文编译结果。';e.innerHTML=`<div class="engine-card"><h3>♥ &nbsp;上下文预览</h3><p>发送给 API 前的本地编译结果，不会自动发送。</p>${x?`<div class="preview">WORLD\n${esc(x.world)}\n\nSTATE\n${esc(x.state)}\n\nMEMORY\n${esc(x.memory)}\n\nPRESET\n${esc(x.preset)}</div>`:''}<div class="preview">${esc(prompt)}</div></div><div class="engine-card"><h3>♥ &nbsp;闭环</h3><div class="engine-flow"><div class="flowbox"><b>世界</b><span>触发与状态</span></div><div class="flowbox"><b>预设</b><span>模板与权重</span></div><div class="flowbox"><b>API</b><span>唯一 AI 来源</span></div><div class="flowbox"><b>正则</b><span>前后处理</span></div></div><div class="arrow">↻ 状态反馈 → 下一次世界检索</div></div>`}
+function renderEnginePreview(e){const g=currentChat&&data.groups.find(x=>x.id===currentChat),c=g?data.characters.find(x=>x.id===g.memberIds[g.turnIndex%g.memberIds.length]):currentChat&&directCharacterForChat(currentChat);const last=(currentChat&&data.chats[currentChat]?.filter(x=>x.role==='user').at(-1)?.text)||'';const x=c?buildEngineContext(c,last,currentChat):null;const prompt=c?(g?buildGroupSystemPrompt(g,c,last):(chatModeForId(currentChat)==='offline'?buildOfflineSystemPrompt(c,last,currentChat):buildSystemPrompt(c,last,currentChat))):'尚未进入聊天。创建角色并输入消息后，这里会显示本次上下文编译结果。';e.innerHTML=`<div class="engine-card"><h3>♥ &nbsp;上下文预览</h3><p>下面就是发送给 API 的系统内容预览，不会自动发送。</p>${x?`<div class="preview">USER PERSONA\n${esc(x.persona)}\n\nWORLD\n${esc(x.world)}\n\nSTATE\n${esc(x.state)}\n\nMEMORY\n${esc(x.memory)}\n\nPRESET\n${esc(x.preset)}</div>`:''}<div class="preview">${esc(prompt)}</div></div><div class="engine-card"><h3>♥ &nbsp;真实编译闭环</h3><div class="engine-flow"><div class="flowbox"><b>范围</b><span>全局 / 角色 / 分组</span></div><div class="flowbox"><b>激活</b><span>常驻 / 普通触发</span></div><div class="flowbox"><b>系统层</b><span>只发送命中内容</span></div><div class="flowbox"><b>正则</b><span>前后处理</span></div></div><div class="arrow">↻ 状态反馈 → 下一次世界检索</div></div>`}
 
 /* ---------- settings ---------- */
 const PROVIDER_HINTS={openai:'例：https://api.openai.com/v1 （或任意 OpenAI 兼容中转地址）',anthropic:'例：https://api.anthropic.com （原生 Claude Messages API）',gemini:'例：https://generativelanguage.googleapis.com （原生 Gemini API）'};
 const MODEL_LABELS={chat:'主聊天模型',random:'随机事件模型',voice:'声音模型',vision:'图片识别模型',summary:'记忆摘要工具模型'};
 function updateProviderHint(){}
-function renderModelProfiles(){const e=document.getElementById('modelProfiles');if(!e)return;e.innerHTML=Object.entries(MODEL_LABELS).map(([k,label])=>{const p=modelProfile(k);return `<div class="setting" onclick="editModelProfile('${k}')"><span><b>${label}</b><small style="display:block">${esc(p.model||'未配置')} · ${esc(p.provider)} · ${p.weight}%</small></span><span class="muted">独立 ›</span></div>`}).join('')}
-function editModelProfile(kind){const p=modelProfile(kind);modal(`<h2>${MODEL_LABELS[kind]}</h2><div class="note">此项使用独立 API 配置，不占用其他模型的 Key 或调用链。百分比会转换成归一化优先级指令并实际传入请求。${kind==='voice'?'朗读使用 OpenAI 兼容 /audio/speech 链路。':''}</div><div class="field"><label>服务商</label><select id="mpProvider">${[['openai','OpenAI 兼容'],['anthropic','Claude 原生'],['gemini','Gemini 原生']].map(([v,n])=>`<option value="${v}" ${p.provider===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" value="${attr(p.base||'')}"></div><div class="field"><label>API Key</label><input id="mpKey" type="password" value="${attr(p.key||'')}"></div><div class="field"><label>模型</label><input id="mpModel" value="${attr(p.model||'')}"></div>${kind==='voice'?`<div class="field"><label>声音名称 / Voice ID</label><input id="mpVoice" value="${attr(p.voice||'alloy')}" placeholder="alloy"></div>`:''}<div class="field"><label>权重百分比</label><input id="mpWeight" type="range" min="0" max="100" value="${p.weight??100}" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>${p.weight??100}%</small></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveModelProfile('${kind}')">保存</button></div>`)}
-function saveModelProfile(kind){data.models[kind]={provider:document.getElementById('mpProvider').value,base:document.getElementById('mpBase').value.trim(),key:document.getElementById('mpKey').value.trim(),model:document.getElementById('mpModel').value.trim(),weight:Number(document.getElementById('mpWeight').value),voice:document.getElementById('mpVoice')?.value.trim()||data.models[kind]?.voice||'alloy'};save();closeModal();renderModelProfiles();toast(`${MODEL_LABELS[kind]}已保存`)}
+function renderModelProfiles(){const e=document.getElementById('modelProfiles');if(!e)return;e.innerHTML=Object.entries(MODEL_LABELS).map(([k,label])=>{const p=modelProfile(k);return `<div class="setting" onclick="editModelProfile('${k}')"><span><b>${label}</b><small style="display:block">${esc(p.model||'未配置')} · ${esc(p.provider)}</small></span><span class="muted">独立 ›</span></div>`}).join('')}
+function editModelProfile(kind){const p=modelProfile(kind);modal(`<h2>${MODEL_LABELS[kind]}</h2><div class="note">此项使用独立 API 配置，不占用其他模型的 Key 或调用链。${kind==='voice'?'朗读使用 OpenAI 兼容 /audio/speech 链路。':''}</div><div class="field"><label>服务商</label><select id="mpProvider">${[['openai','OpenAI 兼容'],['anthropic','Claude 原生'],['gemini','Gemini 原生']].map(([v,n])=>`<option value="${v}" ${p.provider===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" value="${attr(p.base||'')}"></div><div class="field"><label>API Key</label><input id="mpKey" type="password" value="${attr(p.key||'')}"></div><div class="field"><label>模型</label><input id="mpModel" value="${attr(p.model||'')}"></div>${kind==='voice'?`<div class="field"><label>声音名称 / Voice ID</label><input id="mpVoice" value="${attr(p.voice||'alloy')}" placeholder="alloy"></div>`:''}<div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveModelProfile('${kind}')">保存</button></div>`)}
+function saveModelProfile(kind){data.models[kind]={provider:document.getElementById('mpProvider').value,base:document.getElementById('mpBase').value.trim(),key:document.getElementById('mpKey').value.trim(),model:document.getElementById('mpModel').value.trim(),voice:document.getElementById('mpVoice')?.value.trim()||data.models[kind]?.voice||'alloy'};save();closeModal();renderModelProfiles();toast(`${MODEL_LABELS[kind]}已保存`)}
 function loadSettings(){
  applyAppearance();renderModelProfiles();updateInstallStatus();
  ['temperature'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=data.settings[k]??''});
@@ -815,9 +1174,17 @@ function loadSettings(){
  const mt=document.getElementById('maxTokens');if(mt)mt.value=data.settings.maxTokens??2048;
  const to=document.getElementById('timeout');if(to)to.value=Math.round((data.settings.timeout??60000)/1000);
  const pc=document.getElementById('promptCache');if(pc)pc.checked=data.settings.promptCache!==false;
+ const br=document.getElementById('backgroundRelayEnabled');if(br){br.checked=data.settings.backgroundRelayEnabled!==false;br.disabled=document.body?.dataset.singleFile==='true'}
+ const bn=document.getElementById('backgroundNotificationEnabled');if(bn){bn.checked=data.settings.backgroundNotificationEnabled===true;bn.disabled=!notificationCapability()}
+ const wl=document.getElementById('screenWakeLockEnabled');if(wl){wl.checked=data.settings.screenWakeLockEnabled!==false;wl.disabled=!('wakeLock' in navigator)}
+ const bs=document.getElementById('backgroundRelayStatus');if(bs)bs.textContent=document.body?.dataset.singleFile==='true'?'部署资源包后启用':'请求中可切到后台';
+ const bns=document.getElementById('backgroundNotificationStatus');if(bns)bns.textContent=!notificationCapability()?'当前环境不可用':Notification.permission==='granted'?'通知权限已允许':Notification.permission==='denied'?'通知权限已被拒绝':'开启时会请求通知权限';
  const fs=document.getElementById('fullscreenEnabled');if(fs)fs.checked=data.settings.fullscreenEnabled===true;
  const re=document.getElementById('randomEventsEnabled');if(re)re.checked=data.settings.randomEventsEnabled===true;
  const rc=document.getElementById('randomEventChance');if(rc)rc.value=Math.min(100,Math.max(0,Number(data.settings.randomEventChance)||0));
+ const pe=document.getElementById('proactiveEnabled');if(pe)pe.checked=data.settings.proactiveEnabled===true;
+ const pmin=document.getElementById('proactiveMinMinutes');if(pmin)pmin.value=proactiveDelayRange().min;
+ const pmax=document.getElementById('proactiveMaxMinutes');if(pmax)pmax.value=proactiveDelayRange().max;
  const di=document.getElementById('dynamicIslandEnabled');if(di)di.checked=data.settings.dynamicIslandEnabled!==false;
  const fontLabel=document.getElementById('fontSettingLabel');if(fontLabel)fontLabel.textContent=(data.settings.customFont?.label||'系统字体')+' ›';
 }
@@ -835,6 +1202,19 @@ async function saveSettings(){
  if(!validAPI()){toast('已保存本机设置；请完整填写 API 后测试');return}
  await testAPI(true)
 }
+async function saveRuntimeSettings(){
+ const relay=document.getElementById('backgroundRelayEnabled'),wake=document.getElementById('screenWakeLockEnabled'),notification=document.getElementById('backgroundNotificationEnabled');
+ if(relay)data.settings.backgroundRelayEnabled=relay.checked===true;
+ if(wake)data.settings.screenWakeLockEnabled=wake.checked===true;
+ if(notification){
+  if(notification.checked){const granted=await ensureBackgroundNotificationPermission();data.settings.backgroundNotificationEnabled=granted;notification.checked=granted;if(!granted)toast('未取得通知权限，后台通知未开启')}
+  else data.settings.backgroundNotificationEnabled=false;
+ }
+ save();void syncScreenWakeLock();loadSettings();toast('后台运行设置已保存');
+}
+function showBackgroundCapability(){
+ modal(`<h2>后台运行能力</h2><div class="note">开启“后台请求接力”后，聊天与主动来信的最终 API 请求会交给 Service Worker，并由 waitUntil 尽力完成。即使页面被系统回收，已完成的结果也会在下次打开时恢复到原会话。<br><br>“生成常驻通知”会在请求期间显示通知，并在完成或失败后更新；它能提高可见性，但浏览器和 Android 仍可终止进程。静音音频不是可靠的后台保活，因此没有使用。需要绝对长期常驻时，仍必须做带 Android 前台服务的原生应用。<br><br>主动来信的定时器在应用仍存活时运行；若系统彻底关闭应用，会在下次打开时检查逾期任务，而不是伪装成精确后台定时。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`);
+}
 function downloadJSON(obj,name){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function exportSJ(){const copy=JSON.parse(JSON.stringify(data));for(const p of Object.values(copy.models||{}))delete p.key;downloadJSON({format:'pokeji-data',version:VERSION,exportedAt:new Date().toISOString(),data:copy},'pokeji-data-'+Date.now()+'.json');toast('最终资料已导出（API Key 未包含）')}
 function importSJ(ev){const file=ev.target.files?.[0];if(!file)return;file.text().then(txt=>{try{const obj=JSON.parse(txt);if(!['pokeji-data','private-ai-data','pokeji'].includes(obj?.format)||!obj.data)throw Error('这不是扑克机最终资料文件');if(!confirm('最终资料导入会覆盖当前业务数据，继续吗？'))return;const keys=Object.fromEntries(Object.entries(data.models||{}).map(([k,p])=>[k,p.key]));data=normalize(obj.data);Object.entries(keys).forEach(([k,v])=>{if(v)data.models[k].key=v});save();location.reload()}catch(e){errorDetail(e,'资料导入失败')}}).finally(()=>{ev.target.value=''})}
@@ -849,6 +1229,15 @@ function saveRandomEventSettings(){
  data.settings.randomEventsEnabled=document.getElementById('randomEventsEnabled')?.checked===true;
  data.settings.randomEventChance=Math.min(100,Math.max(0,Number(document.getElementById('randomEventChance')?.value)||0));
  save();
+}
+function saveProactiveSettings(){
+ const enabled=document.getElementById('proactiveEnabled')?.checked===true;
+ let min=Math.min(1440,Math.max(1,Number(document.getElementById('proactiveMinMinutes')?.value)||60));
+ let max=Math.min(1440,Math.max(1,Number(document.getElementById('proactiveMaxMinutes')?.value)||180));
+ if(min>max)[min,max]=[max,min];
+ data.settings.proactiveEnabled=enabled;data.settings.proactiveMinMinutes=min;data.settings.proactiveMaxMinutes=max;
+ if(enabled)primeProactiveSchedules(true);else data.proactiveSchedule={};
+ save();startProactiveScheduler();loadSettings();toast(enabled?'主动来信频率已启用':'主动来信已关闭');
 }
 function editDynamicIsland(){
  const cfg=cleanIslandConfig();
@@ -875,19 +1264,19 @@ async function saveAppearanceSettings(){
  if(data.settings.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch(e){errorDetail(e,'无法进入全屏')}}else if(!data.settings.fullscreenEnabled&&document.fullscreenElement){try{await document.exitFullscreen()}catch(e){errorDetail(e,'无法退出全屏')}}
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V29 资源包更新');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V34 资源包更新');
  if(!('serviceWorker' in navigator))return toast('当前浏览器不支持离线更新');
  toast('正在检查更新…');
  try{
   let registration=await navigator.serviceWorker.getRegistration();
-  if(!registration)registration=await navigator.serviceWorker.register('./sw.js?v=29',{scope:'./',updateViaCache:'none'});
+  if(!registration)registration=await navigator.serviceWorker.register('/sw-v34.js',{scope:'/',updateViaCache:'none'});
   await registration.update();
   if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});toast('发现更新，正在应用…')}
   else toast('已完成更新检查');
  }catch(error){errorDetail(error,'检查更新失败')}
 }
 function resetData(){if(confirm('确定清空本机全部数据吗？此操作不可恢复。')){[STORE,...LEGACY_STORES].forEach(k=>localStorage.removeItem(k));location.reload()}}
-function chatInfo(){const g=data.groups.find(x=>x.id===currentChat);if(g)return editGroup(g.id);const c=data.characters.find(x=>x.id===currentChat);if(!c)return;modal(`<h2>${esc(c.name)}</h2><div class="note"><b>状态</b><br>${esc(c.status||'未填写')}<br><br><b>角色设定</b><br>${esc(c.bio||'未填写')}</div><div class="group" style="margin:14px 0"><div class="group-title">聊天外观</div><div class="setting" onclick="chooseChatBackground()"><span>更换聊天背景</span><span class="muted">图片 ›</span></div><div class="setting" onclick="clearChatBackground()"><span>恢复默认聊天背景</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="danger" onclick="clearChat('${c.id}')">清空聊天</button></div>`)}
+function chatInfo(){const g=data.groups.find(x=>x.id===currentChat);if(g)return editGroup(g.id);const c=directCharacterForChat(currentChat);if(!c)return;editCharacter(c.id,'profile','chat')}
 
 /* ---------- about ---------- */
 function about(){
@@ -900,7 +1289,6 @@ function about(){
       <div class="about-desc">
         <p>API 驱动的虚拟手机式 AI 空间。</p>
         <p>没有内置角色，没有内置聊天，没有预设 AI 内容。角色、聊天、世界、记忆、预设与正则均属于本机数据。</p>
-        <p>不会提供酒馆格式导入。</p>
       </div>
       <div class="about-meta">
         <div class="meta-row"><span>数据格式版本</span><span>V${VERSION}</span></div>
@@ -920,6 +1308,8 @@ function closeModal(){document.getElementById('modal').classList.remove('show')}
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;installRequestState='idle';clearTimeout(installWatchdog);updateInstallStatus()});
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;installRequestState='installed';clearTimeout(installWatchdog);updateInstallStatus();toast('扑克机已安装到桌面')});
 window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',updateInstallStatus);
-window.addEventListener('beforeunload',()=>{if(busy&&abortController)abortController.abort()});
+document.addEventListener('visibilitychange',()=>{void syncScreenWakeLock();void checkProactiveMessages();if(document.visibilityState==='visible'&&!busy)void recoverBackgroundResults()});
+window.addEventListener('beforeunload',()=>{if(busy&&abortController&&!activeBackgroundTaskId)abortController.abort()});
 window.addEventListener('error',e=>{if(e.error)errorDetail(e.error,'未捕获的内部异常')});
 window.addEventListener('unhandledrejection',e=>errorDetail(e.reason instanceof Error?e.reason:Error(String(e.reason)),'未处理的异步异常'));
+startProactiveScheduler();

@@ -1,5 +1,5 @@
 /* =========================================================
-   扑克机 · V29 NOIR MAISON EDITION
+   扑克机 · V34 NOIR MAISON EDITION
    Private members'-club aesthetic: ink black, aged ivory,
    brushed brass. No external assets. Offline-safe. Mobile-first.
    ========================================================= */
@@ -321,6 +321,13 @@ button:active{transform:scale(.975)}
 .chat-head .avatar{width:38px;height:38px;border-radius:13px;border-color:rgba(224,201,148,.28)}
 .chat-name{font-size:14px;font-weight:600}.chat-sub{font-size:9px;color:var(--caption);margin-top:2px}
 .chat-head .icon-btn{margin-left:auto}
+.chat-mode-entrances{margin:16px 16px 8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.chat-mode-entrances button{min-height:87px;padding:13px 14px;border-radius:17px;background:linear-gradient(145deg,rgba(238,218,159,.05),rgba(238,218,159,.012));box-shadow:inset 0 0 0 1px var(--line);display:grid;grid-template-columns:31px 1fr;grid-template-rows:auto auto;text-align:left;align-items:center;column-gap:9px}
+.chat-mode-entrances button>span{grid-row:1/3;width:31px;height:31px;border-radius:10px;display:grid;place-items:center;background:rgba(210,173,99,.08);color:var(--gold-hi);font:18px/1 Georgia,serif}.chat-mode-entrances button>b{font:17px/1.2 Georgia,"Songti SC",serif;font-weight:400}.chat-mode-entrances button>small{font-size:8px;color:var(--muted);line-height:1.35}
+.chat-mode-entrances button.on{background:linear-gradient(145deg,rgba(220,184,110,.15),rgba(87,63,31,.055));box-shadow:inset 0 0 0 1px rgba(224,194,130,.24),0 12px 26px rgba(0,0,0,.18)}
+.chat-mode-caption{padding:0 21px 3px;color:#8d8069;font-size:9px;letter-spacing:.35px}.chat-mode-search{padding-top:8px;padding-bottom:12px}
+.chat-channel-row{margin:0 16px 9px;cursor:pointer}.chat-channel-row .muted{margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chat-live-badge{display:inline-flex;margin-left:4px;padding:2px 5px;border-radius:999px;background:rgba(199,157,78,.11);color:var(--gold-hi);font-size:7px;font-weight:500;vertical-align:2px}
+.chat-entry-picker{margin:0 16px 15px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.chat-entry-picker button{min-height:112px;padding:14px;border-radius:16px;background:linear-gradient(145deg,rgba(238,218,159,.07),rgba(238,218,159,.015));box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;align-items:flex-start;text-align:left}.chat-entry-picker span{font:24px/1 Georgia,serif;color:var(--gold-hi)}.chat-entry-picker b{margin-top:13px;font-size:13px}.chat-entry-picker small{margin-top:5px;color:var(--muted);font-size:9px;line-height:1.5}
 .messages{padding:14px 12px 85px;display:flex;flex-direction:column;gap:8px}
 .msg{display:flex;align-items:flex-end;gap:7px;max-width:82%}
 .msg.me{align-self:flex-end;flex-direction:row-reverse}
@@ -355,6 +362,7 @@ button:active{transform:scale(.975)}
  padding:0 13px;outline:0;background:#131315;color:var(--ivory)
 }
 .composer input:focus{border-color:rgba(224,201,148,.35);box-shadow:0 0 0 3px rgba(201,163,92,.07)}
+.composer-tool{width:42px;height:42px;flex:0 0 42px;border-radius:14px;background:#151416;color:var(--gold-hi);box-shadow:inset 0 0 0 1px rgba(224,201,148,.16);font-size:19px;display:grid;place-items:center}.composer-tool:active{transform:scale(.92)}.composer-tool:disabled{opacity:.36}
 .send{
  width:46px;height:42px;border-radius:14px;
  background:var(--gold-grad);background-size:220% 100%;
@@ -578,12 +586,12 @@ button:active{transform:scale(.975)}
 #chat.has-custom-bg .chat-head{background:rgba(8,8,9,.72);}
 #chat.has-custom-bg .composer{background:rgba(11,11,12,.78);}
 .p12-home.has-custom-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
-/* V29 functional additions */
+/* V30 functional additions */
 .error-detail{max-height:45vh;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#141418;color:#ffd7d7;padding:14px;border-radius:12px;font-size:11px;line-height:1.55}
 @media(prefers-reduced-motion:reduce){.boot-grid,.boot-seal:before,.boot-seal:after,.boot-suit,.boot-flare,.island-pulse{animation:none!important}.p12-island{transition-duration:.01ms!important}}
 
 /* =========================================================
-   V29 · PAGED HOME GRID
+   V30 · PAGED HOME GRID
    Four-column occupancy grid, removable decorative widgets,
    full-image application icons and mobile-style page editing.
    ========================================================= */
@@ -671,7 +679,7 @@ html,body,button,input,textarea,select{font-family:var(--ui-font)}
 @media(max-width:360px){.home-clockline .p12-clock strong{font-size:54px}.p12-page.home-grid-page{padding-left:12px;padding-right:12px;gap:8px}.home-grid-guide{left:12px;right:12px;gap:8px}.home-app-icon{border-radius:10px}.home-widget{border-radius:20px}}
 @media(prefers-reduced-motion:reduce){.home-item.is-editing,.home-record.is-playing{animation:none!important}}
 
-/* V29 · fixed-proportion home stage
+/* V30 · fixed-proportion home stage
    Full-screen height becomes intentional atmosphere instead of stretching widgets. */
 .p12-home{
  --home-stage-top:152px;
@@ -688,6 +696,39 @@ html,body,button,input,textarea,select{font-family:var(--ui-font)}
  bottom:auto;
  top:calc(var(--home-stage-top) + var(--home-grid-offset) + var(--home-grid-height) + 8px);
 }
+
+/* =========================================================
+   V34 · CHARACTER STUDIO / USER PERSONAS / ONLINE-OFFLINE / BACKGROUND RELAY
+   ========================================================= */
+.character-studio-hero{
+ margin:17px 16px 8px;padding:20px;border-radius:22px;
+ background:radial-gradient(circle at 88% 5%,rgba(224,190,124,.13),transparent 36%),linear-gradient(145deg,#211a12,#101012 72%);
+ box-shadow:0 20px 44px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.055)
+}
+.character-studio-hero>small,.persona-hero>small,.editor-hero small{font:7px/1 Georgia,serif;letter-spacing:2.8px;color:var(--gold)}
+.character-studio-hero h2,.persona-hero h2{margin:8px 0 6px;font:25px/1.15 Georgia,"Songti SC",serif;font-weight:400;letter-spacing:1px}
+.character-studio-hero p,.persona-hero p{margin:0;color:var(--muted);font-size:11px;line-height:1.75}
+.character-studio-stats{display:flex;gap:8px;margin-top:15px}.character-studio-stats span{padding:5px 9px;border-radius:999px;background:rgba(230,202,145,.07);color:#cdb886;font-size:9px;letter-spacing:.4px}
+.character-studio-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px}.character-studio-actions button{height:39px;border:1px solid var(--line);border-radius:12px;color:var(--ivory2);font-size:11px}.character-studio-actions .primary{grid-column:1/-1;border:0}
+.character-search{padding-top:9px;padding-bottom:12px}.character-list-row{margin:0 16px 9px;cursor:pointer}.character-list-copy{flex:1;min-width:0}.character-list-copy .muted{margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studio-view{background:radial-gradient(circle at 50% -10%,rgba(166,124,57,.09),transparent 32%),var(--black)}
+.editor-header{align-items:flex-end}.editor-header h1{flex:1;text-align:center;font-size:19px}.editor-header .back{height:34px}.editor-save{min-width:48px;height:32px;border-radius:11px;background:rgba(215,181,112,.11);color:var(--gold-hi);font-size:11px}
+.editor-hero{margin:15px 16px 12px;padding:16px;border-radius:20px;background:linear-gradient(145deg,rgba(238,218,159,.075),rgba(238,218,159,.018));display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:13px;box-shadow:0 16px 36px rgba(0,0,0,.25)}
+.editor-avatar{width:64px;height:64px;border-radius:18px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(145deg,#342819,#101012);color:var(--gold-hi);font:31px/1 Georgia,serif;box-shadow:inset 0 0 0 1px rgba(230,197,132,.18),0 10px 22px rgba(0,0,0,.32)}.editor-avatar img{width:100%;height:100%;object-fit:cover}
+.editor-hero h2{margin:5px 0 3px;font:20px/1.15 Georgia,"Songti SC",serif;font-weight:400}.editor-hero p{margin:0;font-size:9px;line-height:1.5;color:var(--muted)}.editor-hero>button{padding:8px 9px;border-radius:10px;border:1px solid var(--line);font-size:9px;color:var(--gold-hi)}
+.editor-tabs{position:sticky;top:0;z-index:8;margin:0 16px 14px;padding:5px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;border-radius:14px;background:rgba(14,14,16,.92);backdrop-filter:blur(18px);box-shadow:0 8px 22px rgba(0,0,0,.26)}.editor-tabs button{height:36px;border-radius:10px;color:var(--caption);font-size:10px}.editor-tabs button.on{color:#151007;background:var(--gold-grad);font-weight:650}
+.editor-page{padding:0 0 calc(28px + env(safe-area-inset-bottom))}.editor-section-title{margin:0 16px 17px;display:flex;align-items:center;gap:10px}.editor-section-title>span{width:31px;height:31px;border-radius:10px;display:grid;place-items:center;background:rgba(201,163,92,.1);color:var(--gold-hi);font:10px Georgia,serif}.editor-section-title b{display:block;font:16px/1.2 Georgia,"Songti SC",serif;font-weight:400}.editor-section-title small{display:block;margin-top:4px;color:var(--muted);font-size:9px}
+.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}.editor-grid .field{min-width:0}.editor-grid .editor-wide{grid-column:1/-1}.editor-grid textarea{min-height:105px}.editor-grid textarea.editor-tall{min-height:145px}
+.editor-inline-actions{display:flex;gap:8px;padding:0 16px 16px}.editor-inline-actions button{flex:1;height:41px;border:1px solid var(--line);border-radius:12px;color:var(--gold-hi);font-size:11px;background:rgba(238,218,159,.025)}
+.binding-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:1px 16px 16px}.binding-cards button{min-height:104px;padding:13px;border-radius:16px;background:linear-gradient(145deg,rgba(238,218,159,.055),rgba(238,218,159,.012));display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;box-shadow:inset 0 0 0 1px var(--line)}.binding-cards button:nth-child(3){grid-column:1/-1;min-height:82px}.binding-cards button:disabled{opacity:.42}.binding-cards span{font:22px/1 Georgia,serif;color:var(--gold-hi)}.binding-cards b{margin-top:10px;font-size:12px}.binding-cards small{margin-top:4px;color:var(--muted);font-size:9px;line-height:1.45}
+.editor-danger-zone{margin:4px 16px 0;padding:13px;border-radius:15px;background:rgba(98,35,40,.09);display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:center}.editor-danger-zone>b{font-size:10px;color:#bd989a}.editor-danger-zone button{height:34px;padding:0 10px;border-radius:9px;border:1px solid var(--line);font-size:10px}.editor-danger-zone button.danger{border-color:rgba(156,67,73,.35)}
+.persona-hero{margin:17px 16px 12px;padding:20px;border-radius:22px;background:radial-gradient(circle at 88% 7%,rgba(202,157,82,.15),transparent 35%),linear-gradient(145deg,#241b13,#101012 74%);box-shadow:0 20px 42px rgba(0,0,0,.3)}.persona-hero>div{margin-top:18px;padding-top:13px;border-top:1px solid var(--line2);display:flex;justify-content:space-between;align-items:center}.persona-hero>div b{font:16px Georgia,serif;font-weight:400}.persona-hero>div span{font-size:9px;color:var(--gold)}
+.persona-list{padding:0 16px 25px;display:flex;flex-direction:column;gap:9px}.persona-card{padding:13px;border-radius:17px;background:linear-gradient(145deg,rgba(238,218,159,.045),rgba(238,218,159,.012));display:grid;grid-template-columns:48px 1fr auto;gap:11px;align-items:center;box-shadow:inset 0 0 0 1px var(--line)}.persona-card.is-active{background:linear-gradient(145deg,rgba(201,163,92,.105),rgba(238,218,159,.018))}.persona-card .avatar{width:48px;height:48px}.persona-card>div{min-width:0}.persona-card b{display:block;font-size:13px}.persona-card small,.persona-card em{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.persona-card small{margin-top:4px;color:var(--muted);font-size:9px}.persona-card em{margin-top:5px;color:#7b725f;font-size:8px;font-style:normal}.persona-card>button{padding:7px 8px;border-radius:9px;border:1px solid var(--line);color:var(--gold-hi);font-size:8px}
+.persona-editor-hero{margin-bottom:20px}
+.persona-tabs{grid-template-columns:repeat(3,1fr)}
+.world-targets .target-checks{display:flex;flex-direction:column;gap:7px;max-height:190px;overflow:auto}.target-checks>label{padding:9px 10px;border-radius:11px;background:var(--panel);display:flex;align-items:center;gap:9px;color:var(--ivory2);font-size:11px}.target-checks input{width:17px;height:17px;padding:0;accent-color:var(--gold)}
+.world-card{padding:15px;margin:0 0 10px;cursor:pointer}.world-card-meta{display:flex;gap:6px;margin:7px 0}.world-card-meta span{font-size:8px;color:var(--gold-hi);padding:4px 7px;border-radius:999px;background:rgba(201,163,92,.08)}.world-card>.muted{margin-top:5px}.world-card-copy{line-height:1.7;margin-top:9px!important;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+@media(max-width:360px){.editor-hero{grid-template-columns:56px 1fr}.editor-avatar{width:56px;height:56px}.editor-hero>button{grid-column:1/-1}.editor-grid{grid-template-columns:1fr}.editor-grid .field{grid-column:1}.binding-cards{grid-template-columns:1fr}.binding-cards button:nth-child(3){grid-column:1}.character-studio-actions{grid-template-columns:1fr}.character-studio-actions .primary{grid-column:1}.editor-danger-zone{grid-template-columns:1fr 1fr}.editor-danger-zone>b{grid-column:1/-1}}
 @media(max-height:720px){
  .p12-home{--home-stage-top:142px;--home-stage-bottom:112px}
 }
