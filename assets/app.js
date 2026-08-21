@@ -1,11 +1,13 @@
 /* =========================================================
-   扑克机 · V28 ENGINE CORE
+   扑克机 · V29 ENGINE CORE
    API-only / local-first / no built-in characters
    ========================================================= */
-const STORE='pokeji_api_only_v28';
-const LEGACY_STORES=['pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION=28;
+const STORE='pokeji_api_only_v29';
+const LEGACY_STORES=['pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
+const VERSION=29;
 let deferredInstallPrompt=null;
+let installRequestState='idle';
+let installWatchdog=null;
 let startupError=null;
 const HOME_APP_CATALOG={
  chats:{label:'聊天',view:'chats',icon:'./assets/icons/apps/chat-a-heart.webp',glyph:'♡',rank:'A',suit:'♥'},
@@ -142,22 +144,41 @@ function updateInstallStatus(){
  const status=document.getElementById('installAppStatus');if(!status)return;
  if(document.body?.dataset.singleFile==='true'){status.textContent='部署包可安装';return}
  if(isInstalledMode()){status.textContent='已安装 ✓';return}
+ if(installRequestState==='accepted'){status.textContent='系统安装中…';return}
+ if(installRequestState==='timeout'){status.textContent='系统未完成 ›';return}
  if(deferredInstallPrompt){status.textContent='可以安装 ›';return}
  if(!window.isSecureContext){status.textContent='需要 HTTPS';return}
  if(!('serviceWorker' in navigator)){status.textContent='浏览器不支持';return}
  status.textContent='Chrome 检测中…';
 }
+function showInstallSystemNotice(){
+ modal(`<h2>系统安装未完成</h2><div class="note">网页安装条件已经通过，Chrome 也已接收安装请求；当前卡住的是 Android 的 WebAPK/桌面快捷方式服务。请先在应用抽屉搜索“扑克机”。若没有，请允许 Chrome 创建桌面快捷方式后重新打开本页。</div><div class="form-actions"><button onclick="closeModal()">关闭</button><button class="primary" onclick="location.reload()">重新检测</button></div>`);
+}
 async function installPWA(){
  if(document.body?.dataset.singleFile==='true')return toast('单文件仅供预览，请使用静态部署包安装');
  if(isInstalledMode())return toast('扑克机已经安装到桌面');
  if(!window.isSecureContext)return toast('安装需要 HTTPS 安全网址');
+ if(installRequestState==='accepted'||installRequestState==='timeout')return showInstallSystemNotice();
  if(deferredInstallPrompt){
-  const prompt=deferredInstallPrompt;deferredInstallPrompt=null;updateInstallStatus();
+  const prompt=deferredInstallPrompt;updateInstallStatus();
   try{
-   await prompt.prompt();
+   prompt.prompt();
    const choice=await prompt.userChoice;
-   if(choice?.outcome==='accepted')toast('Chrome 正在完成桌面安装');
-   else toast('已取消安装');
+   deferredInstallPrompt=null;
+   if(choice?.outcome==='accepted'){
+    installRequestState='accepted';
+    toast('已交给 Chrome 安装');
+    clearTimeout(installWatchdog);
+    installWatchdog=setTimeout(()=>{
+     if(!isInstalledMode()&&installRequestState==='accepted'){
+      installRequestState='timeout';
+      updateInstallStatus();
+     }
+    },25000);
+   }else{
+    installRequestState='idle';
+    toast('已取消安装');
+   }
   }catch(error){errorDetail(error,'桌面安装失败')}
   updateInstallStatus();return;
  }
@@ -173,7 +194,7 @@ function applyHomeBackground(){
 }
 function applyAppearance(){
  applyHomeBackground();
- const icon=data.settings?.appIcon||'./assets/icon-192.png';
+ const icon=data.settings?.appIcon||'./assets/icon-192.png?v=29';
  document.getElementById('appFavicon')?.setAttribute('href',icon);
  document.getElementById('appleTouchIcon')?.setAttribute('href',icon);
  const theme=(data.settings.themes||[]).find(t=>t.id===data.settings.activeTheme);
@@ -854,11 +875,12 @@ async function saveAppearanceSettings(){
  if(data.settings.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch(e){errorDetail(e,'无法进入全屏')}}else if(!data.settings.fullscreenEnabled&&document.fullscreenElement){try{await document.exitFullscreen()}catch(e){errorDetail(e,'无法退出全屏')}}
 }
 async function checkForUpdates(){
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V29 资源包更新');
  if(!('serviceWorker' in navigator))return toast('当前浏览器不支持离线更新');
  toast('正在检查更新…');
  try{
   let registration=await navigator.serviceWorker.getRegistration();
-  if(!registration)registration=await navigator.serviceWorker.register('./sw.js');
+  if(!registration)registration=await navigator.serviceWorker.register('./sw.js?v=29',{scope:'./',updateViaCache:'none'});
   await registration.update();
   if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});toast('发现更新，正在应用…')}
   else toast('已完成更新检查');
@@ -895,8 +917,8 @@ function about(){
 
 function modal(x){document.getElementById('modalContent').innerHTML=x;document.getElementById('modal').classList.add('show')}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;updateInstallStatus()});
-window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;updateInstallStatus();toast('扑克机已安装到桌面')});
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;installRequestState='idle';clearTimeout(installWatchdog);updateInstallStatus()});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;installRequestState='installed';clearTimeout(installWatchdog);updateInstallStatus();toast('扑克机已安装到桌面')});
 window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',updateInstallStatus);
 window.addEventListener('beforeunload',()=>{if(busy&&abortController)abortController.abort()});
 window.addEventListener('error',e=>{if(e.error)errorDetail(e.error,'未捕获的内部异常')});
