@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eee9e4">
 <meta name="description" content="API 驱动的虚拟手机式 AI 空间">
-<title>扑克机 · Private AI Space · V27</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>扑克机 · Private AI Space · V28</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" id="appleTouchIcon" href="./assets/icon-192.png">
 <link rel="icon" id="appFavicon" href="./assets/icon-192.png">
@@ -189,7 +192,8 @@
 </div>
 <div class="group"><div class="group-title">美化与应用</div>
 <div class="setting" onclick="addTheme()"><span>新增主题</span><span class="muted">追加 ›</span></div>
-<div class="setting" onclick="chooseAppIcon()"><span>安装图标</span><span class="muted">PWA 图片 ›</span></div>
+<div class="setting" id="installAppSetting" onclick="installPWA()"><span>安装到桌面</span><span class="muted" id="installAppStatus">检测中 ›</span></div>
+<div class="setting" onclick="chooseAppIcon()"><span>应用图标</span><span class="muted">PWA 图片 ›</span></div>
 <div class="setting" onclick="showFontSettings()"><span>界面字体</span><span class="muted" id="fontSettingLabel">系统字体 ›</span></div>
 <div class="setting"><span>灵动岛</span><input id="dynamicIslandEnabled" type="checkbox" style="width:auto" onchange="saveAppearanceSettings()"></div>
 <div class="setting" onclick="editDynamicIsland()"><span>自定义灵动岛</span><span class="muted">文字 · 颜色 · 尺寸 ›</span></div>
@@ -220,11 +224,21 @@
 <script src="./assets/app.js"></script>
 <script>
 if('serviceWorker' in navigator){
-  let refreshed=false;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(refreshed)return;refreshed=true;location.reload();
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js',{scope:'./'})
+      .then(()=>navigator.serviceWorker.ready)
+      .then(registration=>{
+        const worker=registration.active||navigator.serviceWorker.controller;
+        if(worker)worker.postMessage({type:'PRECACHE_APP'});
+        updateInstallStatus();
+      })
+      .catch(error=>errorDetail(error,'离线缓存注册失败'));
   });
-  navigator.serviceWorker.register('./sw.js').catch(error=>errorDetail(error,'离线缓存注册失败'));
+  navigator.serviceWorker.addEventListener('message',event=>{
+    if(event.data?.type!=='PRECACHE_COMPLETE')return;
+    const failed=event.data.failed||[];
+    if(failed.length)console.warn('部分离线资源稍后重试',failed);
+  });
 }
 </script>
 </body>

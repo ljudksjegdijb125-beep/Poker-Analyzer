@@ -1,7 +1,8 @@
-const CACHE_NAME = 'pokeji-v27.0';
-const ASSETS = [
+const CACHE_NAME = 'pokeji-v28.0';
+const APP_ENTRY = './index.html';
+const APP_SHELL = [
   './',
-  './index.html',
+  APP_ENTRY,
   './assets/app.css',
   './assets/app.js',
   './manifest.json',
@@ -13,34 +14,68 @@ const ASSETS = [
   './assets/icons/apps/moments-diamond.webp'
 ];
 
+async function cacheOne(cache, url) {
+  try {
+    const response = await fetch(new Request(url, {cache: 'reload'}));
+    if (!response.ok) return {url, ok: false, status: response.status};
+    await cache.put(url, response.clone());
+    return {url, ok: true};
+  } catch (error) {
+    return {url, ok: false, error: String(error)};
+  }
+}
+
+async function warmAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+  const results = await Promise.all(APP_SHELL.map(url => cacheOne(cache, url)));
+  const failed = results.filter(result => !result.ok).map(result => result.url);
+  const windows = await self.clients.matchAll({type: 'window'});
+  windows.forEach(client => client.postMessage({type: 'PRECACHE_COMPLETE', failed}));
+}
+
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+  // Installation only creates the cache. Asset downloads run after activation,
+  // so a slow or missing file cannot hold the PWA in the installing state.
+  event.waitUntil(caches.open(CACHE_NAME));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(
-    keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-  )));
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('pokeji-') && key !== CACHE_NAME).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
     try {
       const response = await fetch(event.request);
-      if (response && response.status === 200 && response.type === 'basic') {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(event.request, response.clone());
+      if (response.ok) {
+        try { await cache.put(event.request, response.clone()); } catch {}
       }
       return response;
     } catch {
-      return (await caches.match(event.request)) || (await caches.match('./index.html'));
+      const cached = await cache.match(event.request);
+      if (cached) return cached;
+      if (event.request.mode === 'navigate') {
+        return (await cache.match(APP_ENTRY)) || (await cache.match('./')) || new Response('扑克机暂时离线', {
+          status: 503,
+          headers: {'Content-Type': 'text/plain; charset=utf-8'}
+        });
+      }
+      return Response.error();
     }
   })());
 });
 
 self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'PRECACHE_APP') event.waitUntil(warmAppShell());
 });
