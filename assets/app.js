@@ -1,10 +1,11 @@
 /* =========================================================
-   扑克机 · V27 ENGINE CORE
+   扑克机 · V28 ENGINE CORE
    API-only / local-first / no built-in characters
    ========================================================= */
-const STORE='pokeji_api_only_v27';
-const LEGACY_STORES=['pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION=27;
+const STORE='pokeji_api_only_v28';
+const LEGACY_STORES=['pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
+const VERSION=28;
+let deferredInstallPrompt=null;
 let startupError=null;
 const HOME_APP_CATALOG={
  chats:{label:'聊天',view:'chats',icon:'./assets/icons/apps/chat-a-heart.webp',glyph:'♡',rank:'A',suit:'♥'},
@@ -136,6 +137,33 @@ function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function attr(x){return esc(x).replace(/`/g,'&#96;')}
 function time(){return new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}
 function toast(t){const e=document.getElementById('toast');if(!e)return;e.textContent=t;e.classList.add('show');clearTimeout(window.__t);window.__t=setTimeout(()=>e.classList.remove('show'),2200)}
+function isInstalledMode(){return window.matchMedia?.('(display-mode: standalone)').matches===true||window.navigator.standalone===true}
+function updateInstallStatus(){
+ const status=document.getElementById('installAppStatus');if(!status)return;
+ if(document.body?.dataset.singleFile==='true'){status.textContent='部署包可安装';return}
+ if(isInstalledMode()){status.textContent='已安装 ✓';return}
+ if(deferredInstallPrompt){status.textContent='可以安装 ›';return}
+ if(!window.isSecureContext){status.textContent='需要 HTTPS';return}
+ if(!('serviceWorker' in navigator)){status.textContent='浏览器不支持';return}
+ status.textContent='Chrome 检测中…';
+}
+async function installPWA(){
+ if(document.body?.dataset.singleFile==='true')return toast('单文件仅供预览，请使用静态部署包安装');
+ if(isInstalledMode())return toast('扑克机已经安装到桌面');
+ if(!window.isSecureContext)return toast('安装需要 HTTPS 安全网址');
+ if(deferredInstallPrompt){
+  const prompt=deferredInstallPrompt;deferredInstallPrompt=null;updateInstallStatus();
+  try{
+   await prompt.prompt();
+   const choice=await prompt.userChoice;
+   if(choice?.outcome==='accepted')toast('Chrome 正在完成桌面安装');
+   else toast('已取消安装');
+  }catch(error){errorDetail(error,'桌面安装失败')}
+  updateInstallStatus();return;
+ }
+ const registration=await navigator.serviceWorker?.getRegistration?.();
+ modal(`<h2>安装到桌面</h2><div class="note">${registration?.active?'离线服务已经就绪，但 Chrome 尚未发出安装许可。请停留数秒后再点一次，或使用 Chrome 菜单中的“安装应用”。':'离线服务仍在激活，请稍后再点一次。'}</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`);
+}
 function applyHomeBackground(){
   const home=document.querySelector('#home .p12-home');
   if(!home)return;
@@ -362,7 +390,7 @@ function goHomePage(page){setHomePage(page);closeModal()}
 function resetHomeLayout(){if(!confirm('恢复默认两页排列？自定义图标与图片资源仍会保留。'))return;data.homeDesktop=defaultHomeDesktop();homePage=0;homeEditMode=false;save();closeHomeEditor();renderHomeDesktop();toast('默认排列已恢复')}
 function initHomeGestures(){const pages=document.getElementById('homePages');if(!pages)return;pages.addEventListener('touchstart',e=>{if(homeEditMode)return;homeTouchX=e.touches[0].clientX;homeTouchY=e.touches[0].clientY},{passive:true});pages.addEventListener('touchend',e=>{if(homeEditMode||!homeTouchX)return;const dx=e.changedTouches[0].clientX-homeTouchX,dy=e.changedTouches[0].clientY-homeTouchY;homeTouchX=0;if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.25){window.__homeMovedUntil=Date.now()+350;setHomePage(homePage+(dx<0?1:-1))}},{passive:true})}
 
-setInterval(clock,1000);clock();applyAppearance();initHomeGestures();
+setInterval(clock,1000);clock();applyAppearance();initHomeGestures();updateInstallStatus();
 if(startupError)setTimeout(()=>errorDetail(startupError,'本地资料读取失败'),0);
 
 /* ---------- boot ---------- */
@@ -758,7 +786,7 @@ function renderModelProfiles(){const e=document.getElementById('modelProfiles');
 function editModelProfile(kind){const p=modelProfile(kind);modal(`<h2>${MODEL_LABELS[kind]}</h2><div class="note">此项使用独立 API 配置，不占用其他模型的 Key 或调用链。百分比会转换成归一化优先级指令并实际传入请求。${kind==='voice'?'朗读使用 OpenAI 兼容 /audio/speech 链路。':''}</div><div class="field"><label>服务商</label><select id="mpProvider">${[['openai','OpenAI 兼容'],['anthropic','Claude 原生'],['gemini','Gemini 原生']].map(([v,n])=>`<option value="${v}" ${p.provider===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" value="${attr(p.base||'')}"></div><div class="field"><label>API Key</label><input id="mpKey" type="password" value="${attr(p.key||'')}"></div><div class="field"><label>模型</label><input id="mpModel" value="${attr(p.model||'')}"></div>${kind==='voice'?`<div class="field"><label>声音名称 / Voice ID</label><input id="mpVoice" value="${attr(p.voice||'alloy')}" placeholder="alloy"></div>`:''}<div class="field"><label>权重百分比</label><input id="mpWeight" type="range" min="0" max="100" value="${p.weight??100}" oninput="this.nextElementSibling.textContent=this.value+'%'"><small>${p.weight??100}%</small></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveModelProfile('${kind}')">保存</button></div>`)}
 function saveModelProfile(kind){data.models[kind]={provider:document.getElementById('mpProvider').value,base:document.getElementById('mpBase').value.trim(),key:document.getElementById('mpKey').value.trim(),model:document.getElementById('mpModel').value.trim(),weight:Number(document.getElementById('mpWeight').value),voice:document.getElementById('mpVoice')?.value.trim()||data.models[kind]?.voice||'alloy'};save();closeModal();renderModelProfiles();toast(`${MODEL_LABELS[kind]}已保存`)}
 function loadSettings(){
- applyAppearance();renderModelProfiles();
+ applyAppearance();renderModelProfiles();updateInstallStatus();
  ['temperature'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=data.settings[k]??''});
  const mh=document.getElementById('maxHistory');if(mh)mh.value=data.settings.maxHistory??40;
  const sk=document.getElementById('summaryKeepTurns');if(sk)sk.value=data.settings.summaryKeepTurns??12;
@@ -867,6 +895,9 @@ function about(){
 
 function modal(x){document.getElementById('modalContent').innerHTML=x;document.getElementById('modal').classList.add('show')}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;updateInstallStatus()});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;updateInstallStatus();toast('扑克机已安装到桌面')});
+window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',updateInstallStatus);
 window.addEventListener('beforeunload',()=>{if(busy&&abortController)abortController.abort()});
 window.addEventListener('error',e=>{if(e.error)errorDetail(e.error,'未捕获的内部异常')});
 window.addEventListener('unhandledrejection',e=>errorDetail(e.reason instanceof Error?e.reason:Error(String(e.reason)),'未处理的异步异常'));
