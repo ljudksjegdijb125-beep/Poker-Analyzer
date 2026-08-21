@@ -1,5 +1,5 @@
 /* =========================================================
-   扑克机 · V25 NOIR MAISON EDITION
+   扑克机 · V27 NOIR MAISON EDITION
    Private members'-club aesthetic: ink black, aged ivory,
    brushed brass. No external assets. Offline-safe. Mobile-first.
    ========================================================= */
@@ -578,13 +578,12 @@ button:active{transform:scale(.975)}
 #chat.has-custom-bg .chat-head{background:rgba(8,8,9,.72);}
 #chat.has-custom-bg .composer{background:rgba(11,11,12,.78);}
 .p12-home.has-custom-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
-.p12-home.has-custom-bg:before{opacity:.45;}
-/* V25 functional additions */
+/* V27 functional additions */
 .error-detail{max-height:45vh;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#141418;color:#ffd7d7;padding:14px;border-radius:12px;font-size:11px;line-height:1.55}
 @media(prefers-reduced-motion:reduce){.boot-grid,.boot-seal:before,.boot-seal:after,.boot-suit,.boot-flare,.island-pulse{animation:none!important}.p12-island{transition-duration:.01ms!important}}
 
 /* =========================================================
-   V25 · PAGED HOME GRID
+   V27 · PAGED HOME GRID
    Four-column occupancy grid, removable decorative widgets,
    full-image application icons and mobile-style page editing.
    ========================================================= */
@@ -671,3 +670,24 @@ html,body,button,input,textarea,select{font-family:var(--ui-font)}
 @media(max-height:720px){.home-clockline{top:43px;height:87px}.home-clockline .p12-clock strong{font-size:52px}.p12-pages{inset:142px 0 112px}.p12-page.home-grid-page{gap:8px}.home-grid-guide{gap:8px}.home-app-icon{width:min(54px,82%);border-radius:10px}.home-app-image{width:min(60px,88%)}.home-app-label{font-size:8px}.home-widget{border-radius:20px}.p12-dock{height:63px}.dock-icon{width:42px;height:42px}.p12-dots{bottom:93px}}
 @media(max-width:360px){.home-clockline .p12-clock strong{font-size:54px}.p12-page.home-grid-page{padding-left:12px;padding-right:12px;gap:8px}.home-grid-guide{left:12px;right:12px;gap:8px}.home-app-icon{border-radius:10px}.home-widget{border-radius:20px}}
 @media(prefers-reduced-motion:reduce){.home-item.is-editing,.home-record.is-playing{animation:none!important}}
+
+/* V27 · fixed-proportion home stage
+   Full-screen height becomes intentional atmosphere instead of stretching widgets. */
+.p12-home{
+ --home-stage-top:152px;
+ --home-stage-bottom:106px;
+ --home-grid-height:min(470px,calc(100% - var(--home-stage-top) - var(--home-stage-bottom)));
+ --home-grid-offset:calc((100% - var(--home-stage-top) - var(--home-stage-bottom) - var(--home-grid-height))/2);
+}
+.p12-pages{
+ inset:auto 0 auto;
+ top:calc(var(--home-stage-top) + var(--home-grid-offset));
+ height:var(--home-grid-height);
+}
+.p12-dots{
+ bottom:auto;
+ top:calc(var(--home-stage-top) + var(--home-grid-offset) + var(--home-grid-height) + 8px);
+}
+@media(max-height:720px){
+ .p12-home{--home-stage-top:142px;--home-stage-bottom:112px}
+}
