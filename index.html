@@ -9,11 +9,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · Private AI Space · V30</title>
+<title>扑克机 · Private AI Space · V34</title>
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=30">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=30">
-<link rel="stylesheet" href="/assets/app.css?v=30">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=34">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=34">
+<link rel="stylesheet" href="/assets/app.css?v=34">
 </head>
 <body>
 
@@ -109,8 +109,8 @@
 
 
 <section id="chats" class="view app-view">
-<div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="requireAPI()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
-<div class="scroll"><div class="section"><input id="chatSearch" class="search" placeholder="搜索聊天" oninput="renderChats()"></div><div id="chatList"></div></div>
+<div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div id="chatModeEntrances" class="chat-mode-entrances"><button class="on" data-mode="online" onclick="setChatListMode('online')"><span>◉</span><b>线上</b><small>消息 · 主动来信</small></button><button data-mode="offline" onclick="setChatListMode('offline')"><span>◇</span><b>线下</b><small>见面 · 现场剧情</small></button></div><div id="chatModeCaption" class="chat-mode-caption">手机消息式交流 · 支持活人感主动来信</div><div class="section chat-mode-search"><input id="chatSearch" class="search" placeholder="搜索角色" oninput="renderChats()"></div><div id="chatList"></div></div>
 </section>
 
 <section id="groups" class="view app-view">
@@ -119,8 +119,23 @@
 </section>
 
 <section id="contacts" class="view app-view">
-<div class="header"><h1>角色</h1><div class="actions"><button class="icon-btn" onclick="newCharacter()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
-<div class="scroll"><div class="section"><input class="search" placeholder="搜索角色" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
+<div class="header"><h1>角色</h1><div class="actions"><button class="icon-btn" onclick="importCharacterCard()" aria-label="导入角色卡">⇧</button><button class="icon-btn" onclick="newCharacter()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div class="character-studio-hero"><small>CHARACTER STUDIO</small><h2>角色设置中心</h2><p>完整档案、人格、对话行为和会话绑定都在这里。</p><div class="character-studio-stats"><span id="characterCount">0 个角色</span><span id="personaCount">1 张面具</span></div><div class="character-studio-actions"><button class="primary" onclick="newCharacter()">＋ 新建角色</button><button onclick="openPersonaManager('contacts')">◈ USER 设定</button><button onclick="importCharacterCard()">⇧ 导入角色卡</button></div></div><div class="section character-search"><input class="search" placeholder="搜索角色" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
+</section>
+
+<section id="characterEditor" class="view app-view studio-view">
+<div class="header editor-header"><button class="back" onclick="closeCharacterEditor()">‹</button><h1 id="characterEditorTitle">角色设置</h1><button class="editor-save" onclick="saveCharacterEditor()">保存</button></div>
+<div id="characterEditorBody" class="scroll"></div>
+</section>
+
+<section id="personaManager" class="view app-view studio-view">
+<div class="header editor-header"><button class="back" onclick="closePersonaManager()">‹</button><h1>USER 设定</h1><button class="editor-save" onclick="newPersona()">新建</button></div>
+<div id="personaManagerBody" class="scroll"></div>
+</section>
+
+<section id="personaEditor" class="view app-view studio-view">
+<div class="header editor-header"><button class="back" onclick="closePersonaEditor()">‹</button><h1 id="personaEditorTitle">编辑面具</h1><button class="editor-save" onclick="savePersonaEditor()">保存</button></div>
+<div id="personaEditorBody" class="scroll"></div>
 </section>
 
 <section id="feed" class="view app-view">
@@ -188,8 +203,18 @@
 <div class="setting"><span></span><button class="primary" onclick="saveSettings()">保存并测试主聊天模型</button></div>
 </div>
 <div class="group"><div class="group-title">聊天与事件</div>
+<div class="setting" onclick="openPersonaManager('settings')"><span><b>USER 设定</b><small style="display:block">身份、人格、经历与互动边界</small></span><span class="muted">进入 ›</span></div>
 <div class="setting"><span>随机事件</span><input id="randomEventsEnabled" type="checkbox" style="width:auto" onchange="saveRandomEventSettings()"></div>
 <div class="setting"><span>触发概率</span><input id="randomEventChance" type="number" min="0" max="100" step="1" onchange="saveRandomEventSettings()"></div>
+<div class="setting"><span><b>活人感主动来信</b><small style="display:block">仅对角色中单独允许的人生效</small></span><input id="proactiveEnabled" type="checkbox" style="width:auto" onchange="saveProactiveSettings()"></div>
+<div class="setting"><span>最短间隔（分钟）</span><input id="proactiveMinMinutes" type="number" min="1" max="1440" step="1" onchange="saveProactiveSettings()"></div>
+<div class="setting"><span>最长间隔（分钟）</span><input id="proactiveMaxMinutes" type="number" min="1" max="1440" step="1" onchange="saveProactiveSettings()"></div>
+</div>
+<div class="group"><div class="group-title">运行与后台</div>
+<div class="setting"><span><b>后台请求接力</b><small id="backgroundRelayStatus" style="display:block">请求中可切到后台</small></span><input id="backgroundRelayEnabled" type="checkbox" style="width:auto" onchange="saveRuntimeSettings()"></div>
+<div class="setting"><span><b>生成常驻通知</b><small id="backgroundNotificationStatus" style="display:block">开启时会请求通知权限</small></span><input id="backgroundNotificationEnabled" type="checkbox" style="width:auto" onchange="saveRuntimeSettings()"></div>
+<div class="setting"><span><b>前台生成防息屏</b><small style="display:block">仅在页面可见且正在生成时生效</small></span><input id="screenWakeLockEnabled" type="checkbox" style="width:auto" onchange="saveRuntimeSettings()"></div>
+<div class="setting" onclick="showBackgroundCapability()"><span>后台能力说明</span><span class="muted">查看边界 ›</span></div>
 </div>
 <div class="group"><div class="group-title">美化与应用</div>
 <div class="setting" onclick="addTheme()"><span>新增主题</span><span class="muted">追加 ›</span></div>
@@ -212,24 +237,25 @@
 </section>
 
 <section id="chat" class="view">
-<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">AI 对话</div></div><button class="icon-btn" onclick="regenerateLast()" title="重说">↻</button><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
+<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">AI 对话</div></div><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
 <div class="scroll"><div id="messages" class="messages"></div></div>
 <div id="speakerPicker" class="speaker-picker" style="display:none"></div>
-<div class="composer"><input id="messageInput" placeholder="输入消息…" onkeydown="if(event.key==='Enter')sendMessage()"><button class="send" onclick="sendMessage()">↑</button></div>
+<div class="composer"><button id="regenerateBtn" class="composer-tool" onclick="regenerateLast()" title="撤回最后回复并重新生成" aria-label="撤回最后回复并重新生成">↻</button><input id="messageInput" placeholder="输入消息…" onkeydown="if(event.key==='Enter')sendMessage()"><button class="send" onclick="sendMessage()">↑</button></div>
 </section>
 
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="handle"></div><div id="modalContent"></div></div></div>
 <div id="toast" class="toast"></div>
 </div></div>
 
-<script src="/assets/app.js?v=30"></script>
+<script src="/assets/app.js?v=34"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/sw-v30.js',{scope:'/',updateViaCache:'none'})
+    navigator.serviceWorker.register('/sw-v34.js',{scope:'/',updateViaCache:'none'})
       .then(registration=>{
         updateInstallStatus();
         registration.update().catch(()=>{});
+        navigator.serviceWorker.ready.then(()=>recoverBackgroundResults()).catch(()=>{});
         setTimeout(()=>{
           const worker=registration.active||navigator.serviceWorker.controller;
           if(worker)worker.postMessage({type:'PRECACHE_APP'});
@@ -238,9 +264,11 @@ if('serviceWorker' in navigator){
       .catch(error=>errorDetail(error,'离线缓存注册失败'));
   });
   navigator.serviceWorker.addEventListener('message',event=>{
-    if(event.data?.type!=='PRECACHE_COMPLETE')return;
-    const failed=event.data.failed||[];
-    if(failed.length)console.warn('部分离线资源稍后重试',failed);
+    if(event.data?.type==='POKEJI_NOTIFICATION_OPEN'){openChatFromChatId(String(event.data.chatId||''));return}
+    if(event.data?.type==='PRECACHE_COMPLETE'){
+      const failed=event.data.failed||[];
+      if(failed.length)console.warn('部分离线资源稍后重试',failed);
+    }
   });
 }
 </script>
