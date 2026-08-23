@@ -1092,14 +1092,40 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
+const V42_SW_URL='/sw-v42.js?build=42.1';
+function isV42WorkerUrl(url){return /\/sw-v42\.js(?:$|[?#])/.test(String(url||''))}
+function isLegacyWorkerUrl(url){return /\/sw-v38\.js(?:$|[?#])/.test(String(url||''))}
+function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
+function waitForWorkerActivation(registration,timeout=15000){
+ const worker=registration?.installing||registration?.waiting||registration?.active;if(!worker||worker.state==='activated')return Promise.resolve(registration);
+ if(worker.state==='installed')worker.postMessage({type:'SKIP_WAITING'});
+ return new Promise(resolve=>{let settled=false;const done=()=>{if(settled)return;settled=true;clearTimeout(timer);worker.removeEventListener?.('statechange',onState);resolve(registration)},onState=()=>{if(worker.state==='installed')worker.postMessage({type:'SKIP_WAITING'});if(worker.state==='activated'||worker.state==='redundant')done()},timer=setTimeout(done,timeout);worker.addEventListener?.('statechange',onState)});
+}
+async function ensureV42ServiceWorker({forceUpdate=false}={}){
+ if(document.body?.dataset.singleFile==='true'||!('serviceWorker' in navigator))return null;
+ const registrations=navigator.serviceWorker.getRegistrations?await navigator.serviceWorker.getRegistrations():[await navigator.serviceWorker.getRegistration('/')].filter(Boolean);
+ let migratedLegacy=false;
+ for(const registration of registrations){
+  const urls=registrationWorkerUrls(registration),newest=urls[0]||'';
+  if(isLegacyWorkerUrl(newest)||(!isV42WorkerUrl(newest)&&urls.some(isLegacyWorkerUrl))){await registration.unregister();migratedLegacy=true}
+ }
+ if(migratedLegacy&&'caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('pokeji-v38')).map(key=>caches.delete(key)))}
+ const registration=await navigator.serviceWorker.register(V42_SW_URL,{scope:'/',updateViaCache:'none'});
+ await waitForWorkerActivation(registration);
+ if(forceUpdate){
+  const newest=registration?.installing||registration?.waiting||registration?.active;
+  if(!newest||!isV42WorkerUrl(newest.scriptURL))throw Error('旧版离线服务仍在释放，请关闭扑克机后重新打开');
+  await registration.update();await waitForWorkerActivation(registration);
+ }
+ return registration;
+}
 async function backgroundWorker(){
  if(document.body?.dataset.singleFile==='true'||!('serviceWorker' in navigator))return null;
  try{
-  await navigator.serviceWorker.ready;
+  const registration=await ensureV42ServiceWorker();
   for(let attempt=0;attempt<24;attempt++){
-   const registration=await navigator.serviceWorker.getRegistration('/');
-   const candidates=[registration?.active,navigator.serviceWorker.controller].filter(Boolean);
-   const worker=candidates.find(candidate=>candidate.state==='activated'&&/\/sw-v42\.js(?:$|\?)/.test(candidate.scriptURL||''));
+   const candidates=[registration?.installing,registration?.waiting,registration?.active,navigator.serviceWorker.controller].filter(Boolean);
+   const worker=candidates.find(candidate=>candidate.state==='activated'&&isV42WorkerUrl(candidate.scriptURL));
    if(worker)return worker;
    await new Promise(resolve=>setTimeout(resolve,250));
   }
@@ -1758,10 +1784,10 @@ async function checkForUpdates(){
  if(!('serviceWorker' in navigator))return toast('当前浏览器不支持离线更新');
  toast('正在检查更新…');
  try{
-  const registration=await navigator.serviceWorker.register('/sw-v42.js',{scope:'/',updateViaCache:'none'});
-  await registration.update();
-  if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});toast('发现更新，正在应用…')}
-  else toast('已完成更新检查');
+  const registration=await ensureV42ServiceWorker({forceUpdate:true});
+  if(!registration)throw Error('V42 离线服务未能注册');
+  if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}
+  toast('V42 更新检查完成');
  }catch(error){errorDetail(error,'检查更新失败')}
 }
 function resetData(){if(!confirm('确定清空 V42 的本机数据吗？V38 与其他历史版本不会被删除。'))return;try{localStorage.setItem(STORE,JSON.stringify(blank()));localStorage.removeItem(`${STORE}_migration`);location.reload()}catch(error){errorDetail(error,'清空 V42 本机数据失败')}}
