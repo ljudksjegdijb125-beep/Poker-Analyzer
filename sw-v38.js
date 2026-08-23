@@ -1,4 +1,4 @@
-const V42_MIGRATION_TARGET = '/index.html?sw-migrate=42.1';
+const V42_MIGRATION_TARGET = '/index.html?sw-migrate=42.3';
 
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => {
