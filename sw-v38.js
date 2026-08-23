@@ -1,17 +1,40 @@
-const CACHE_NAME = 'pokeji-v42.1';
+const V42_MIGRATION_TARGET = '/index.html?sw-migrate=42.1';
+
+self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    try { await self.clients.claim(); } catch {}
+    try { await self.registration.unregister(); } catch {}
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(key => key.startsWith('pokeji-v38')).map(key => caches.delete(key)));
+    } catch {}
+    const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    await Promise.all(windows.map(async client => {
+      try { if (client.navigate) await client.navigate(V42_MIGRATION_TARGET); }
+      catch { try { client.postMessage({type: 'POKEJI_LEGACY_SW_RELEASED'}); } catch {} }
+    }));
+  })());
+});
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
+});
+
+// Historical V38 worker implementation retained but intentionally disabled.
+if (false) {
+const CACHE_NAME = 'pokeji-v38.0';
 const APP_ENTRY = '/index.html';
-const BACKGROUND_DB = 'pokeji-background-v42';
+const BACKGROUND_DB = 'pokeji-background-v1';
 const BACKGROUND_STORE = 'results';
 const backgroundControllers = new Map();
-const cancelledTasks = new Set();
 const APP_SHELL = [
   '/',
   APP_ENTRY,
-  '/assets/app.css?v=42',
-  '/assets/app.js?v=42.1',
-  '/manifest.webmanifest?v=42',
-  '/assets/icon-192.png?v=42',
-  '/assets/icon-512.png?v=42',
+  '/assets/app.css?v=38',
+  '/assets/app.js?v=38',
+  '/manifest.webmanifest',
+  '/assets/icon-192.png',
+  '/assets/icon-512.png',
   '/assets/icons/apps/chat-a-heart.webp',
   '/assets/icons/apps/character-k-spade.webp',
   '/assets/icons/apps/group-q-club.webp',
@@ -64,7 +87,7 @@ function cleanBackgroundMeta(meta = {}) {
 }
 
 async function showTaskNotification(taskId, meta, state) {
-  if (!meta.showNotification || !self.registration?.showNotification || cancelledTasks.has(taskId)) return;
+  if (!meta.showNotification || !self.registration?.showNotification) return;
   const name = meta.notificationName || 'AI';
   const details = state === 'working'
     ? {title: '扑克机正在生成', body: `${name}的回复正在生成；切到后台后仍会继续尝试。`}
@@ -90,10 +113,6 @@ async function runBackgroundFetch(payload, port) {
   const request = payload?.request || {};
   if (!taskId || !/^https?:\/\//i.test(String(request.url || ''))) {
     port?.postMessage({type: 'POKEJI_BACKGROUND_RESULT', taskId, result: {taskId, ok: false, error: '后台请求参数无效'}});
-    return;
-  }
-  if (cancelledTasks.has(taskId)) {
-    cancelledTasks.delete(taskId);
     return;
   }
   const controller = new AbortController();
@@ -139,17 +158,7 @@ async function runBackgroundFetch(payload, port) {
     clearTimeout(timer);
     backgroundControllers.delete(taskId);
   }
-  if (cancelledTasks.has(taskId)) {
-    cancelledTasks.delete(taskId);
-    try { await deleteBackgroundResult(taskId); } catch {}
-    return;
-  }
   try { await putBackgroundResult(result); } catch {}
-  if (cancelledTasks.has(taskId)) {
-    cancelledTasks.delete(taskId);
-    try { await deleteBackgroundResult(taskId); } catch {}
-    return;
-  }
   await showTaskNotification(taskId, meta, result.ok ? 'completed' : 'failed');
   try { port?.postMessage({type: 'POKEJI_BACKGROUND_RESULT', taskId, result}); } catch {}
 }
@@ -173,12 +182,16 @@ async function warmAppShell() {
   windows.forEach(client => client.postMessage({type: 'PRECACHE_COMPLETE', failed}));
 }
 
-self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
+self.addEventListener('install', event => {
+  // Do not download or open caches here. Chrome can activate this worker
+  // immediately; all offline downloads happen later in the background.
+  event.waitUntil(self.skipWaiting());
+});
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(key => key.startsWith('pokeji-v42') && key !== CACHE_NAME).map(key => caches.delete(key)));
+    await Promise.all(keys.filter(key => key.startsWith('pokeji-') && key !== CACHE_NAME).map(key => caches.delete(key)));
     if (self.registration.navigationPreload) {
       try { await self.registration.navigationPreload.enable(); } catch {}
     }
@@ -190,6 +203,7 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     try {
@@ -218,15 +232,7 @@ self.addEventListener('message', event => {
   if (message.type === 'SKIP_WAITING') self.skipWaiting();
   if (message.type === 'PRECACHE_APP') event.waitUntil(warmAppShell());
   if (message.type === 'POKEJI_BACKGROUND_FETCH') event.waitUntil(runBackgroundFetch(message, event.ports?.[0]));
-  if (message.type === 'POKEJI_CANCEL_BACKGROUND_FETCH') {
-    const taskId = String(message.taskId || '');
-    if (taskId) cancelledTasks.add(taskId);
-    backgroundControllers.get(taskId)?.abort();
-    event.waitUntil(Promise.all([
-      deleteBackgroundResult(taskId).catch(() => {}),
-      self.registration.getNotifications({tag: `pokeji-generation-${taskId}`}).then(items => items.forEach(item => item.close())).catch(() => {})
-    ]));
-  }
+  if (message.type === 'POKEJI_CANCEL_BACKGROUND_FETCH') backgroundControllers.get(String(message.taskId || ''))?.abort();
   if (message.type === 'POKEJI_ACK_BACKGROUND_RESULT') event.waitUntil(deleteBackgroundResult(String(message.taskId || '')).catch(() => {}));
   if (message.type === 'POKEJI_CLAIM_BACKGROUND_RESULTS') event.waitUntil((async () => {
     let results = [];
@@ -249,3 +255,4 @@ self.addEventListener('notificationclick', event => {
     if (self.clients.openWindow) await self.clients.openWindow(target);
   })());
 });
+}

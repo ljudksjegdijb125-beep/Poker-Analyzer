@@ -275,23 +275,22 @@
 <div id="toast" class="toast"></div>
 </div></div>
 
-<script src="/assets/app.js?v=42"></script>
+<script src="/assets/app.js?v=42.1"></script>
 <script>
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/sw-v42.js',{scope:'/',updateViaCache:'none'})
-      .then(registration=>{
-        updateInstallStatus();
-        registration.update().catch(()=>{});
-        navigator.serviceWorker.ready.then(()=>recoverBackgroundResults()).catch(()=>{});
-        setTimeout(()=>{
-          const worker=registration.active||navigator.serviceWorker.controller;
-          if(worker)worker.postMessage({type:'PRECACHE_APP'});
-        },30000);
-      })
-      .catch(error=>errorDetail(error,'离线缓存注册失败'));
+  window.addEventListener('load',async()=>{
+    try{
+      const registration=await ensureV42ServiceWorker();
+      updateInstallStatus();
+      await recoverBackgroundResults();
+      setTimeout(()=>{
+        const worker=registration?.active||navigator.serviceWorker.controller;
+        if(worker&&isV42WorkerUrl(worker.scriptURL))worker.postMessage({type:'PRECACHE_APP'});
+      },30000);
+    }catch(error){errorDetail(error,'离线缓存注册失败')}
   });
   navigator.serviceWorker.addEventListener('message',event=>{
+    if(event.data?.type==='POKEJI_LEGACY_SW_RELEASED'){ensureV42ServiceWorker().then(()=>location.reload()).catch(error=>errorDetail(error,'旧离线服务迁移失败'));return}
     if(event.data?.type==='POKEJI_NOTIFICATION_OPEN'){openChatFromChatId(String(event.data.chatId||''),String(event.data.mode||'online'),String(event.data.sceneMode||'direct'));return}
     if(event.data?.type==='PRECACHE_COMPLETE'){
       const failed=event.data.failed||[];
