@@ -9,11 +9,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · Private AI Space · V44</title>
-<link rel="manifest" href="/manifest.webmanifest?v=44">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=44">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=44">
-<link rel="stylesheet" href="/assets/app.css?v=44.0">
+<title>扑克机 · Private AI Space · V45</title>
+<link rel="manifest" href="/manifest.webmanifest?v=45.0">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.0">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.0">
+<link rel="stylesheet" href="/assets/app.css?v=45.0">
 </head>
 <body>
 
@@ -108,9 +108,14 @@
 
 
 
+<section id="safety" class="view app-view">
+<div class="header"><h1>安全声明</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div class="safety-sheet"><div class="safety-mark">✓</div><small>POKEJI · SAFETY NOTICE</small><h2>本应用免费使用</h2><p>扑克机本身不收取购买费用。若有人以“解锁扑克机”“购买官方资格”“付费开通本应用”等理由向你收费，请提高警惕，这可能是诈骗。</p><div class="safety-rule"><b>不购买 · 不转账 · 不提供验证码</b><span>API 服务商、网络中转或第三方模型可能有自己的收费规则；那属于第三方服务，不代表扑克机官方收费。</span></div></div></div>
+</section>
+
 <section id="chats" class="view app-view">
 <div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
-<div class="scroll"><div class="chat-list-intro"><small>MESSAGES</small><b>记住每段会话的线上 / 线下状态</b><span>重新进入时延续上次模式；输入框旁的 ＋ 可切换入口并调取聊天相关虚拟内容。</span></div><div class="section chat-mode-search"><input id="chatSearch" class="search" placeholder="搜索角色" oninput="renderChats()"></div><div id="chatList"></div></div>
+<div class="scroll"><div class="section chat-mode-search"><input id="chatSearch" class="search" placeholder="搜索角色" oninput="renderChats()"></div><div id="chatList"></div></div>
 </section>
 
 <section id="groups" class="view app-view">
@@ -154,8 +159,8 @@
 </section>
 
 <section id="memory" class="view app-view">
-<div class="header"><h1>记忆</h1><div class="actions"><button class="icon-btn" onclick="manualSummaryPicker()" title="手动摘要">◎</button><button class="icon-btn" onclick="newMemory()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
-<div class="scroll"><div class="section" id="memoryList"></div></div>
+<div class="header"><h1>记忆</h1><div class="actions"><button class="icon-btn" onclick="manualSummaryPicker()" title="选择会话并压缩对话">◎</button><button class="icon-btn" onclick="v45CompressCurrentConversation()" title="压缩当前对话">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div id="memoryList" class="memory-list"></div></div>
 </section>
 
 <section id="dataCenter" class="view app-view">
@@ -212,7 +217,12 @@
 <div class="setting"><span>自动记忆摘要</span><input id="summaryAutoEnabled" type="checkbox" style="width:auto"></div>
 <div class="setting"><span>请求超时（秒）</span><input id="timeout" type="number" min="10" max="180" step="5"></div>
 <div class="setting"><span>Prompt 缓存</span><input id="promptCache" type="checkbox" style="width:auto"></div>
+<div class="setting"><span><b>流式回复</b><small style="display:block">前台聊天逐段显示；关闭后使用完整响应</small></span><input id="streamingEnabled" type="checkbox" style="width:auto" onchange="saveStreamingSetting()"></div>
+<div class="setting" onclick="showCacheDiagnostics()"><span><b>缓存诊断</b><small style="display:block">查看最近一次服务商是否返回缓存命中信息</small></span><span class="muted" id="cacheDiagnosticsLabel">等待聊天 ›</span></div>
 <div class="setting"><span></span><button class="primary" onclick="saveSettings()">保存并测试主聊天模型</button></div>
+</div>
+<div class="group"><div class="group-title">绘图提示词</div>
+<div class="setting" onclick="editImagePromptLayers()"><span><b>全局 / 角色 / USER 绘图提示词</b><small style="display:block">生图时自动合并三层设定，也可手动覆盖本次提示词</small></span><span class="muted" id="imagePromptLayersLabel">未设置 ›</span></div>
 </div>
 <div class="group"><div class="group-title">聊天与事件</div>
 <div class="setting" onclick="openPersonaManager('settings')"><span><b>USER 设定</b><small style="display:block">身份、人格、经历与互动边界</small></span><span class="muted">进入 ›</span></div>
@@ -223,7 +233,7 @@
 <div class="setting"><span><b>AI 内心话</b><small style="display:block">显示角色未说出口的虚构内心独白</small></span><input id="innerThoughtsEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>自动翻译 AI 消息</b><small style="display:block">使用独立翻译模型；相同原文优先读取本机缓存</small></span><input id="autoTranslateEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>识图理解表情包</b><small style="display:block">上传时用独立识图模型生成含义描述</small></span><input id="stickerVisionEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
-<div class="setting"><span><b>AI 情境手机联动</b><small style="display:block">按聊天需要静默调取网站内虚拟内容，不读取现实手机、不发反查通知</small></span><span class="muted">自动</span></div>
+<div class="setting"><span><b>AI 情境手机联动</b><small style="display:block">按聊天需要整理网站内虚拟内容，不读取现实手机</small></span><input id="phoneAutoGenerate" type="checkbox" style="width:auto" onchange="savePhoneAutoSetting()"></div>
 <div class="setting" onclick="openView('world')"><span><b>内置活人感世界书</b><small style="display:block">线上私信与线下相遇各一份</small></span><span class="muted">查看 ›</span></div>
 <div class="setting"><span>随机事件</span><input id="randomEventsEnabled" type="checkbox" style="width:auto" onchange="saveRandomEventSettings()"></div>
 <div class="setting"><span>触发概率</span><input id="randomEventChance" type="number" min="0" max="100" step="1" onchange="saveRandomEventSettings()"></div>
@@ -244,6 +254,7 @@
 <div class="setting" onclick="showBackgroundCapability()"><span>后台能力说明</span><span class="muted">查看边界 ›</span></div>
 <div class="setting" onclick="showMcpSafetyInfo()"><span><b>本地 MCP</b><small style="display:block">未开放执行；查看 localhost 风险边界</small></span><span class="muted">安全说明 ›</span></div>
 </div>
+<div class="group"><div class="group-title">最近修改</div><div class="setting" onclick="showChangeLog()"><span><b>修改播报记录</b><small style="display:block">查看本次版本实际修改了哪些设置和资料</small></span><span class="muted">查看 ›</span></div></div>
 <div class="group"><div class="group-title">美化与应用</div>
 <div class="setting" onclick="addTheme()"><span>新增主题</span><span class="muted">追加 ›</span></div>
 <div class="setting" id="installAppSetting" onclick="installPWA()"><span>安装到桌面</span><span class="muted" id="installAppStatus">检测中 ›</span></div>
@@ -265,18 +276,24 @@
 </section>
 
 <section id="chat" class="view">
-<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">AI 对话</div></div><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
+<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div class="chat-head-copy"><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">AI 对话</div><div id="chatStatusLine" class="chat-status-line"></div></div><button class="icon-btn chat-fullscreen-btn" onclick="toggleChatFullscreen()" title="全屏聊天" aria-label="全屏聊天">⛶</button><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
 <div class="scroll"><div id="messages" class="messages"></div></div>
 <div id="speakerPicker" class="speaker-picker" style="display:none"></div>
 <div id="chatGenerationStatus" class="chat-generation-status" hidden></div>
-<div class="composer"><button id="chatPlusBtn" class="composer-tool composer-plus" onclick="showChatPlusMenu()" title="表情包、线上线下与聊天相关虚拟手机" aria-label="打开聊天工具">＋</button><button id="regenerateBtn" class="composer-tool" onclick="regenerateLast()" title="重新生成；报错后也可重试" aria-label="重新生成或重试上一条">↻</button><input id="messageInput" placeholder="输入消息…" oninput="updateComposerState()" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();sendMessage()}"><button class="send" onclick="sendMessage()">↑</button></div>
+<div class="composer"><button id="chatPlusBtn" class="composer-tool composer-plus" onclick="showChatPlusMenu()" title="聊天工具" aria-label="打开聊天工具">＋</button><button id="regenerateBtn" class="composer-tool" onclick="regenerateLast()" title="重新生成；报错后也可重试" aria-label="重新生成或重试上一条">↻</button><input id="messageInput" type="text" name="chat-message" autocomplete="off" autocapitalize="sentences" autocorrect="off" spellcheck="false" inputmode="text" data-form-type="other" data-lpignore="true" placeholder="输入消息…" oninput="updateComposerState()" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();sendMessage()}"><button class="send" onclick="sendMessage()">↑</button></div>
 </section>
 
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="handle"></div><div id="modalContent"></div></div></div>
 <div id="toast" class="toast"></div>
 </div></div>
 
-<script src="/assets/app.js?v=44.0"></script>
+<script src="/assets/app.js?v=45.0"></script>
+<script src="/assets/v45-patch.js?v=45.0"></script>
+<script src="/assets/v45-final.js?v=45.0"></script>
+<script src="/assets/v45-ui-fix.js?v=45.0"></script>
+<script src="/assets/v45-phone-call.js?v=45.0"></script>
+<script src="/assets/v45-followup.js?v=45.0"></script>
+<script src="/assets/v45-stability.js?v=45.0"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{

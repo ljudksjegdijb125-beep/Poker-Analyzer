@@ -1,5 +1,5 @@
-const POKEJI_WORKER_VERSION = '44.0';
-const CACHE_NAME = 'pokeji-v44.0';
+const POKEJI_WORKER_VERSION = '45.0';
+const CACHE_NAME = 'pokeji-v45.0';
 const APP_ENTRY = '/index.html';
 const BACKGROUND_DB = 'pokeji-background-v42';
 const BACKGROUND_STORE = 'results';
@@ -8,11 +8,17 @@ const cancelledTasks = new Set();
 const APP_SHELL = [
   '/',
   APP_ENTRY,
-  '/assets/app.css?v=44.0',
-  '/assets/app.js?v=44.0',
-  '/manifest.webmanifest?v=44',
-  '/assets/icon-192.png?v=44',
-  '/assets/icon-512.png?v=44',
+  "/assets/app.css?v=45.0",
+  "/assets/app.js?v=45.0",
+  "/assets/v45-patch.js?v=45.0",
+  "/assets/v45-final.js?v=45.0",
+  "/assets/v45-ui-fix.js?v=45.0",
+  "/assets/v45-phone-call.js?v=45.0",
+  "/assets/v45-followup.js?v=45.0",
+  "/assets/v45-stability.js?v=45.0",
+  "/manifest.webmanifest?v=45.0",
+  '/assets/icon-192.png?v=45.0',
+  '/assets/icon-512.png?v=45.0',
   '/assets/icons/apps/chat-a-heart.webp',
   '/assets/icons/apps/character-k-spade.webp',
   '/assets/icons/apps/group-q-club.webp',
