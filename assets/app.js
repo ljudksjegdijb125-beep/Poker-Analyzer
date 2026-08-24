@@ -2168,3 +2168,18 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
  const readable=m.role==='assistant'&&m.kind==='message',footer=(isLast||readable)?`<div class="message-footer">${isLast?`<span class="msg-time">${esc(m.time||'')}</span>`:''}${readable?messageReadButton(chatId,i,m,true):''}</div>`:'';
  return`<div class="message-item" data-idx="${i}"><div class="bubble-line">${original}</div>${translation}${footer}</div>`;
 }
+
+
+/* V43.1 Service Worker update diagnostics */
+async function v43FetchWorkerScript(){
+ const response=await fetch('/sw-v42.js?build=43.1&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
+ if(!response.ok)throw Error(`线上缺少 sw-v42.js：HTTP ${response.status}`);
+ if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v42.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
+ if(!text.includes("pokeji-v43.1"))throw Error('线上 sw-v42.js 仍不是 V43.1。请重新覆盖 sw-v42.js，并确认 Vercel 已部署最新 Git 提交。');
+ try{new Function(text)}catch(error){throw Error(`线上 sw-v42.js 语法无效：${error.message}`)}return true;
+}
+async function checkForUpdates(){
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.1 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V43.1 更新…');
+ try{await v43FetchWorkerScript();const registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('V43.1 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V43.1 更新检查完成')}
+ catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V43\.1|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v42.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
+}
