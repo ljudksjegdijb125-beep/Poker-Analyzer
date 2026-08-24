@@ -1,10 +1,10 @@
 /* =========================================================
-   扑克机 · V42 ENGINE CORE
+   扑克机 · V44 ENGINE CORE
    API-only / local-first / no built-in characters
    ========================================================= */
 const STORE='pokeji_api_only_v42';
-const LEGACY_STORES=['pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION=42;
+const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
+const VERSION=44;
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -45,7 +45,7 @@ function normalizeHomeDesktop(input){
   if(!raw||!['app','widget'].includes(raw.kind))continue;
   if(raw.kind==='app'&&(!HOME_APP_CATALOG[raw.app]||HOME_DOCK_APPS.has(raw.app)||seenApps.has(raw.app)))continue;
   if(raw.kind==='widget'&&!['photo','cd'].includes(raw.widget))continue;
-  const id=String(raw.id||`${raw.kind}_${crypto.randomUUID()}`);if(ids.has(id))continue;ids.add(id);
+  const id=String(raw.id||`${raw.kind}_${v44UUID()}`);if(ids.has(id))continue;ids.add(id);
   if(raw.kind==='app')seenApps.add(raw.app);
   const isWidget=raw.kind==='widget',w=isWidget?2:1,h=isWidget?2:1,page=Math.min(pageCount-1,Math.max(0,Number(raw.page)||0));
   let x=isWidget?(Number(raw.x)<2?0:2):Math.min(3,Math.max(0,Number(raw.x)||0)),y=isWidget?(Number(raw.y)<2?0:2):Math.min(3,Math.max(0,Number(raw.y)||0));
@@ -81,9 +81,20 @@ const SIM_APP_CATALOG={
  schedule:{name:'刻度日程',icon:'□',accent:'#8f6f70',description:'日程与提醒',actions:['日程','提醒']}
 };
 function normalizeSimPhoneItem(item={}){
+ item=item&&typeof item==='object'?item:{};
  const legacyMap={'聊天':'messages','联系人':'messages','相册备注':'gallery','备忘录':'notes','日程':'schedule','浏览记录':'browser'},app=SIM_APP_CATALOG[item.app]?item.app:(legacyMap[item.type]||'notes'),catalog=SIM_APP_CATALOG[app];
- return{id:String(item.id||('phone_'+crypto.randomUUID())),app,action:String(item.action||item.type||catalog.actions[0]),title:String(item.title||''),content:String(item.content||'')};
+ return{id:String(item.id||('phone_'+v44UUID())),app,action:String(item.action||item.type||catalog.actions[0]),title:String(item.title||''),content:String(item.content||'')};
 }
+/* V44 compatibility: crypto.randomUUID is absent in some Android WebViews. */
+function v44UUID(){
+  try{if(globalThis.crypto&&typeof globalThis.crypto.randomUUID==='function')return globalThis.crypto.randomUUID()}catch{}
+  const hex=()=>Math.floor(Math.random()*0x100000000).toString(16).padStart(8,'0');
+  const a=hex(),b=hex(),c=hex(),d=hex(),e=hex(),t=(Date.now()>>>0).toString(16).padStart(8,'0');
+  const variant=(8+(parseInt(d[0],16)&3)).toString(16);
+  return `${a}-${b.slice(0,4)}-4${c.slice(0,3)}-${variant}${d.slice(1,4)}-${e}${t.slice(0,4)}`;
+}
+
+if(!Array.prototype.at){Object.defineProperty(Array.prototype,'at',{configurable:true,value:function(index){const i=Number(index)||0;const n=i<0?this.length+i:i;return this[n]}})}
 let data=load();
 let currentChat=null;
 let currentChatMode='online';
@@ -115,8 +126,8 @@ let activeAudioMessageKey='';
 
 function emptyModel(){return{provider:'openai',base:'',key:'',model:'',voice:'alloy',speed:1}}
 function defaultPersona(){return{id:'persona_default',name:'我',nickname:'',pronouns:'',age:'',identity:'',description:'',personality:'',background:'',appearance:'',likes:'',dislikes:'',speechStyle:'',relationship:'',boundaries:'',goals:'',notes:'',image:''}}
-function normalizeCharacter(c={}){return{id:String(c.id||('c_'+crypto.randomUUID())),name:String(c.name||''),nickname:String(c.nickname||''),status:String(c.status||''),pronouns:String(c.pronouns||''),tags:String(c.tags||''),bio:String(c.bio||''),personality:String(c.personality||''),background:String(c.background||''),appearance:String(c.appearance||''),speechStyle:String(c.speechStyle||''),relationship:String(c.relationship||''),scenario:String(c.scenario||''),firstMessage:String(c.firstMessage||''),exampleDialogue:String(c.exampleDialogue||''),systemPrompt:String(c.systemPrompt||''),boundaries:String(c.boundaries||''),image:String(c.image||''),voiceId:String(c.voiceId||''),voiceSpeed:Math.min(2,Math.max(.5,Number(c.voiceSpeed)||1)),proactiveEnabled:c.proactiveEnabled===true}}
-function normalizePersona(p={}){return{id:String(p.id||('persona_'+crypto.randomUUID())),name:String(p.name||'我'),nickname:String(p.nickname||''),pronouns:String(p.pronouns||''),age:String(p.age||''),identity:String(p.identity||''),description:String(p.description||''),personality:String(p.personality||''),background:String(p.background||''),appearance:String(p.appearance||''),likes:String(p.likes||''),dislikes:String(p.dislikes||''),speechStyle:String(p.speechStyle||''),relationship:String(p.relationship||''),boundaries:String(p.boundaries||''),goals:String(p.goals||''),notes:String(p.notes||''),image:String(p.image||'')}}
+function normalizeCharacter(c={}){c=c&&typeof c==='object'?c:{};return{id:String(c.id||('c_'+v44UUID())),name:String(c.name||''),nickname:String(c.nickname||''),status:String(c.status||''),pronouns:String(c.pronouns||''),tags:String(c.tags||''),bio:String(c.bio||''),personality:String(c.personality||''),background:String(c.background||''),appearance:String(c.appearance||''),speechStyle:String(c.speechStyle||''),relationship:String(c.relationship||''),scenario:String(c.scenario||''),firstMessage:String(c.firstMessage||''),exampleDialogue:String(c.exampleDialogue||''),systemPrompt:String(c.systemPrompt||''),boundaries:String(c.boundaries||''),image:String(c.image||''),voiceId:String(c.voiceId||''),voiceSpeed:Math.min(2,Math.max(.5,Number(c.voiceSpeed)||1)),proactiveEnabled:c.proactiveEnabled===true}}
+function normalizePersona(p={}){p=p&&typeof p==='object'?p:{};return{id:String(p.id||('persona_'+v44UUID())),name:String(p.name||'我'),nickname:String(p.nickname||''),pronouns:String(p.pronouns||''),age:String(p.age||''),identity:String(p.identity||''),description:String(p.description||''),personality:String(p.personality||''),background:String(p.background||''),appearance:String(p.appearance||''),likes:String(p.likes||''),dislikes:String(p.dislikes||''),speechStyle:String(p.speechStyle||''),relationship:String(p.relationship||''),boundaries:String(p.boundaries||''),goals:String(p.goals||''),notes:String(p.notes||''),image:String(p.image||'')}}
 function defaultDynamicIsland(){return{compactText:'POKEJI',title:'扑克机',subtitle:'私人空间',symbol:'♠',accent:'#e8e8e4',size:'standard'}}
 function builtInWorldBooks(){return[
  {id:'builtin_online_lifelike_v42',name:'线上活人感',desc:['当前入口是私人线上消息。','只输出角色真正会发送的聊天内容；禁止旁白、动作括号、舞台说明、系统注释和界面描述。','结合角色说话方式、关系阶段与当前上下文，自然决定回复节奏；避免每轮都提问、重复性格标签、复述用户原话或过度解释。','启用多气泡时，由角色依据本轮表达需要决定实际气泡数，不按句号机械拆分。'].join('\n'),scope:'global',mode:'online',activation:'persistent',targetIds:[],trigger:'',enabled:true,builtIn:true},
@@ -137,7 +148,8 @@ function normalize(x){
  const d=blank(),defaultSettings={...d.settings},defaultModels={...d.models};
  if(!x||typeof x!=='object')return d;
  Object.assign(d,x);
- d.settings={...defaultSettings,...(x.settings||{})};
+ const sourceSettings=x.settings&&typeof x.settings==='object'&&!Array.isArray(x.settings)?x.settings:{};
+ d.settings={...defaultSettings,...sourceSettings};
  d.settings.dynamicIsland={...defaultDynamicIsland(),...(x.settings?.dynamicIsland||{})};
  d.settings.homeAppIcons=x.settings?.homeAppIcons&&typeof x.settings.homeAppIcons==='object'?x.settings.homeAppIcons:{};
  d.settings.customFont={source:'',label:'',...(x.settings?.customFont||{})};
@@ -150,16 +162,23 @@ function normalize(x){
  d.settings.stickerVisionEnabled=x.settings?.stickerVisionEnabled===true;
  d.settings.reversePhoneMode=x.settings?.reversePhoneMode==='auto'?'auto':'off';
  d.settings.voiceWorldBook=String(x.settings?.voiceWorldBook||'');
+ d.settings.temperature=Math.min(2,Math.max(0,Number(d.settings.temperature)||.8));
+ d.settings.maxHistory=Math.round(Math.min(100,Math.max(4,Number(d.settings.maxHistory)||40)));
+ d.settings.summaryKeepTurns=Math.round(Math.min(100,Math.max(2,Number(d.settings.summaryKeepTurns)||12)));
+ d.settings.maxTokens=Math.round(Math.min(32000,Math.max(64,Number(d.settings.maxTokens)||2048)));
+ let normalizedTimeout=Number(d.settings.timeout);if(!Number.isFinite(normalizedTimeout)||normalizedTimeout<=0)normalizedTimeout=60000;if(normalizedTimeout<1000)normalizedTimeout*=1000;d.settings.timeout=Math.round(Math.min(180000,Math.max(10000,normalizedTimeout)));
+
  delete d.settings.audioOutputDeviceId;delete d.settings.audioOutputLabel;delete d.settings.voiceDisplayMode;
- d.models={...defaultModels,...(x.models||{})};
+ const sourceModels=x.models&&typeof x.models==='object'&&!Array.isArray(x.models)?x.models:{};
+ d.models={...defaultModels,...sourceModels};
  for(const k of Object.keys(d.models)){const raw=d.models[k]||{},profile={...raw};delete profile.weight;d.models[k]={...emptyModel(),...profile}}
  if(!d.models.chat.base&&d.settings.apiBase)d.models.chat={provider:d.settings.apiProvider||'openai',base:d.settings.apiBase||'',key:d.settings.apiKey||'',model:d.settings.apiModel||'',voice:'alloy'};
  d.characters=Array.isArray(x.characters)?x.characters.map(normalizeCharacter):[];
  d.personas=Array.isArray(x.personas)&&x.personas.length?x.personas.map(normalizePersona):[defaultPersona()];
  d.activePersonaId=d.personas.some(p=>p.id===x.activePersonaId)?x.activePersonaId:d.personas[0].id;
  d.conversationPersonaBindings=x.conversationPersonaBindings&&typeof x.conversationPersonaBindings==='object'&&!Array.isArray(x.conversationPersonaBindings)?{...x.conversationPersonaBindings}:{};
- d.chats=x.chats&&typeof x.chats==='object'&&!Array.isArray(x.chats)?x.chats:{};
- d.chatSummaries=x.chatSummaries&&typeof x.chatSummaries==='object'?x.chatSummaries:{};
+ d.chats=x.chats&&typeof x.chats==='object'&&!Array.isArray(x.chats)?Object.fromEntries(Object.entries(x.chats).map(([id,list])=>[String(id),Array.isArray(list)?list.filter(item=>item&&typeof item==='object'):[]])):{};
+ d.chatSummaries=x.chatSummaries&&typeof x.chatSummaries==='object'&&!Array.isArray(x.chatSummaries)?x.chatSummaries:{};
  d.translationCache=x.translationCache&&typeof x.translationCache==='object'&&!Array.isArray(x.translationCache)?x.translationCache:{};
  d.feedCovers=x.feedCovers&&typeof x.feedCovers==='object'&&!Array.isArray(x.feedCovers)?x.feedCovers:{};
  d.chatSettings=x.chatSettings&&typeof x.chatSettings==='object'&&!Array.isArray(x.chatSettings)?x.chatSettings:{};
@@ -174,7 +193,7 @@ function normalize(x){
   delete d.chatSettings[legacyId];
  }
  d.proactiveSchedule=x.proactiveSchedule&&typeof x.proactiveSchedule==='object'&&!Array.isArray(x.proactiveSchedule)?x.proactiveSchedule:{};
- d.groups=Array.isArray(x.groups)?x.groups:[];
+ d.groups=Array.isArray(x.groups)?x.groups.filter(group=>group&&typeof group==='object').map(group=>({...group,memberIds:Array.isArray(group.memberIds)?group.memberIds:[]})):[];
  const validPersonaIds=new Set(d.personas.map(persona=>persona.id));
  const migratePersonaThread=(kind,entityId)=>{
   const legacySettings=d.chatSettings[entityId]||{},requested=String(d.conversationPersonaBindings[entityId]??legacySettings.personaId??''),bound=validPersonaIds.has(requested)?requested:'',resolved=bound||d.activePersonaId;
@@ -188,20 +207,20 @@ function normalize(x){
  d.characters.forEach(character=>migratePersonaThread('direct',character.id));
  d.groups.forEach(group=>migratePersonaThread('group',group.id));
  for(const [id,cfg] of Object.entries(d.chatSettings)){const parsed=parsePersonaThreadId(id);d.chatSettings[id]={background:String(cfg?.background||''),personaId:parsed?.personaId||String(cfg?.personaId||''),reversePhoneGranted:cfg?.reversePhoneGranted===true}}
- d.posts=Array.isArray(x.posts)?x.posts.map(post=>({
+ d.posts=Array.isArray(x.posts)?x.posts.filter(post=>post&&typeof post==='object').map(post=>({
   ...post,
-  id:String(post?.id||('p_'+crypto.randomUUID())),char:String(post?.char||''),text:String(post?.text||''),time:String(post?.time||'刚刚'),
+  id:String(post?.id||('p_'+v44UUID())),char:String(post?.char||''),text:String(post?.text||''),time:String(post?.time||'刚刚'),
   images:Array.isArray(post?.images)?post.images.map(safeImageSrc).filter(Boolean).slice(0,9):[],location:String(post?.location||''),
-  comments:Array.isArray(post?.comments)?post.comments.map(comment=>({id:String(comment?.id||('comment_'+crypto.randomUUID())),author:String(comment?.author||'USER'),text:String(comment?.text||''),time:String(comment?.time||'刚刚')})).filter(comment=>comment.text):[],
+  comments:Array.isArray(post?.comments)?post.comments.filter(comment=>comment&&typeof comment==='object').map(comment=>({id:String(comment?.id||('comment_'+v44UUID())),author:String(comment?.author||'USER'),text:String(comment?.text||''),time:String(comment?.time||'刚刚')})).filter(comment=>comment.text):[],
   likes:Math.max(0,Number(post?.likes)||0),likedByUser:post?.likedByUser===true,generated:post?.generated===true,createdAt:String(post?.createdAt||''),personaId:String(post?.personaId||d.activePersonaId)
- })):[];d.notifications=Array.isArray(x.notifications)?x.notifications:[];
- d.worlds=Array.isArray(x.worlds)?x.worlds.map(w=>{const entry={...w,scope:['global','character','group'].includes(w.scope)?w.scope:'global',mode:['online','offline','all'].includes(w.mode)?w.mode:'all',activation:['persistent','trigger'].includes(w.activation)?w.activation:(w.global||!String(w.trigger||'').trim()?'persistent':'trigger'),targetIds:Array.isArray(w.targetIds)?w.targetIds.map(String):[],builtIn:w.builtIn===true};delete entry.priority;delete entry.weight;delete entry.global;if(/^builtin_(?:online|offline)_lifelike_v(?:36|37|38)$/.test(entry.id))entry.id=entry.id.replace(/_v(?:36|37|38)$/,'_v42');return entry}):[];
+ })):[];d.notifications=Array.isArray(x.notifications)?x.notifications.filter(item=>item&&typeof item==='object'):[];
+ d.worlds=Array.isArray(x.worlds)?x.worlds.map(w=>{w=w&&typeof w==='object'?w:{};const entry={...w,scope:['global','character','group'].includes(w.scope)?w.scope:'global',mode:['online','offline','all'].includes(w.mode)?w.mode:'all',activation:['persistent','trigger'].includes(w.activation)?w.activation:(w.global||!String(w.trigger||'').trim()?'persistent':'trigger'),targetIds:Array.isArray(w.targetIds)?w.targetIds.map(String):[],builtIn:w.builtIn===true};delete entry.priority;delete entry.weight;delete entry.global;if(/^builtin_(?:online|offline)_lifelike_v(?:36|37|38)$/.test(entry.id))entry.id=entry.id.replace(/_v(?:36|37|38)$/,'_v42');return entry}):[];
  for(const builtIn of builtInWorldBooks())if(!d.worlds.some(w=>w.id===builtIn.id))d.worlds.unshift(builtIn);
  d.memories=Array.isArray(x.memories)?x.memories:[];
- d.stickerCategories=Array.isArray(x.stickerCategories)?x.stickerCategories.map(item=>({id:String(item?.id||('stickers_'+crypto.randomUUID())),name:String(item?.name||'未命名分类')})):[];
+ d.stickerCategories=Array.isArray(x.stickerCategories)?x.stickerCategories.filter(item=>item&&typeof item==='object').map(item=>({id:String(item?.id||('stickers_'+v44UUID())),name:String(item?.name||'未命名分类')})):[];
  if(!d.stickerCategories.some(item=>item.id==='stickers_default'))d.stickerCategories.unshift({id:'stickers_default',name:'默认'});
  const stickerCategoryIds=new Set(d.stickerCategories.map(item=>item.id));
- d.stickers=Array.isArray(x.stickers)?x.stickers.map(item=>({id:String(item?.id||('sticker_'+crypto.randomUUID())),name:String(item?.name||'表情包'),image:safeImageSrc(item?.image)||'',description:String(item?.description||''),categoryId:stickerCategoryIds.has(item?.categoryId)?String(item.categoryId):'stickers_default'})).filter(item=>item.image):[];
+ d.stickers=Array.isArray(x.stickers)?x.stickers.filter(item=>item&&typeof item==='object').map(item=>({id:String(item?.id||('sticker_'+v44UUID())),name:String(item?.name||'表情包'),image:safeImageSrc(item?.image)||'',description:String(item?.description||''),categoryId:stickerCategoryIds.has(item?.categoryId)?String(item.categoryId):'stickers_default'})).filter(item=>item.image):[];
  d.simPhones=x.simPhones&&typeof x.simPhones==='object'?x.simPhones:{personas:{},characters:{}};
  d.simPhones.personas=d.simPhones.personas&&typeof d.simPhones.personas==='object'?d.simPhones.personas:{};
  for(const [id,store] of Object.entries(d.simPhones.personas))d.simPhones.personas[id]={items:Array.isArray(store?.items)?store.items.map(normalizeSimPhoneItem):[]};
@@ -213,8 +232,8 @@ function normalize(x){
  d.homeDesktop=Number(x.settings?.homeLayoutRevision)===2?normalizeHomeDesktop(x.homeDesktop):defaultHomeDesktop();
  d.settings.homeLayoutRevision=2;
  d.engine={...d.engine,...(x.engine||{})};
- d.engine.worldRules=Array.isArray(d.engine.worldRules)?d.engine.worldRules.map(r=>{const rule={...r,activation:['persistent','trigger'].includes(r.activation)?r.activation:(r.global||!String(r.trigger||'').trim()?'persistent':'trigger')};delete rule.priority;delete rule.weight;delete rule.global;return rule}):[];
- d.engine.presetModules=Array.isArray(d.engine.presetModules)?d.engine.presetModules.map(m=>{const module={...m};delete module.priority;delete module.weight;return module}):[];
+ d.engine.worldRules=Array.isArray(d.engine.worldRules)?d.engine.worldRules.filter(r=>r&&typeof r==='object').map(r=>{const rule={...r,activation:['persistent','trigger'].includes(r.activation)?r.activation:(r.global||!String(r.trigger||'').trim()?'persistent':'trigger')};delete rule.priority;delete rule.weight;delete rule.global;return rule}):[];
+ d.engine.presetModules=Array.isArray(d.engine.presetModules)?d.engine.presetModules.filter(m=>m&&typeof m==='object').map(m=>{const module={...m};delete module.priority;delete module.weight;return module}):[];
  d.engine.regexRules=Array.isArray(d.engine.regexRules)?d.engine.regexRules:[];
  d.engine.state={...blank().engine.state,...(d.engine.state||{})};
  return d;
@@ -228,7 +247,7 @@ function load(){try{
  try{
   localStorage.setItem(STORE,JSON.stringify(migrated));
   localStorage.setItem(`${STORE}_migration`,JSON.stringify({from:sourceKey,to:STORE,at:new Date().toISOString()}));
- }catch(error){startupError=Error(`V38 资料已读取，但复制到 V42 独立存储失败：${error?.message||error}`)}
+ }catch(error){startupError=Error(`V38 资料已读取，但复制到 V44 独立存储失败：${error?.message||error}`)}
  return migrated;
 }catch(error){startupError=error;return blank()}}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(data));return true}catch(error){errorDetail(error,'本地存储异常');return false}}
@@ -250,7 +269,7 @@ function errorDetail(error,context='运行错误'){
  modal(`<h2>${esc(context)}</h2><pre class="error-detail">${esc(detail)}</pre><div class="form-actions"><button onclick="copyError()">复制完整报错</button><button class="primary" onclick="closeModal()">关闭</button></div>`);
  window.__lastError=detail;
 }
-function copyError(){navigator.clipboard?.writeText(window.__lastError||'').then(()=>toast('完整报错已复制')).catch(()=>toast('复制失败'))}
+function copyError(){const text=window.__lastError||'';if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function'){navigator.clipboard.writeText(text).then(()=>toast('完整报错已复制')).catch(()=>toast('复制失败'));return}toast('当前环境不支持直接复制')}
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function attr(x){return esc(x).replace(/`/g,'&#96;')}
 function time(){return new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}
@@ -386,7 +405,7 @@ function directCharacterForChat(chatId=currentChat){return data.characters.find(
 function isGroupChatId(chatId=currentChat){const parsed=parsePersonaThreadId(chatId);return parsed?.kind==='group'||data.groups.some(group=>group.id===chatId)}
 function readImageFile(file){
   return new Promise((resolve,reject)=>{
-    if(!file||!file.type.startsWith('image/'))return reject(new Error('image'));
+    if(!file||!String(file.type||'').startsWith('image/'))return reject(new Error('image'));
     const reader=new FileReader();
     reader.onload=()=>{
       const img=new Image();
@@ -524,11 +543,11 @@ function addHomePage(){if(data.homeDesktop.pageCount>=12)return toast('最多 12
 function removeCurrentHomePage(){if(data.homeDesktop.pageCount<=1)return toast('至少保留一页');if(data.homeDesktop.items.some(x=>x.page===homePage))return toast('请先移走或删除当前页项目');data.homeDesktop.items.forEach(x=>{if(x.page>homePage)x.page--});data.homeDesktop.pageCount--;homePage=Math.max(0,homePage-1);save();renderHomeDesktop();toast('空白页已删除')}
 function createHomeWidget(type){
  const w=2,h=2,slot=findHomeWidgetSlot(homePage);if(!slot)return toast('本页没有组件位，请新增页面');
- const id=`widget_${type}_${crypto.randomUUID()}`;data.homeDesktop.items.push({id,kind:'widget',widget:type,page:homePage,x:slot.x,y:slot.y,w,h,color:type==='cd'?'#9c6f57':'#6e5540',image:''});save();closeHomeEditor();renderHomeDesktop();editHomeItem(id);
+ const id=`widget_${type}_${v44UUID()}`;data.homeDesktop.items.push({id,kind:'widget',widget:type,page:homePage,x:slot.x,y:slot.y,w,h,color:type==='cd'?'#9c6f57':'#6e5540',image:''});save();closeHomeEditor();renderHomeDesktop();editHomeItem(id);
 }
 function showWidgetPicker(){modal(`<h2>添加图1尺寸组件</h2><div class="note">组件固定占一个 2×2 区块，创建后可立即上传图片。</div><div class="home-picker"><button onclick="createHomeWidget('photo')"><b>照片组件</b><span>上传自己的图片</span></button><button onclick="createHomeWidget('cd')"><b>CD 组件</b><span>图片作为唱片封面</span></button></div>`)}
 function showAppPicker(){const present=new Set(data.homeDesktop.items.filter(x=>x.kind==='app').map(x=>x.app)),missing=Object.entries(HOME_APP_CATALOG).filter(([key])=>!HOME_DOCK_APPS.has(key)&&!present.has(key));modal(`<h2>添加应用</h2>${missing.length?`<div class="home-app-picker">${missing.map(([key,app])=>`<button onclick="addHomeApp('${key}')"><span>${esc(app.glyph)}</span><b>${esc(app.label)}</b></button>`).join('')}</div>`:'<div class="empty">所有桌面功能都已放好</div>'}`)}
-function addHomeApp(key){if(!HOME_APP_CATALOG[key]||HOME_DOCK_APPS.has(key))return;if(data.homeDesktop.items.some(item=>item.kind==='app'&&item.app===key))return toast('该功能已在桌面上');let slot=findHomeSlot(homePage,1,1);if(!slot)return toast('本页没有空位');data.homeDesktop.items.push({id:`app_${key}_${crypto.randomUUID()}`,kind:'app',app:key,page:homePage,x:slot.x,y:slot.y,w:1,h:1});save();closeModal();closeHomeEditor();renderHomeDesktop()}
+function addHomeApp(key){if(!HOME_APP_CATALOG[key]||HOME_DOCK_APPS.has(key))return;if(data.homeDesktop.items.some(item=>item.kind==='app'&&item.app===key))return toast('该功能已在桌面上');let slot=findHomeSlot(homePage,1,1);if(!slot)return toast('本页没有空位');data.homeDesktop.items.push({id:`app_${key}_${v44UUID()}`,kind:'app',app:key,page:homePage,x:slot.x,y:slot.y,w:1,h:1});save();closeModal();closeHomeEditor();renderHomeDesktop()}
 function editHomeItem(id){
  const item=data.homeDesktop.items.find(x=>x.id===id);if(!item)return;
  const title=item.kind==='app'?HOME_APP_CATALOG[item.app].label:(item.widget==='cd'?'唱片组件':'照片组件');
@@ -578,7 +597,7 @@ function showStickerPicker(categoryId='stickers_default'){
  modal(`<div class="sticker-picker"><div class="chat-plus-title"><small>STICKERS</small><h2>表情包</h2><p>${data.settings.stickerVisionEnabled?'上传后会尝试用独立识图模型生成描述。':'可手动填写描述，角色才能知道表情含义。'}</p></div><div class="sticker-category-tabs">${data.stickerCategories.map(item=>`<button class="${item.id===active.id?'on':''}" onclick="showStickerPicker('${attr(item.id)}')">${esc(item.name)}</button>`).join('')}</div>${items.length?`<div class="sticker-grid">${items.map(item=>{const index=data.stickers.findIndex(candidate=>candidate.id===item.id);return `<button onclick="sendSticker('${attr(item.id)}')"><img src="${attr(item.image)}" alt="${attr(item.name)}"><small>${esc(item.name)}</small><i onclick="event.stopPropagation();editSticker(${index})">⋯</i></button>`}).join('')}</div>`:'<div class="empty compact-empty">这个分类还没有表情包</div>'}<div class="sticker-library-actions"><button onclick="showStickerCategoryManager()">分类管理</button><button onclick="addStickerByUrl('${attr(active.id)}')">URL 添加</button><button class="primary" onclick="importSticker('${attr(active.id)}')">上传图片</button></div><div class="form-actions"><button onclick="showChatPlusMenu()">返回聊天工具</button></div></div>`);
 }
 function showStickerCategoryManager(){modal(`<div class="sticker-category-manager"><div class="chat-plus-title"><small>LIBRARY</small><h2>表情包分类</h2><p>分类只整理本机表情包，不会改变历史消息。</p></div><div class="sticker-category-list">${data.stickerCategories.map(item=>`<div><span><b>${esc(item.name)}</b><small>${data.stickers.filter(sticker=>sticker.categoryId===item.id).length} 张</small></span><button onclick="renameStickerCategory('${attr(item.id)}')">改名</button>${item.id==='stickers_default'?'':`<button class="danger" onclick="deleteStickerCategory('${attr(item.id)}')">删除</button>`}</div>`).join('')}</div><div class="field"><label>新增分类</label><input id="newStickerCategory" maxlength="20" placeholder="例如：日常、反应、角色专属"></div><div class="form-actions"><button onclick="showStickerPicker()">返回</button><button class="primary" onclick="addStickerCategory()">＋ 新增</button></div></div>`)}
-function addStickerCategory(){const name=document.getElementById('newStickerCategory')?.value.trim();if(!name)return toast('请填写分类名称');if(data.stickerCategories.some(item=>item.name===name))return toast('已经有同名分类');const id='stickers_'+crypto.randomUUID();data.stickerCategories.push({id,name});save();showStickerCategoryManager();toast('分类已新增')}
+function addStickerCategory(){const name=document.getElementById('newStickerCategory')?.value.trim();if(!name)return toast('请填写分类名称');if(data.stickerCategories.some(item=>item.name===name))return toast('已经有同名分类');const id='stickers_'+v44UUID();data.stickerCategories.push({id,name});save();showStickerCategoryManager();toast('分类已新增')}
 function renameStickerCategory(id){const item=stickerCategory(id),name=prompt('新的分类名称',item.name)?.trim();if(!name)return;if(data.stickerCategories.some(other=>other.id!==id&&other.name===name))return toast('已经有同名分类');item.name=name;save();showStickerCategoryManager()}
 function deleteStickerCategory(id){if(id==='stickers_default')return;if(!confirm('删除这个分类？其中的表情包会移到“默认”。'))return;data.stickerCategories=data.stickerCategories.filter(item=>item.id!==id);for(const sticker of data.stickers)if(sticker.categoryId===id)sticker.categoryId='stickers_default';save();showStickerCategoryManager();toast('分类已删除，表情包已移到默认')}
 function stickerDraftEditor(name='',description='',categoryId='stickers_default',title='保存表情包'){stickerDraftCategory=stickerCategory(categoryId).id;modal(`<h2>${esc(title)}</h2><div class="sticker-edit-preview"><img src="${attr(stickerDraftImage)}" alt=""></div><div class="field"><label>名称</label><input id="stickerName" value="${attr(name)}" placeholder="例如：笑到不行"></div><div class="field"><label>分类</label><select id="stickerCategory">${stickerCategoryOptions(stickerDraftCategory)}</select></div><div class="field"><label>含义描述</label><textarea id="stickerDescription" placeholder="告诉角色这张表情包表达什么">${esc(description)}</textarea></div><div class="form-actions"><button onclick="showStickerPicker('${attr(stickerDraftCategory)}')">取消</button><button class="primary" onclick="saveSticker()">保存</button></div>`)}
@@ -586,8 +605,8 @@ function importSticker(categoryId='stickers_default'){
  const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;stickerDraftImage=await readImageFile(file);let description='';if(data.settings.stickerVisionEnabled&&validModel('vision')){toast('识图模型正在理解表情包…');try{description=await describeStickerWithVision(stickerDraftImage)}catch(error){console.warn(redactSensitive(error?.message||error));toast('自动识图未完成，可以手动填写描述')}}stickerDraftEditor(file.name.replace(/\.[^.]+$/,''),description,categoryId)}catch(error){errorDetail(error,'表情包读取失败')}};input.click();
 }
 function addStickerByUrl(categoryId='stickers_default'){modal(`<h2>通过 URL 添加</h2><div class="note">请使用可直接访问的 HTTPS 图片地址。地址只保存在当前浏览器。</div><div class="field"><label>图片 URL</label><input id="stickerUrl" inputmode="url" placeholder="https://..."></div><div class="field"><label>名称</label><input id="stickerUrlName" placeholder="表情包名称"></div><div class="field"><label>分类</label><select id="stickerUrlCategory">${stickerCategoryOptions(categoryId)}</select></div><div class="field"><label>含义描述</label><textarea id="stickerUrlDescription" placeholder="告诉角色这张图表达什么"></textarea></div><div class="form-actions"><button onclick="showStickerPicker('${attr(categoryId)}')">取消</button><button class="primary" onclick="saveStickerByUrl()">保存</button></div>`)}
-function saveStickerByUrl(){const image=safeImageSrc(document.getElementById('stickerUrl')?.value),name=document.getElementById('stickerUrlName')?.value.trim()||'网络表情包',description=document.getElementById('stickerUrlDescription')?.value.trim()||name,categoryId=stickerCategory(document.getElementById('stickerUrlCategory')?.value).id;if(!image||!image.startsWith('https://'))return toast('请填写有效的 HTTPS 图片地址');data.stickers.push({id:'sticker_'+crypto.randomUUID(),name,image,description,categoryId});save();showStickerPicker(categoryId);toast('URL 表情包已保存')}
-function saveSticker(){const name=document.getElementById('stickerName')?.value.trim()||'表情包',description=document.getElementById('stickerDescription')?.value.trim()||name,categoryId=stickerCategory(document.getElementById('stickerCategory')?.value||stickerDraftCategory).id;if(!stickerDraftImage)return;data.stickers.push({id:'sticker_'+crypto.randomUUID(),name,image:stickerDraftImage,description,categoryId});stickerDraftImage='';stickerDraftCategory='stickers_default';save();showStickerPicker(categoryId);toast('表情包已加入本机库')}
+function saveStickerByUrl(){const image=safeImageSrc(document.getElementById('stickerUrl')?.value),name=document.getElementById('stickerUrlName')?.value.trim()||'网络表情包',description=document.getElementById('stickerUrlDescription')?.value.trim()||name,categoryId=stickerCategory(document.getElementById('stickerUrlCategory')?.value).id;if(!image||!image.startsWith('https://'))return toast('请填写有效的 HTTPS 图片地址');data.stickers.push({id:'sticker_'+v44UUID(),name,image,description,categoryId});save();showStickerPicker(categoryId);toast('URL 表情包已保存')}
+function saveSticker(){const name=document.getElementById('stickerName')?.value.trim()||'表情包',description=document.getElementById('stickerDescription')?.value.trim()||name,categoryId=stickerCategory(document.getElementById('stickerCategory')?.value||stickerDraftCategory).id;if(!stickerDraftImage)return;data.stickers.push({id:'sticker_'+v44UUID(),name,image:stickerDraftImage,description,categoryId});stickerDraftImage='';stickerDraftCategory='stickers_default';save();showStickerPicker(categoryId);toast('表情包已加入本机库')}
 function editSticker(index){const item=data.stickers[index];if(!item)return;modal(`<h2>编辑表情包</h2><div class="sticker-edit-preview"><img src="${attr(item.image)}" alt=""></div><div class="field"><label>名称</label><input id="stickerName" value="${attr(item.name)}"></div><div class="field"><label>分类</label><select id="stickerCategory">${stickerCategoryOptions(item.categoryId)}</select></div><div class="field"><label>含义描述</label><textarea id="stickerDescription">${esc(item.description)}</textarea></div><div class="form-actions"><button class="danger" onclick="deleteSticker(${index})">删除</button><button onclick="showStickerPicker('${attr(item.categoryId)}')">取消</button><button class="primary" onclick="updateSticker(${index})">保存</button></div>`)}
 function updateSticker(index){const item=data.stickers[index];if(!item)return;item.name=document.getElementById('stickerName')?.value.trim()||item.name;item.description=document.getElementById('stickerDescription')?.value.trim()||item.name;item.categoryId=stickerCategory(document.getElementById('stickerCategory')?.value).id;save();showStickerPicker(item.categoryId);toast('表情包已更新')}
 function deleteSticker(index){const item=data.stickers[index];if(!item||!confirm('删除这张表情包？历史消息仍保留原图。'))return;const categoryId=item.categoryId;data.stickers.splice(index,1);save();showStickerPicker(categoryId)}
@@ -629,7 +648,7 @@ async function generateImageFromProfile(prompt){
 function showImageGenerator(){const p=modelProfile('image');modal(`<h2>AI 生图</h2><div class="note">使用独立的「生图模型」配置。生成后可发送到当前聊天，或保存进本机表情包库。</div><div class="field"><label>画面描述</label><textarea id="imagePrompt" style="min-height:130px" placeholder="描述人物、场景、构图、光线和风格"></textarea></div><div class="field"><label>当前服务</label><div class="muted">${esc(p.model||'未配置')} · ${esc(p.provider||'')}</div></div><div class="form-actions"><button onclick="showChatPlusMenu()">取消</button><button onclick="closeModal();openView('settings');setTimeout(()=>editModelProfile('image'),80)">配置模型</button><button class="primary" onclick="runImageGeneration()">生成</button></div>`)}
 async function runImageGeneration(){if(busy)return toast('已有生成任务正在进行');const prompt=document.getElementById('imagePrompt')?.value.trim();if(!prompt)return toast('请填写画面描述');if(!validModel('image'))return toast('请先配置独立生图模型');setBusy(true);toast('生图模型正在生成…');try{const image=await generateImageFromProfile(prompt);generatedImageDraft={image,prompt};modal(`<h2>生成完成</h2><div class="generated-image-preview"><img src="${attr(image)}" alt="${attr(prompt)}"></div><div class="note">${esc(prompt)}</div><div class="form-actions"><button onclick="showImageGenerator()">重新生成</button><button onclick="saveGeneratedAsSticker()">存为表情包</button><button class="primary" onclick="sendGeneratedImage()">发送图片</button></div>`)}catch(error){errorDetail(error,error?.name==='AbortError'?'生图超时或已取消':'生图模型调用失败')}finally{setBusy(false)}}
 function sendGeneratedImage(){if(!generatedImageDraft)return;const draft=generatedImageDraft;generatedImageDraft=null;closeModal();void sendMessage({kind:'image',image:draft.image,prompt:draft.prompt})}
-function saveGeneratedAsSticker(){if(!generatedImageDraft)return;data.stickers.push({id:'sticker_'+crypto.randomUUID(),name:'AI 生图',image:generatedImageDraft.image,description:generatedImageDraft.prompt,categoryId:'stickers_default'});save();toast('已保存到本机表情包库');showStickerPicker()}
+function saveGeneratedAsSticker(){if(!generatedImageDraft)return;data.stickers.push({id:'sticker_'+v44UUID(),name:'AI 生图',image:generatedImageDraft.image,description:generatedImageDraft.prompt,categoryId:'stickers_default'});save();toast('已保存到本机表情包库');showStickerPicker()}
 function phoneOwnerStore(owner){
  data.simPhones??={personas:{},characters:{}};data.simPhones.personas??={};data.simPhones.characters??={};
  if(owner==='user'){const persona=activePersonaFor(currentChat);data.simPhones.personas[persona.id]??={items:[]};return data.simPhones.personas[persona.id]}
@@ -645,7 +664,7 @@ function editSimPhoneItem(owner,index,appKey='notes'){const stored=index>=0?phon
 function updateSimPhoneActionOptions(){const appKey=document.getElementById('phoneItemApp')?.value,select=document.getElementById('phoneItemAction'),app=SIM_APP_CATALOG[appKey];if(select&&app)select.innerHTML=app.actions.map(action=>`<option>${esc(action)}</option>`).join('')}
 function saveSimPhoneItem(owner,index){const app=document.getElementById('phoneItemApp')?.value,action=document.getElementById('phoneItemAction')?.value,title=document.getElementById('phoneItemTitle')?.value.trim(),content=document.getElementById('phoneItemContent')?.value.trim();if(!SIM_APP_CATALOG[app])return toast('请选择虚拟应用');if(!title&&!content)return toast('请填写标题或内容');const items=phoneOwnerStore(owner).items,existing=index>=0?items[index]:null,item=normalizeSimPhoneItem({id:existing?.id,app,action,title,content});if(index<0)items.unshift(item);else items[index]=item;save();openSimPhoneApp(owner,app);toast('虚拟互动已保存')}
 function deleteSimPhoneItem(owner,index,appKey='notes'){if(!confirm('删除这条虚拟应用互动？'))return;phoneOwnerStore(owner).items.splice(index,1);save();openSimPhoneApp(owner,appKey)}
-function grantReversePhoneCheck(){if(!currentChat||isGroupChatId(currentChat))return;const character=directCharacterForChat(currentChat);getChatSettings(currentChat).reversePhoneGranted=true;data.chats[currentChat]??=[];data.chats[currentChat].push({id:'msg_'+crypto.randomUUID(),role:'user',kind:'phoneEvent',text:`已允许 ${character?.name||'角色'} 在下一次回复中查看网站内的模拟手机`,time:time(),mode:currentChatMode,sceneMode:currentOfflineStyle});save();closeModal();renderMessages();toast('仅下一次回复有效；不会读取现实手机')}
+function grantReversePhoneCheck(){if(!currentChat||isGroupChatId(currentChat))return;const character=directCharacterForChat(currentChat);getChatSettings(currentChat).reversePhoneGranted=true;getChatSettings(currentChat).reversePhoneGrantedAt=Date.now();data.chats[currentChat]??=[];data.chats[currentChat].push({id:'msg_'+v44UUID(),role:'user',kind:'phoneEvent',text:`已允许 ${character?.name||'角色'} 在下一次回复中查看网站内的模拟手机`,time:time(),mode:currentChatMode,sceneMode:currentOfflineStyle});save();closeModal();renderMessages();toast('仅下一次回复有效；不会读取现实手机')}
 function renderChats(){
  const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase();
  const arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));
@@ -683,7 +702,7 @@ function createGroup(){
  const name=document.getElementById('gn').value.trim();if(!name)return toast('请填写群聊名称');
  const memberIds=[...document.querySelectorAll('.gmChk:checked')].map(x=>x.value);
  if(memberIds.length<2)return toast('至少选择 2 个角色');
- const id='g_'+crypto.randomUUID();
+ const id='g_'+v44UUID();
  data.groups.push({id,name,memberIds,turnIndex:0});
  data.conversationPersonaBindings[id]='';const chatId=groupChatId(id);data.chats[chatId]=[];getChatSettings(chatId);save();closeModal();renderGroups();toast('群聊已创建');
 }
@@ -714,7 +733,7 @@ function newCharacter(){openCharacterEditor(null,'profile','contacts')}
 function editCharacter(id,tab='profile',returnView='contacts'){openCharacterEditor(id,tab,returnView)}
 function openCharacterEditor(id=null,tab='profile',returnView='contacts'){
  const source=id?data.characters.find(c=>c.id===id):null;if(id&&!source)return;
- characterEditorDraft=normalizeCharacter(source||{id:'c_'+crypto.randomUUID()});
+ characterEditorDraft=normalizeCharacter(source||{id:'c_'+v44UUID()});
  characterEditorDraft.__new=!source;
  characterEditorDraft.boundPersonaId=source?String(data.conversationPersonaBindings?.[source.id]||''):'';
  characterEditorTab=CHARACTER_TABS[tab]?tab:'profile';characterEditorReturn=returnView;
@@ -787,7 +806,7 @@ function exportCharacterCard(id){
  downloadJSON({format:'pokeji-character-card',version:1,exportedAt:new Date().toISOString(),character:cleanCharacter,worldEntries},`pokeji-character-${character.name.replace(/[\\/:*?"<>|]/g,'_')}.json`);toast('角色卡已导出')
 }
 function importCharacterCard(){
- const input=document.createElement('input');input.type='file';input.accept='.json,application/json';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;const card=JSON.parse(await file.text());if(card?.format!=='pokeji-character-card'||!card.character||typeof card.character!=='object')throw Error('只支持扑克机角色卡 JSON');const id='c_'+crypto.randomUUID(),character=normalizeCharacter({...card.character,id});if(!character.name)throw Error('角色卡缺少名称');data.characters.push(character);data.conversationPersonaBindings[id]='';const chatId=directChatId(id);data.chats[chatId]=character.firstMessage?[{role:'assistant',text:character.firstMessage,time:time(),systemGreeting:true,mode:'online'}]:[];getChatSettings(chatId);for(const raw of Array.isArray(card.worldEntries)?card.worldEntries:[]){data.worlds.push({id:'w_'+crypto.randomUUID(),name:String(raw.name||`${character.name}的世界书`),desc:String(raw.desc||''),trigger:String(raw.trigger||''),scope:'character',targetIds:[id],activation:raw.activation==='trigger'?'trigger':'persistent',enabled:raw.enabled!==false})}save();renderContacts();renderChats();toast('角色卡已导入');openCharacterEditor(id,'profile','contacts')}catch(error){errorDetail(error,'角色卡导入失败')}};input.click();
+ const input=document.createElement('input');input.type='file';input.accept='.json,application/json';input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;const card=JSON.parse(await file.text());if(card?.format!=='pokeji-character-card'||!card.character||typeof card.character!=='object')throw Error('只支持扑克机角色卡 JSON');const id='c_'+v44UUID(),character=normalizeCharacter({...card.character,id});if(!character.name)throw Error('角色卡缺少名称');data.characters.push(character);data.conversationPersonaBindings[id]='';const chatId=directChatId(id);data.chats[chatId]=character.firstMessage?[{role:'assistant',text:character.firstMessage,time:time(),systemGreeting:true,mode:'online'}]:[];getChatSettings(chatId);for(const raw of Array.isArray(card.worldEntries)?card.worldEntries:[]){data.worlds.push({id:'w_'+v44UUID(),name:String(raw.name||`${character.name}的世界书`),desc:String(raw.desc||''),trigger:String(raw.trigger||''),scope:'character',targetIds:[id],activation:raw.activation==='trigger'?'trigger':'persistent',enabled:raw.enabled!==false})}save();renderContacts();renderChats();toast('角色卡已导入');openCharacterEditor(id,'profile','contacts')}catch(error){errorDetail(error,'角色卡导入失败')}};input.click();
 }
 
 /* ---------- user personas ---------- */
@@ -802,7 +821,7 @@ function renderPersonaManager(){
 function newPersona(){openPersonaEditor(null)}
 function editPersona(id){openPersonaEditor(id)}
 const PERSONA_TABS={identity:'身份',profile:'人格',interaction:'互动'};
-function openPersonaEditor(id=null){const source=id?data.personas.find(p=>p.id===id):null;if(id&&!source)return;personaEditorDraft=normalizePersona(source||{id:'persona_'+crypto.randomUUID(),name:''});personaEditorDraft.__new=!source;personaEditorTab='identity';show('personaEditor');renderPersonaEditor()}
+function openPersonaEditor(id=null){const source=id?data.personas.find(p=>p.id===id):null;if(id&&!source)return;personaEditorDraft=normalizePersona(source||{id:'persona_'+v44UUID(),name:''});personaEditorDraft.__new=!source;personaEditorTab='identity';show('personaEditor');renderPersonaEditor()}
 function closePersonaEditor(){personaEditorDraft=null;personaEditorTab='identity';show('personaManager');renderPersonaManager()}
 function collectPersonaEditorPage(){const d=personaEditorDraft;if(!d)return;const take=key=>{const el=document.getElementById('persona_'+key);if(el)d[key]=el.value.trim()};const fields=personaEditorTab==='identity'?['name','nickname','pronouns','age','identity','description']:personaEditorTab==='profile'?['personality','background','appearance','likes','dislikes']:['speechStyle','relationship','boundaries','goals','notes'];fields.forEach(take);if(personaEditorTab==='identity'){const url=document.getElementById('persona_image_url')?.value.trim();if(url)d.image=url;else if(!String(d.image||'').startsWith('data:'))d.image=''}}
 function switchPersonaEditorTab(tab){if(!PERSONA_TABS[tab])return;collectPersonaEditorPage();personaEditorTab=tab;renderPersonaEditor()}
@@ -1018,7 +1037,7 @@ async function autoReadMessages(chatId,indexes=[]){
 /* ---------- API : multi-provider (OpenAI / Anthropic Claude / Google Gemini) ---------- */
 function normalizeBase(base){let b=String(base||'').trim().replace(/\/+$/, '');if(!b)return '';if(/\/chat\/completions$/i.test(b))return b;return b+'/chat/completions'}
 function normalizeAnthropicBase(base){let b=String(base||'').trim().replace(/\/+$/, '');if(!b)return '';if(/\/v1\/messages$/i.test(b))return b;if(/\/v1$/i.test(b))return b+'/messages';return b+'/v1/messages'}
-function normalizeGeminiBase(base){let b=String(base||'').trim().replace(/\/+$/, '');return b||'https://generativelanguage.googleapis.com'}
+function normalizeGeminiBase(base){let b=String(base||'').trim().replace(/\/+$/,'');b=b.replace(/\/v1beta(?:\/models(?:\/[^/?]+(?::generateContent)?)?)?$/i,'');return b||'https://generativelanguage.googleapis.com'}
 function extractContent(j){const c=j?.choices?.[0]?.message?.content;if(typeof c==='string')return c;if(Array.isArray(c))return c.map(x=>typeof x==='string'?x:x?.text||'').join('');if(typeof j?.output_text==='string')return j.output_text;if(Array.isArray(j?.output))return j.output.flatMap(x=>x?.content||[]).map(x=>x?.text||'').join('');return ''}
 function extractAnthropicContent(j){if(Array.isArray(j?.content))return j.content.filter(x=>x?.type==='text').map(x=>x.text||'').join('');return ''}
 function extractGeminiContent(j){const parts=j?.candidates?.[0]?.content?.parts;if(Array.isArray(parts))return parts.map(p=>p?.text||'').join('');return ''}
@@ -1110,29 +1129,29 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V42_SW_URL='/sw-v42.js?build=43.7';
-function isV42WorkerUrl(url){return /\/sw-v42\.js(?:$|[?#])/.test(String(url||''))}
-function isLegacyWorkerUrl(url){return /\/sw-v38\.js(?:$|[?#])/.test(String(url||''))}
+const V44_SW_URL='/sw-v44.js?build=44.0';
+function isV44WorkerUrl(url){return /\/sw-v44\.js(?:$|[?#])/.test(String(url||''))}
+function isLegacyWorkerUrl(url){return /\/sw-v(?:38|42|43)\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
 function waitForWorkerActivation(registration,timeout=15000){
  const worker=registration?.installing||registration?.waiting||registration?.active;if(!worker||worker.state==='activated')return Promise.resolve(registration);
  if(worker.state==='installed')worker.postMessage({type:'SKIP_WAITING'});
  return new Promise(resolve=>{let settled=false;const done=()=>{if(settled)return;settled=true;clearTimeout(timer);worker.removeEventListener?.('statechange',onState);resolve(registration)},onState=()=>{if(worker.state==='installed')worker.postMessage({type:'SKIP_WAITING'});if(worker.state==='activated'||worker.state==='redundant')done()},timer=setTimeout(done,timeout);worker.addEventListener?.('statechange',onState)});
 }
-async function ensureV42ServiceWorker({forceUpdate=false}={}){
+async function ensureV44ServiceWorker({forceUpdate=false}={}){
  if(document.body?.dataset.singleFile==='true'||!('serviceWorker' in navigator))return null;
  const registrations=navigator.serviceWorker.getRegistrations?await navigator.serviceWorker.getRegistrations():[await navigator.serviceWorker.getRegistration('/')].filter(Boolean);
  let migratedLegacy=false;
  for(const registration of registrations){
   const urls=registrationWorkerUrls(registration),newest=urls[0]||'';
-  if(isLegacyWorkerUrl(newest)||(!isV42WorkerUrl(newest)&&urls.some(isLegacyWorkerUrl))){await registration.unregister();migratedLegacy=true}
+  const knownOld=urls.some(isLegacyWorkerUrl);if(knownOld&&!urls.some(isV44WorkerUrl)){await registration.unregister();migratedLegacy=true}
  }
- if(migratedLegacy&&'caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('pokeji-v38')).map(key=>caches.delete(key)))}
- const registration=await navigator.serviceWorker.register(V42_SW_URL,{scope:'/',updateViaCache:'none'});
+ if(migratedLegacy&&'caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>/^pokeji-v(?:38|42|43)/i.test(key)).map(key=>caches.delete(key)))}
+ const registration=await navigator.serviceWorker.register(V44_SW_URL,{scope:'/',updateViaCache:'none'});
  await waitForWorkerActivation(registration);
  if(forceUpdate){
   const newest=registration?.installing||registration?.waiting||registration?.active;
-  if(!newest||!isV42WorkerUrl(newest.scriptURL))throw Error('旧版离线服务仍在释放，请关闭扑克机后重新打开');
+  if(!newest||!isV44WorkerUrl(newest.scriptURL))throw Error('旧版离线服务仍在释放，请关闭扑克机后重新打开');
   await registration.update();await waitForWorkerActivation(registration);
  }
  return registration;
@@ -1140,10 +1159,10 @@ async function ensureV42ServiceWorker({forceUpdate=false}={}){
 async function backgroundWorker(){
  if(document.body?.dataset.singleFile==='true'||!('serviceWorker' in navigator))return null;
  try{
-  const registration=await ensureV42ServiceWorker();
+  const registration=await ensureV44ServiceWorker();
   for(let attempt=0;attempt<24;attempt++){
    const candidates=[registration?.installing,registration?.waiting,registration?.active,navigator.serviceWorker.controller].filter(Boolean);
-   const worker=candidates.find(candidate=>candidate.state==='activated'&&isV42WorkerUrl(candidate.scriptURL));
+   const worker=candidates.find(candidate=>candidate.state==='activated'&&isV44WorkerUrl(candidate.scriptURL));
    if(worker)return worker;
    await new Promise(resolve=>setTimeout(resolve,250));
   }
@@ -1182,7 +1201,7 @@ async function invokeModel(kind,{system,history,temperature=0,maxTokens=1024,cac
  const p=modelProfile(kind);if(!validModel(kind))throw Error(`${kind} 模型未完整配置`);
  const req=buildProviderRequest({provider:p.provider,base:p.base,key:p.key,model:p.model,system,history,temperature,maxTokens,cacheKey,enableCache:data.settings.promptCache!==false});
  if(background&&!backgroundRelayUnavailable&&data.settings.backgroundRelayEnabled!==false&&document.body?.dataset.singleFile!=='true'){
-  const taskId=backgroundTaskId||('bg_'+crypto.randomUUID());
+  const taskId=backgroundTaskId||('bg_'+v44UUID());
   activeBackgroundTaskId=taskId;
   try{
    const result=await relayProviderRequest(req,{taskId,meta:{...(backgroundMeta||{}),kind,provider:p.provider},signal,timeoutMs:Number(data.settings.timeout)||60000});
@@ -1270,9 +1289,9 @@ function parseAssistantSegments(raw,{mode='online',sceneMode='direct',maxBubbles
  return online;
 }
 function commitAssistantReply(chatId,raw,{mode='online',sceneMode='direct',speakerId='',groupId='',backgroundTaskId='',restoredFromBackground=false,proactive=false}={}){
- parseState(raw);const batchId='batch_'+crypto.randomUUID(),segments=parseAssistantSegments(raw,{mode,sceneMode,maxBubbles:data.settings.onlineMaxBubbles,chatId});if(!segments.length)segments.push({kind:'message',text:stripReplyTags(raw)||String(raw||'').trim()});
+ parseState(raw);const batchId='batch_'+v44UUID(),segments=parseAssistantSegments(raw,{mode,sceneMode,maxBubbles:data.settings.onlineMaxBubbles,chatId});if(!segments.length)segments.push({kind:'message',text:stripReplyTags(raw)||String(raw||'').trim()});
  const messages=data.chats[chatId]??=[],start=messages.length,stamp=time();
- const prepared=segments.map((segment,index)=>({id:'msg_'+crypto.randomUUID(),role:'assistant',kind:segment.kind,text:segment.kind==='sticker'?segment.text:(applyRegexPipeline(segment.text,'AI 回复').trim()||segment.text),...(segment.stickerId?{stickerId:segment.stickerId,image:segment.image}:{}),time:stamp,mode,sceneMode,batchId,batchIndex:index,batchCount:segments.length,...(speakerId?{speaker:speakerId}:{}),...(backgroundTaskId?{backgroundTaskId}:{}),...(restoredFromBackground?{restoredFromBackground:true}:{}),...(proactive?{proactive:true}:{})}));
+ const prepared=segments.map((segment,index)=>({id:'msg_'+v44UUID(),role:'assistant',kind:segment.kind,text:segment.kind==='sticker'?segment.text:(applyRegexPipeline(segment.text,'AI 回复').trim()||segment.text),...(segment.stickerId?{stickerId:segment.stickerId,image:segment.image}:{}),time:stamp,mode,sceneMode,batchId,batchIndex:index,batchCount:segments.length,...(speakerId?{speaker:speakerId}:{}),...(backgroundTaskId?{backgroundTaskId}:{}),...(restoredFromBackground?{restoredFromBackground:true}:{}),...(proactive?{proactive:true}:{})}));
  messages.push(...prepared);return prepared.map((_,index)=>start+index);
 }
 function ruleMatches(r,input){if(r.enabled===false)return false;const hay=String(input||'').toLowerCase();const trig=String(r.trigger||'').trim();if(!trig)return true;const st=data.engine.state||{};if(trig.startsWith('/')&&trig.lastIndexOf('/')>0){const k=trig.lastIndexOf('/');try{return new RegExp(trig.slice(1,k),trig.slice(k+1)||'i').test(input)}catch{return false}}const parts=trig.split(/[|,，、]/).map(x=>x.trim().toLowerCase()).filter(Boolean);return parts.some(p=>hay.includes(p)||JSON.stringify(st).toLowerCase().includes(p))}
@@ -1361,7 +1380,7 @@ async function createNarrativeRandomEvent({chatId,group,activeChar,userMessage,s
  const recent=(data.chats[chatId]||[]).slice(-10).map(m=>`${m.role==='user'?'用户':(data.characters.find(c=>c.id===m.speaker)?.name||activeChar.name)}：${m.text}`).join('\n');
  const engine=buildEngineContext(activeChar,userMessage,chatId,group?'group':currentChatMode);
  const scope=group?`群聊：${group.name}`:`私聊角色：${activeChar.name}`;
- const taskId='random_'+crypto.randomUUID();let event;
+ const taskId='random_'+v44UUID();let event;
  try{
   event=await invokeModel('random',{
    system:'你是独立的角色剧情随机事件工具。只生成一条能自然进入当前情境的偶发事件，不扮演角色、不输出对话、不解释机制、不提及应用界面或品牌。事件必须与角色设定和世界规则兼容，避免强行改写既有事实。只输出事件描述。',
@@ -1373,7 +1392,7 @@ async function createNarrativeRandomEvent({chatId,group,activeChar,userMessage,s
  finally{if(activeBackgroundTaskId===taskId)activeBackgroundTaskId=''}
  const text=String(event||'').trim().slice(0,1200);if(!text)throw Error('随机事件模型返回为空');
  const events=Array.isArray(data.engine.state.events)?data.engine.state.events:[];
- events.unshift({id:'event_'+crypto.randomUUID(),chatId,characterId:activeChar.id,text,at:new Date().toISOString()});
+ events.unshift({id:'event_'+v44UUID(),chatId,characterId:activeChar.id,text,at:new Date().toISOString()});
  data.engine.state.events=events.slice(0,30);save();return text;
 }
 
@@ -1418,7 +1437,7 @@ async function generateProactiveMessage(character){
   system+=`\n\n【主动来信任务】\n现在是角色主动联系 USER 的时机。结合最近对话、人物关系与当前情境，自然发出一条新的线上消息。只输出角色实际发送的消息；不要提及任务、计时器、频率、系统或应用。不要代替 USER 回复。`;
   const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(message=>({role:message.role==='assistant'?'assistant':'user',content:(message.kind==='narration'?'[旁白] ':'')+message.text}));
   history.push({role:'user',content:'【内部触发】请现在以角色身份主动发来一条自然的线上消息。'});
-  backgroundTaskId='proactive_'+crypto.randomUUID();
+  backgroundTaskId='proactive_'+v44UUID();
   const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:`pokeji_chat_${activePersonaFor(chatId).id}_online_${character.id}`,signal:controller.signal,background:true,backgroundTaskId,backgroundMeta:{operation:'proactive',chatId,speakerId:character.id,groupId:'',mode:'online',sceneMode:'direct',notificationName:character.name,showNotification:shouldUseBackgroundNotification(),startedAt:new Date().toISOString()}});
   const indexes=commitAssistantReply(chatId,rawReply,{mode:'online',sceneMode:'direct',speakerId:character.id,backgroundTaskId,proactive:true});
   data.notifications.unshift({text:`${character.name}主动发来消息`,time:'刚刚',type:'chat'});
@@ -1448,7 +1467,7 @@ async function sendMessage(payload=null){
  if(busy){stopGeneration();return}
  if(!validAPI()){toast('API 未配置');openView('settings');return}
  const input=document.getElementById('messageInput'),sticker=payload?.kind==='sticker'?payload.sticker:null,generated=payload?.kind==='image'?payload:null,raw=sticker?`[USER 发送表情包：${sticker.description||sticker.name}]`:generated?`[USER 发送生成图片：${generated.prompt}]`:input.value.trim();if(!raw||!currentChat)return;
- const chatId=currentChat,text=sticker||generated?raw:regexPreflight(raw),group=groupForChat(chatId),mode=group?'group':currentChatMode,sceneMode=mode==='offline'?currentOfflineStyle:'direct',kind=sticker?'sticker':generated?'image':'message';data.chats[chatId]??=[];data.chats[chatId].push({id:'msg_'+crypto.randomUUID(),role:'user',kind,text:sticker?(sticker.description||sticker.name):generated?generated.prompt:text,...(sticker?{stickerId:sticker.id,image:sticker.image}:generated?{image:generated.image}:{}),time:time(),mode,sceneMode});save();if(!sticker&&!generated)input.value='';renderMessages();setBusy(true,{chat:true});
+ const chatId=currentChat,text=sticker||generated?raw:regexPreflight(raw),group=groupForChat(chatId),mode=group?'group':currentChatMode,sceneMode=mode==='offline'?currentOfflineStyle:'direct',kind=sticker?'sticker':generated?'image':'message';data.chats[chatId]??=[];data.chats[chatId].push({id:'msg_'+v44UUID(),role:'user',kind,text:sticker?(sticker.description||sticker.name):generated?generated.prompt:text,...(sticker?{stickerId:sticker.id,image:sticker.image}:generated?{image:generated.image}:{}),time:time(),mode,sceneMode});save();if(!sticker&&!generated)input.value='';renderMessages();setBusy(true,{chat:true});
  const s=data.settings;
  const controller=withTimeout(Number(s.timeout)||60000);
  let backgroundTaskId='';
@@ -1482,7 +1501,7 @@ async function sendMessage(payload=null){
    if(group){const spk=data.characters.find(x=>x.id===m.speaker);return{role:'assistant',content:`[${spk?spk.name:'角色'}] ${m.text}`}}
    return{role:'assistant',content:modeLabel+(m.kind==='narration'?'[旁白] ':m.kind==='thought'?'[角色未说出口的内心话] ':m.kind==='sticker'?'[角色表情包] ':m.kind==='phoneEvent'?'[角色查看模拟手机] ':'')+m.text};
   });
-  backgroundTaskId='chat_'+crypto.randomUUID();
+  backgroundTaskId='chat_'+v44UUID();
   const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'pokeji_chat_'+activePersonaFor(chatId).id+'_'+(group?group.id+'_'+activeChar.id:mode+'_'+sceneMode+'_'+activeChar.id),signal:controller.signal,background:true,backgroundTaskId,backgroundMeta:{operation:'chat',chatId,speakerId:activeChar.id,groupId:group?.id||'',mode,sceneMode,notificationName:notifName,showNotification:shouldUseBackgroundNotification(),startedAt:new Date().toISOString()}});
   const indexes=commitAssistantReply(chatId,rawReply,{mode,sceneMode,speakerId:group?activeChar.id:'',groupId:group?.id||'',backgroundTaskId});
   if(group){const speakerIndex=group.memberIds.indexOf(activeChar.id);group.turnIndex=((speakerIndex>=0?speakerIndex:group.turnIndex)+1)%group.memberIds.length;groupPendingSpeaker=null;renderSpeakerPicker(group)}
@@ -1526,7 +1545,7 @@ async function preparePostImages(event){
  const files=[...(event.target.files||[])].slice(0,9);if(!files.length)return;const preview=document.getElementById('postImageDraftPreview');if(preview)preview.textContent='正在处理图片…';
  try{postImageDrafts=[];for(const file of files)postImageDrafts.push(await readImageFile(file));if(preview)preview.innerHTML=postImageDrafts.map(src=>`<img src="${attr(src)}" alt="待发布图片">`).join('');if((event.target.files||[]).length>9)toast('最多保留前 9 张图片')}catch(error){postImageDrafts=[];errorDetail(error,'动态图片读取失败')}
 }
-function createPost(){const text=document.getElementById('pt')?.value.trim(),char=document.getElementById('pc')?.value;if(!text||!char)return toast('请输入内容');data.posts.unshift({id:'p_'+crypto.randomUUID(),char,text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images:[...postImageDrafts],location:document.getElementById('pl')?.value.trim()||'',comments:[],generated:false,personaId:feedPersona().id});postImageDrafts=[];save();closeModal();renderFeed();toast('动态已发布')}
+function createPost(){const text=document.getElementById('pt')?.value.trim(),char=document.getElementById('pc')?.value;if(!text||!char)return toast('请输入内容');data.posts.unshift({id:'p_'+v44UUID(),char,text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images:[...postImageDrafts],location:document.getElementById('pl')?.value.trim()||'',comments:[],generated:false,personaId:feedPersona().id});postImageDrafts=[];save();closeModal();renderFeed();toast('动态已发布')}
 function showAutoPostPicker(){
  if(!data.characters.length)return toast('请先创建角色');if(!validModel('feed')){openView('settings');return toast('请先配置独立动态生成模型')}
  modal(`<h2>角色自动生成动态</h2><div class="note">模型会依据角色资料、当前时间、世界状态和当前 USER 面具下的近期对话生成一条朋友圈动态。</div><div class="field"><label>发布角色</label><select id="autoPostCharacter">${data.characters.map(c=>`<option value="${attr(c.id)}">${esc(c.name)}</option>`).join('')}</select></div><div class="field"><label>可选线索</label><input id="autoPostHint" maxlength="160" placeholder="不填则由角色根据近况决定"></div><div class="field"><label><input id="autoPostImage" type="checkbox" style="width:auto" ${validModel('image')?'':'disabled'}> 同时调用独立生图模型生成配图</label><small>${validModel('image')?'将使用角色返回的画面描述':'尚未配置独立生图模型'}</small></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="generateCharacterPost()">生成并发布</button></div>`)
@@ -1551,7 +1570,7 @@ async function generateCharacterPost(){
   });
   const generated=parseGeneratedPost(raw);if(!generated.text)throw Error('动态模型没有返回正文');
   const images=[];if(withImage&&validModel('image')&&generated.imagePrompt){toast('正在生成动态配图…');images.push(await generateImageFromProfile(generated.imagePrompt))}
-  data.posts.unshift({id:'p_'+crypto.randomUUID(),char:character.id,text:generated.text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images,location:generated.location,comments:[],generated:true,personaId:persona.id});
+  data.posts.unshift({id:'p_'+v44UUID(),char:character.id,text:generated.text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images,location:generated.location,comments:[],generated:true,personaId:persona.id});
   data.notifications.unshift({text:`${character.name}发布了一条动态`,time:'刚刚',type:'feed'});
   save();renderFeed();renderNotifications();toast('角色动态已发布');
  }catch(error){if(error?.name==='AbortError')toast('动态生成已取消或超时');else errorDetail(error,'动态生成失败')}
@@ -1573,7 +1592,7 @@ function renderFeed(){
 }
 function like(id){const post=data.posts.find(item=>item.id===id);if(!post)return;post.likedByUser=!post.likedByUser;post.likes=Math.max(0,(Number(post.likes)||0)+(post.likedByUser?1:-1));save();renderFeed()}
 function commentPost(id){const post=data.posts.find(item=>item.id===id);if(!post)return;modal(`<h2>评论动态</h2><div class="field"><label>${esc(feedPersona().name||'USER')}</label><textarea id="postCommentText" maxlength="500" placeholder="写下评论…"></textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="savePostComment('${attr(id)}')">发送</button></div>`)}
-function savePostComment(id){const post=data.posts.find(item=>item.id===id),text=document.getElementById('postCommentText')?.value.trim();if(!post||!text)return toast('请输入评论');post.comments??=[];post.comments.push({id:'comment_'+crypto.randomUUID(),author:feedPersona().name||'USER',text,time:'刚刚'});save();closeModal();renderFeed()}
+function savePostComment(id){const post=data.posts.find(item=>item.id===id),text=document.getElementById('postCommentText')?.value.trim();if(!post||!text)return toast('请输入评论');post.comments??=[];post.comments.push({id:'comment_'+v44UUID(),author:feedPersona().name||'USER',text,time:'刚刚'});save();closeModal();renderFeed()}
 function showPostMenu(id){const post=data.posts.find(item=>item.id===id);if(!post)return;modal(`<h2>动态操作</h2><div class="about-meta"><div class="meta-row" onclick="commentPost('${attr(id)}')"><span>评论</span><span class="muted">›</span></div><div class="meta-row danger-row" onclick="deletePost('${attr(id)}')"><span>删除动态</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">取消</button></div>`)}
 function deletePost(id){if(!confirm('删除这条动态？'))return;data.posts=data.posts.filter(item=>item.id!==id);save();closeModal();renderFeed();toast('动态已删除')}
 function renderNotifications(){const e=document.getElementById('notificationList');if(!data.notifications.length){e.innerHTML='<div class="empty"><div class="big">◈</div>暂无通知</div>';return}e.innerHTML=data.notifications.map(n=>`<div class="row card" style="margin-bottom:9px"><span>${n.type==='chat'?'♡':'◌'}</span><div style="flex:1">${esc(n.text)}<div class="muted" style="margin-top:3px">${esc(n.time)}</div></div></div>`).join('')}
@@ -1581,20 +1600,20 @@ function clearNotifications(){data.notifications=[];save();renderNotifications()
 
 /* ---------- world & memory ---------- */
 function worldTargetPicker(scope='global',selected=[]){return `<div class="field world-targets" id="worldCharacterTargets" style="display:${scope==='character'?'block':'none'}"><label>绑定角色（可多选）</label><div class="target-checks">${data.characters.length?data.characters.map(c=>`<label><input class="world-character-target" type="checkbox" value="${attr(c.id)}" ${selected.includes(c.id)?'checked':''}>${esc(c.name)}</label>`).join(''):'<small>还没有角色</small>'}</div></div><div class="field world-targets" id="worldGroupTargets" style="display:${scope==='group'?'block':'none'}"><label>绑定分组（可多选）</label><div class="target-checks">${data.groups.length?data.groups.map(g=>`<label><input class="world-group-target" type="checkbox" value="${attr(g.id)}" ${selected.includes(g.id)?'checked':''}>${esc(g.name)}</label>`).join(''):'<small>还没有群聊分组</small>'}</div></div>`}
-function worldEditorFields(w={scope:'global',mode:'all',activation:'persistent',targetIds:[],enabled:true}){const locked=w.builtIn===true,disabled=locked?'disabled':'';return `${locked?'<div class="note" style="margin:0 16px 12px">这是 V38 内置活人感世界书。内容可以调整，也可随时恢复；入口、范围与常驻方式保持固定。</div>':''}<div class="field"><label>名称</label><input id="wn" value="${attr(w.name||'')}" ${locked?'readonly':''}></div><div class="field"><label>适用入口</label><select id="wm" ${disabled}><option value="all" ${!['online','offline'].includes(w.mode)?'selected':''}>全部入口</option><option value="online" ${w.mode==='online'?'selected':''}>仅线上</option><option value="offline" ${w.mode==='offline'?'selected':''}>仅线下</option></select></div><div class="field"><label>作用范围</label><select id="ws" onchange="updateWorldEditorVisibility()" ${disabled}><option value="global" ${w.scope==='global'?'selected':''}>全局 · 所有适用会话</option><option value="character" ${w.scope==='character'?'selected':''}>角色绑定 · 指定角色</option><option value="group" ${w.scope==='group'?'selected':''}>分组绑定 · 指定群聊</option></select></div>${worldTargetPicker(w.scope,w.targetIds||[])}<div class="field"><label>激活方式</label><select id="wa" onchange="updateWorldEditorVisibility()" ${disabled}><option value="persistent" ${w.activation!=='trigger'?'selected':''}>常驻 · 对应范围内每轮生效</option><option value="trigger" ${w.activation==='trigger'?'selected':''}>普通 · 命中条件时才生效</option></select></div><div class="field" id="worldTriggerField" style="display:${w.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}" placeholder="关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="支持 {{state}} {{message}} {{character}} {{user}}">${esc(w.desc||'')}</textarea></div>`}
+function worldEditorFields(w={scope:'global',mode:'all',activation:'persistent',targetIds:[],enabled:true}){const locked=w.builtIn===true,disabled=locked?'disabled':'';return `${locked?'<div class="note" style="margin:0 16px 12px">这是 V44 内置活人感世界书。内容可以调整，也可随时恢复；入口、范围与常驻方式保持固定。</div>':''}<div class="field"><label>名称</label><input id="wn" value="${attr(w.name||'')}" ${locked?'readonly':''}></div><div class="field"><label>适用入口</label><select id="wm" ${disabled}><option value="all" ${!['online','offline'].includes(w.mode)?'selected':''}>全部入口</option><option value="online" ${w.mode==='online'?'selected':''}>仅线上</option><option value="offline" ${w.mode==='offline'?'selected':''}>仅线下</option></select></div><div class="field"><label>作用范围</label><select id="ws" onchange="updateWorldEditorVisibility()" ${disabled}><option value="global" ${w.scope==='global'?'selected':''}>全局 · 所有适用会话</option><option value="character" ${w.scope==='character'?'selected':''}>角色绑定 · 指定角色</option><option value="group" ${w.scope==='group'?'selected':''}>分组绑定 · 指定群聊</option></select></div>${worldTargetPicker(w.scope,w.targetIds||[])}<div class="field"><label>激活方式</label><select id="wa" onchange="updateWorldEditorVisibility()" ${disabled}><option value="persistent" ${w.activation!=='trigger'?'selected':''}>常驻 · 对应范围内每轮生效</option><option value="trigger" ${w.activation==='trigger'?'selected':''}>普通 · 命中条件时才生效</option></select></div><div class="field" id="worldTriggerField" style="display:${w.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}" placeholder="关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="支持 {{state}} {{message}} {{character}} {{user}}">${esc(w.desc||'')}</textarea></div>`}
 function updateWorldEditorVisibility(){const scope=document.getElementById('ws')?.value,activation=document.getElementById('wa')?.value;const chars=document.getElementById('worldCharacterTargets'),groups=document.getElementById('worldGroupTargets'),trigger=document.getElementById('worldTriggerField');if(chars)chars.style.display=scope==='character'?'block':'none';if(groups)groups.style.display=scope==='group'?'block':'none';if(trigger)trigger.style.display=activation==='trigger'?'block':'none'}
 function collectWorldEditor(){const scope=document.getElementById('ws').value,mode=document.getElementById('wm')?.value||'all',activation=document.getElementById('wa').value,targetSelector=scope==='character'?'.world-character-target:checked':scope==='group'?'.world-group-target:checked':'';return{name:document.getElementById('wn').value.trim(),scope,mode,activation,targetIds:targetSelector?[...document.querySelectorAll(targetSelector)].map(el=>el.value):[],trigger:document.getElementById('wt')?.value.trim()||'',desc:document.getElementById('wd').value}}
 function validateWorldEntry(w){if(!w.name){toast('请填写名称');return false}if(w.scope!=='global'&&!w.targetIds.length){toast(w.scope==='character'?'请选择绑定角色':'请选择绑定分组');return false}if(w.activation==='trigger'&&!w.trigger){toast('普通条目需要填写触发条件');return false}return true}
 function newWorld(){modal(`<h2>创建世界书条目</h2><div class="note" style="padding:0 16px 14px">范围决定条目能进入哪些会话；常驻每轮进入，普通只有命中条件才进入。</div>${worldEditorFields()}<div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createWorld()">创建</button></div>`)}
-function createWorld(){const w=collectWorldEditor();if(!validateWorldEntry(w))return;data.worlds.push({...w,id:'w_'+crypto.randomUUID(),enabled:true});save();closeModal();renderWorld();toast('世界书条目已创建')}
+function createWorld(){const w=collectWorldEditor();if(!validateWorldEntry(w))return;data.worlds.push({...w,id:'w_'+v44UUID(),enabled:true});save();closeModal();renderWorld();toast('世界书条目已创建')}
 function worldTargetNames(w){if(w.scope==='character')return (w.targetIds||[]).map(id=>data.characters.find(c=>c.id===id)?.name).filter(Boolean).join('、')||'未绑定角色';if(w.scope==='group')return (w.targetIds||[]).map(id=>data.groups.find(g=>g.id===id)?.name).filter(Boolean).join('、')||'未绑定分组';return '全部会话'}
 function renderWorld(){const e=document.getElementById('worldList');if(!data.worlds.length){e.innerHTML='<div class="empty"><div class="big">✦</div>还没有世界书条目</div>';return}e.innerHTML=data.worlds.slice().sort((a,b)=>semanticWorldLayer(a)-semanticWorldLayer(b)).map(w=>`<div class="card world-card ${w.builtIn?'builtin-world-card':''}" onclick="editWorld('${w.id}')"><div class="module-head"><b>${esc(w.name)}</b><span class="pill">${w.enabled===false?'已停用':(w.builtIn?'内置启用':'已启用')}</span></div><div class="world-card-meta"><span>${w.mode==='online'?'仅线上':w.mode==='offline'?'仅线下':'全部入口'}</span><span>${esc(worldScopeLabel(w))}</span><span>${w.activation==='trigger'?'普通触发':'常驻'}</span></div><div class="muted">范围：${esc(worldTargetNames(w))}</div>${w.activation==='trigger'?`<div class="muted">触发：${esc(w.trigger)}</div>`:''}<div class="muted world-card-copy">${esc(w.desc||'')}</div></div>`).join('')}
-function editWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;modal(`<h2>${w.builtIn?'内置活人感':'编辑世界书条目'}</h2>${worldEditorFields(w).replace('这是 V38 内置活人感世界书。','这是 V42 内置活人感世界书。')}<div class="field"><label><input id="we" type="checkbox" style="width:auto" ${w.enabled!==false?'checked':''}> 启用条目</label></div><div class="form-actions">${w.builtIn?`<button onclick="resetBuiltInWorld('${id}')">恢复内置</button>`:`<button class="danger" onclick="deleteWorld('${id}')">删除</button>`}<button class="primary" onclick="updateWorld('${id}')">保存</button></div>`) }
+function editWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;modal(`<h2>${w.builtIn?'内置活人感':'编辑世界书条目'}</h2>${worldEditorFields(w).replace('这是 V44 内置活人感世界书。','这是 V44 内置活人感世界书。')}<div class="field"><label><input id="we" type="checkbox" style="width:auto" ${w.enabled!==false?'checked':''}> 启用条目</label></div><div class="form-actions">${w.builtIn?`<button onclick="resetBuiltInWorld('${id}')">恢复内置</button>`:`<button class="danger" onclick="deleteWorld('${id}')">删除</button>`}<button class="primary" onclick="updateWorld('${id}')">保存</button></div>`) }
 function updateWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;const updated=collectWorldEditor();if(!validateWorldEntry(updated))return;Object.assign(w,updated,{enabled:document.getElementById('we').checked});delete w.global;delete w.priority;delete w.weight;save();closeModal();renderWorld();toast('世界书范围与激活方式已保存')}
 function deleteWorld(id){const world=data.worlds.find(w=>w.id===id);if(world?.builtIn)return toast('内置世界书不能删除，可以停用或恢复');if(!confirm('删除这个世界书条目？'))return;data.worlds=data.worlds.filter(w=>w.id!==id);save();closeModal();renderWorld();toast('已删除')}
 function resetBuiltInWorld(id){const fresh=builtInWorldBooks().find(w=>w.id===id),index=data.worlds.findIndex(w=>w.id===id);if(!fresh||index<0)return;data.worlds[index]=fresh;save();closeModal();renderWorld();toast('已恢复内置活人感')}
 function newMemory(){modal(`<h2>保存记忆</h2><div class="field"><label>标题</label><input id="mn"></div><div class="field"><label>内容</label><textarea id="mt"></textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createMemory()">保存</button></div>`)}
-function createMemory(){const n=document.getElementById('mn').value.trim();if(!n)return toast('请填写标题');data.memories.unshift({id:'m_'+crypto.randomUUID(),title:n,text:document.getElementById('mt').value,time:'刚刚'});save();closeModal();renderMemory()}
+function createMemory(){const n=document.getElementById('mn').value.trim();if(!n)return toast('请填写标题');data.memories.unshift({id:'m_'+v44UUID(),title:n,text:document.getElementById('mt').value,time:'刚刚'});save();closeModal();renderMemory()}
 function chatDisplayName(id){const parsed=parsePersonaThreadId(id),persona=parsed&&data.personas.find(item=>item.id===parsed.personaId),character=directCharacterForChat(id),group=groupForChat(id),name=character?.name||group?.name||'已删除会话';return persona?`${name} · ${persona.name}`:name}
 function renderMemory(){
  const e=document.getElementById('memoryList'),summaries=Object.entries(data.chatSummaries||{}).filter(([,value])=>value?.text);
@@ -1725,7 +1744,7 @@ function loadSettings(){
 }
 async function saveSettings(){
  data.settings={...data.settings,
-  temperature:document.getElementById('temperature').value||.8,
+  temperature:Math.min(2,Math.max(0,Number(document.getElementById('temperature')?.value)||.8)),
   maxHistory:Math.min(100,Math.max(4,Number(document.getElementById('maxHistory')?.value)||40)),
   summaryKeepTurns:Math.min(100,Math.max(2,Number(document.getElementById('summaryKeepTurns')?.value)||12)),
   summaryAutoEnabled:document.getElementById('summaryAutoEnabled')?.checked!==false,
@@ -1760,9 +1779,9 @@ function importSJ(ev){const file=ev.target.files?.[0];if(!file)return;file.text(
 function exportData(){exportSJ()}
 function importData(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=ev=>importSJ(ev);i.click()}
 function exportThemes(){downloadJSON({format:'pokeji-themes',version:1,themes:data.settings.themes||[]},'pokeji-themes-'+Date.now()+'.json');toast('主题样式已导出')}
-function importThemes(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=async()=>{try{const obj=JSON.parse(await i.files[0].text());if(!['pokeji-themes','private-ai-themes'].includes(obj.format)||!Array.isArray(obj.themes))throw Error('这不是扑克机主题文件');const ids=new Set((data.settings.themes||[]).map(t=>t.id));for(const t of obj.themes){const copy={...t,id:ids.has(t.id)?'theme_'+crypto.randomUUID():t.id};data.settings.themes.push(copy);ids.add(copy.id)}save();toast(`已追加 ${obj.themes.length} 个主题`)}catch(e){errorDetail(e,'主题导入失败')}};i.click()}
+function importThemes(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=async()=>{try{const obj=JSON.parse(await i.files[0].text());if(!['pokeji-themes','private-ai-themes'].includes(obj.format)||!Array.isArray(obj.themes))throw Error('这不是扑克机主题文件');const ids=new Set((data.settings.themes||[]).map(t=>t.id));for(const t of obj.themes){const copy={...t,id:ids.has(t.id)?'theme_'+v44UUID():t.id};data.settings.themes.push(copy);ids.add(copy.id)}save();toast(`已追加 ${obj.themes.length} 个主题`)}catch(e){errorDetail(e,'主题导入失败')}};i.click()}
 function addTheme(){modal(`<h2>新增主题</h2><div class="note">新增主题只会追加，不覆盖已有主题。</div><div class="field"><label>主题名称</label><input id="thName"></div><div class="field"><label>强调色</label><input id="thAccent" type="color" value="#c9a35c"></div><div class="field"><label>背景色</label><input id="thBg" type="color" value="#eee9e4"></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveTheme()">追加并启用</button></div>`)}
-function saveTheme(){const name=document.getElementById('thName').value.trim();if(!name)return toast('请填写主题名称');const t={id:'theme_'+crypto.randomUUID(),name,vars:{'--gold':document.getElementById('thAccent').value,'--paper':document.getElementById('thBg').value}};data.settings.themes.push(t);data.settings.activeTheme=t.id;save();applyAppearance();closeModal();toast('新主题已追加')}
+function saveTheme(){const name=document.getElementById('thName').value.trim();if(!name)return toast('请填写主题名称');const t={id:'theme_'+v44UUID(),name,vars:{'--gold':document.getElementById('thAccent').value,'--paper':document.getElementById('thBg').value}};data.settings.themes.push(t);data.settings.activeTheme=t.id;save();applyAppearance();closeModal();toast('新主题已追加')}
 function chooseAppIcon(){const i=document.createElement('input');i.type='file';i.accept='image/png,image/jpeg,image/webp';i.onchange=async()=>{try{data.settings.appIcon=await readImageFile(i.files[0]);save();applyAppearance();toast('应用内图标已更新；已安装 PWA 的系统图标需重新安装应用') }catch(e){errorDetail(e,'图标设置失败')}};i.click()}
 function saveRandomEventSettings(){
  data.settings.randomEventsEnabled=document.getElementById('randomEventsEnabled')?.checked===true;
@@ -1784,7 +1803,7 @@ function saveImmersionSettings(){data.settings.innerThoughtsEnabled=document.get
 function saveVoicePlaybackSettings(){data.settings.autoReadEnabled=document.getElementById('autoReadEnabled')?.checked===true;data.settings.autoReadNarration=document.getElementById('autoReadNarration')?.checked===true;save();if(currentChat)renderMessages();toast(data.settings.autoReadEnabled?'自动朗读已开启':'自动朗读已关闭；仍可点听筒图标')}
 function editVoiceWorldBook(){modal(`<h2>语音世界书</h2><div class="note">这里描述角色台词的朗读节奏、停顿、情绪与发音偏好。它会进入聊天模型的上下文来影响可朗读文本；真正的音色、Voice ID 与语速仍由独立声音模型决定。</div><div class="field"><label>全局语音规则</label><textarea id="voiceWorldBookText" style="min-height:190px" placeholder="例如：克制时停顿稍长；笑意只在亲密场景出现；外语人名按……发音">${esc(data.settings.voiceWorldBook||'')}</textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveVoiceWorldBook()">保存</button></div>`)}
 function saveVoiceWorldBook(){data.settings.voiceWorldBook=document.getElementById('voiceWorldBookText')?.value.trim()||'';save();closeModal();loadSettings();toast('语音世界书已保存')}
-function showMcpSafetyInfo(){modal(`<h2>本地 MCP 暂未开放</h2><div class="note">公网部署的网站连接 localhost 并不是零风险：网页可能探测或请求本机服务，浏览器还会受本地网络权限与 CORS 限制；一旦允许模型执行工具，也可能被提示注入诱导调用。你的条件是“没有安全风险才加入”，因此 V42 没有放入可执行 MCP 工具的入口。后续若加入，只会采用默认关闭、仅 127.0.0.1、工具白名单、每次调用确认且不保存密钥的安全模式。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`)}
+function showMcpSafetyInfo(){modal(`<h2>本地 MCP 暂未开放</h2><div class="note">公网部署的网站连接 localhost 并不是零风险：网页可能探测或请求本机服务，浏览器还会受本地网络权限与 CORS 限制；一旦允许模型执行工具，也可能被提示注入诱导调用。你的条件是“没有安全风险才加入”，因此 V44 没有放入可执行 MCP 工具的入口。后续若加入，只会采用默认关闭、仅 127.0.0.1、工具白名单、每次调用确认且不保存密钥的安全模式。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`)}
 function editDynamicIsland(){
  const cfg=cleanIslandConfig();
  modal(`<h2>自定义灵动岛</h2><div class="field"><label><input id="diEnabled" type="checkbox" style="width:auto" ${data.settings.dynamicIslandEnabled!==false?'checked':''}> 显示灵动岛</label></div><div class="field"><label>收起文字</label><input id="diCompact" maxlength="18" value="${attr(cfg.compactText)}"></div><div class="field"><label>展开标题</label><input id="diTitle" maxlength="24" value="${attr(cfg.title)}"></div><div class="field"><label>展开副标题</label><input id="diSubtitle" maxlength="36" value="${attr(cfg.subtitle)}"></div><div class="field"><label>符号</label><input id="diSymbol" maxlength="6" value="${attr(cfg.symbol)}"></div><div class="field"><label>强调色</label><input id="diAccent" type="color" value="${attr(cfg.accent)}"></div><div class="field"><label>尺寸</label><select id="diSize"><option value="compact" ${cfg.size==='compact'?'selected':''}>紧凑</option><option value="standard" ${cfg.size==='standard'?'selected':''}>标准</option><option value="wide" ${cfg.size==='wide'?'selected':''}>宽</option></select></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveDynamicIsland()">保存</button></div>`);
@@ -1810,17 +1829,17 @@ async function saveAppearanceSettings(){
  if(!isInstalledMode()&&data.settings.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch(e){errorDetail(e,'无法进入全屏')}}else if(!data.settings.fullscreenEnabled&&document.fullscreenElement){try{await document.exitFullscreen()}catch(e){errorDetail(e,'无法退出全屏')}}
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V42 资源包更新');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V44 资源包更新');
  if(!('serviceWorker' in navigator))return toast('当前浏览器不支持离线更新');
  toast('正在检查更新…');
  try{
-  const registration=await ensureV42ServiceWorker({forceUpdate:true});
-  if(!registration)throw Error('V42 离线服务未能注册');
+  const registration=await ensureV44ServiceWorker({forceUpdate:true});
+  if(!registration)throw Error('V44 离线服务未能注册');
   if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}
-  toast('V42 更新检查完成');
+  toast('V44 更新检查完成');
  }catch(error){errorDetail(error,'检查更新失败')}
 }
-function resetData(){if(!confirm('确定清空 V42 的本机数据吗？V38 与其他历史版本不会被删除。'))return;try{localStorage.setItem(STORE,JSON.stringify(blank()));localStorage.removeItem(`${STORE}_migration`);location.reload()}catch(error){errorDetail(error,'清空 V42 本机数据失败')}}
+function resetData(){if(!confirm('确定清空 V44 的本机数据吗？V38 与其他历史版本不会被删除。'))return;try{localStorage.setItem(STORE,JSON.stringify(blank()));localStorage.removeItem(`${STORE}_migration`);location.reload()}catch(error){errorDetail(error,'清空 V44 本机数据失败')}}
 function chatInfo(){const g=groupForChat(currentChat);if(g)return editGroup(g.id);const c=directCharacterForChat(currentChat);if(!c)return;editCharacter(c.id,'profile','chat')}
 
 /* ---------- about ---------- */
@@ -1833,7 +1852,7 @@ function about(){
       <div class="about-divider"></div>
       <div class="about-desc">
         <p>API 驱动的虚拟手机式 AI 空间。</p>
-        <p>没有内置角色或聊天。V42 只内置两份可查看、可停用、可恢复的线上/线下活人感世界书；其余角色、独立面具聊天、动态、世界、记忆、预设、表情包与虚拟应用均属于本机数据。</p>
+        <p>没有内置角色或聊天。V44 只内置两份可查看、可停用、可恢复的线上/线下活人感世界书；其余角色、独立面具聊天、动态、世界、记忆、预设、表情包与虚拟应用均属于本机数据。</p>
       </div>
       <div class="about-meta">
         <div class="meta-row"><span>数据格式版本</span><span>V${VERSION}</span></div>
@@ -1861,8 +1880,8 @@ startProactiveScheduler();
 
 
 /* =========================================================
-   POKEJI V43.7 · confirmed interaction patch
-   Appended override layer. V42 remains untouched.
+   POKEJI V44.0 · confirmed interaction patch
+   Appended override layer. V44 remains untouched.
    ========================================================= */
 
 /* ---------- stable per-chat online/offline state ---------- */
@@ -2039,8 +2058,8 @@ function v43HydrateAssistantMedia(chatId,indexes=[]){
   const run=async()=>{for(const idx of indexes){const message=(data.chats[chatId]||[])[idx];if(!message||message.kind!=='image'||message.image||message.imageGenerating)continue;if(!validModel('image')){message.imagePending=true;continue}message.imageGenerating=true;try{message.image=await generateImageFromProfile(message.imagePrompt||message.text);message.imagePending=false;delete message.imageError}catch(error){message.imagePending=false;message.imageError=true;console.warn(redactSensitive(`AI 图片生成未完成：${error?.message||error}`))}finally{delete message.imageGenerating;save();if(currentChat===chatId)renderMessages()}}};return run();
 }
 function commitAssistantReply(chatId,raw,{mode='online',sceneMode='direct',speakerId='',groupId='',backgroundTaskId='',restoredFromBackground=false,proactive=false}={}){
-  parseState(raw);const batchId='batch_'+crypto.randomUUID(),segments=parseAssistantSegments(raw,{mode,sceneMode,maxBubbles:data.settings.onlineMaxBubbles,chatId,speakerId});if(!segments.length)segments.push({kind:'message',text:stripReplyTags(raw)||String(raw||'').trim()});
-  const messages=data.chats[chatId]??[],start=messages.length,stamp=time(),prepared=segments.map((segment,index)=>({id:'msg_'+crypto.randomUUID(),role:'assistant',kind:segment.kind,text:applyRegexPipeline(segment.text,'AI 回复').trim()||segment.text,...(segment.stickerId?{stickerId:segment.stickerId,image:segment.image}:{}),...(segment.imagePrompt?{imagePrompt:segment.imagePrompt,imagePending:true}:{}),time:stamp,mode,sceneMode,batchId,batchIndex:index,batchCount:segments.length,...(speakerId?{speaker:speakerId}:{}),...(backgroundTaskId?{backgroundTaskId}:{}),...(restoredFromBackground?{restoredFromBackground:true}:{}),...(proactive?{proactive:true}:{})}));
+  parseState(raw);const batchId='batch_'+v44UUID(),segments=parseAssistantSegments(raw,{mode,sceneMode,maxBubbles:data.settings.onlineMaxBubbles,chatId,speakerId});if(!segments.length)segments.push({kind:'message',text:stripReplyTags(raw)||String(raw||'').trim()});
+  const messages=data.chats[chatId]??[],start=messages.length,stamp=time(),prepared=segments.map((segment,index)=>({id:'msg_'+v44UUID(),role:'assistant',kind:segment.kind,text:applyRegexPipeline(segment.text,'AI 回复').trim()||segment.text,...(segment.stickerId?{stickerId:segment.stickerId,image:segment.image}:{}),...(segment.imagePrompt?{imagePrompt:segment.imagePrompt,imagePending:true}:{}),time:stamp,mode,sceneMode,batchId,batchIndex:index,batchCount:segments.length,...(speakerId?{speaker:speakerId}:{}),...(backgroundTaskId?{backgroundTaskId}:{}),...(restoredFromBackground?{restoredFromBackground:true}:{}),...(proactive?{proactive:true}:{})}));
   messages.push(...prepared);const indexes=prepared.map((_,index)=>start+index);void v43HydrateAssistantMedia(chatId,indexes);return indexes;
 }
 
@@ -2060,7 +2079,7 @@ async function autoReadMessages(chatId,indexes=[]){if(data.settings.autoReadEnab
 
 
 
-/* V43.7 AI media-choice prompt override */
+/* V44.0 AI media-choice prompt override */
 function voiceWorldBookPrompt(){const text=String(data.settings.voiceWorldBook||'').trim();return text?`【语音世界书】\n${text}\n这些规则影响角色台词的节奏、情绪与发音。角色可以自行决定使用普通文字或 <voice>语音内容</voice>；不要输出 TTS 参数或技术说明。`:''}
 function v43MediaChoicePrompt(){return `【消息形式自主选择】\n角色必须按真实聊天节奏自行选择消息形式，不要机械固定一种：\n- 普通文字：<message>真正发送的文字</message>；可自然分成多条。\n- 语音消息：<voice>角色真正说出的语音内容</voice>；仅在语气、亲密度、情境适合时使用，前端会生成可播放语音条。\n- AI 图片：<image>需要交给生图模型的完整画面描述</image>；仅在角色确实会拍照、分享图片或当前内容需要视觉表达时使用。图片由运行时生图模型生成，不得引用固定资源包图片。\n- 外语可以直接发在 message/voice 中；自动翻译功能会在需要时显示译文。\n- 可以在必要时使用虚拟手机内部标签 phone_query/phone_update，但标签不展示给 USER。\n没有必要时只发自然文字，不能为了展示功能强行发语音或图片。`}
 function buildSystemPrompt(c,userMessage='',chatId=currentChat){
@@ -2082,7 +2101,7 @@ function saveImmersionSettings(){data.settings.innerThoughtsEnabled=document.get
 
 
 
-/* V43.7 runtime post-commit hooks */
+/* V44.0 runtime post-commit hooks */
 function v43PostCommit(chatId,indexes=[]){
   const direct=directCharacterForChat(chatId);if(direct&&Math.random()<.28&&!simulatedPhoneItems(direct.id,chatId).length&&validAPI())void v43GenerateCharacterPhoneSnapshot(direct.id,chatId).catch(()=>{});
   queueAutoTranslations(chatId,indexes);if(currentChat===chatId)void autoReadMessages(chatId,indexes);
@@ -2096,7 +2115,7 @@ const v43NotificationUnshift=data.notifications.unshift.bind(data.notifications)
 data.notifications.unshift=function(...items){const kept=items.filter(item=>!item||item.type!=='chat'||!/(回复了你|主动发来消息|后台完成回复|手机|反查)/.test(String(item.text||'')));return kept.length?v43NotificationUnshift(...kept):data.notifications.length};
 
 
-/* V43.7 targeted bug fixes */
+/* V44.0 targeted bug fixes */
 function translateStoredMessage(chatId,idx,{notify=false,force=false}={}){
  const message=(data.chats[chatId]||[])[idx],text=String(message?.text||'').trim();if(!message||!text||['sticker','image','phoneEvent'].includes(message.kind))return Promise.resolve(false);if(!validModel('translation'))return Promise.reject(Error('请先配置独立翻译模型'));
  const source=translationHash(text),taskKey=`${chatId}:${message.id||idx}:${source}`;if(translationTasks.has(taskKey))return Promise.resolve(false);if(!force&&message.translation&&message.translationSource===source)return Promise.resolve(true);const cached=data.translationCache?.[source];if(!force&&cached){message.translation=cached;message.translationSource=source;save();if(currentChat===chatId)renderMessages();return Promise.resolve(true)}
@@ -2122,7 +2141,7 @@ function loadSettings(){
 const v43Plus=document.getElementById('chatPlusBtn');if(v43Plus)v43Plus.title='表情包、线上线下与聊天相关虚拟手机';
 
 
-/* V43.7 final behavior corrections */
+/* V44.0 final behavior corrections */
 function v43WriteMode(chatId,mode,offlineStyle='direct'){
  if(!chatId||!['online','offline'].includes(mode))return;const style=offlineStyle==='story'?'story':'direct',store=v43ReadModeStore();store[String(chatId)]={mode,offlineStyle:style,updatedAt:Date.now()};try{localStorage.setItem(V43_MODE_STORE,JSON.stringify(store))}catch{}
  data.chatSettings??={};const raw=data.chatSettings[chatId]&&typeof data.chatSettings[chatId]==='object'?data.chatSettings[chatId]:{};data.chatSettings[chatId]={...raw,mode,offlineStyle:style,reversePhoneGranted:false};save();
@@ -2153,11 +2172,11 @@ async function playMessageBatchAudio(chatId,idx){
  try{if(!validModel('voice')){await v43SpeakText(synthetic.text,key,chatId);return true}const cached=messageAudioCache.get(key),result=cached?{key,url:cached}:await generateMessageAudio(chatId,idx,synthetic),audio=new Audio(result.url);activeMessageAudio=audio;activeAudioMessageKey=result.key;if(currentChat===chatId)renderMessages();await audio.play();await new Promise((resolve,reject)=>{audio.onended=resolve;audio.onerror=()=>reject(Error('浏览器无法播放返回的音频'))});return true}catch(error){errorDetail(error,error?.name==='AbortError'?'声音生成超时':'声音播放失败');return false}finally{activeMessageAudio=null;activeAudioMessageKey='';if(currentChat===chatId)renderMessages()}
 }
 function showImageGenerator(){const p=modelProfile('image');modal(`<h2>让 AI 发送图片</h2><div class="note">你可以给出画面线索；平时角色也能依照聊天节奏自行决定是否生图。图片由独立生图模型实时生成，不使用资源包固定图片。</div><div class="field"><label>可选画面线索</label><textarea id="imagePrompt" style="min-height:130px" placeholder="例如：此刻角色真正会拍下并发来的画面"></textarea></div><div class="field"><label>当前服务</label><div class="muted">${esc(p.model||'未配置')} · ${esc(p.provider||'')}</div></div><div class="form-actions"><button onclick="showChatPlusMenu()">取消</button><button onclick="closeModal();openView('settings');setTimeout(()=>editModelProfile('image'),80)">配置模型</button><button class="primary" onclick="runImageGeneration()">让 AI 生成</button></div>`)}
-function sendGeneratedImage(){if(!generatedImageDraft||!currentChat)return;const draft=generatedImageDraft;generatedImageDraft=null;const group=groupForChat(currentChat),speakerId=group?(groupPendingSpeaker||group.memberIds[group.turnIndex%group.memberIds.length]):directCharacterForChat(currentChat)?.id||'',batchId='batch_'+crypto.randomUUID();data.chats[currentChat]??=[];data.chats[currentChat].push({id:'msg_'+crypto.randomUUID(),role:'assistant',kind:'image',text:draft.prompt,image:draft.image,time:time(),mode:group?'group':currentChatMode,sceneMode:currentOfflineStyle,batchId,batchIndex:0,batchCount:1,...(speakerId?{speaker:speakerId}:{})});save();closeModal();renderMessages();renderChats();}
+function sendGeneratedImage(){if(!generatedImageDraft||!currentChat)return;const draft=generatedImageDraft;generatedImageDraft=null;const group=groupForChat(currentChat),speakerId=group?(groupPendingSpeaker||group.memberIds[group.turnIndex%group.memberIds.length]):directCharacterForChat(currentChat)?.id||'',batchId='batch_'+v44UUID();data.chats[currentChat]??=[];data.chats[currentChat].push({id:'msg_'+v44UUID(),role:'assistant',kind:'image',text:draft.prompt,image:draft.image,time:time(),mode:group?'group':currentChatMode,sceneMode:currentOfflineStyle,batchId,batchIndex:0,batchCount:1,...(speakerId?{speaker:speakerId}:{})});save();closeModal();renderMessages();renderChats();}
 
 
 
-/* V43.7 layout hotfix: every AI text is readable */
+/* V44.0 layout hotfix: every AI text is readable */
 function v43MessageItemMarkup(m,i,isLast,chatId){
  let original='';
  if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
@@ -2170,22 +2189,22 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 }
 
 
-/* V43.7 Service Worker update diagnostics */
+/* V44.0 Service Worker update diagnostics */
 async function v43FetchWorkerScript(){
- const response=await fetch('/sw-v42.js?build=43.7&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
- if(!response.ok)throw Error(`线上缺少 sw-v42.js：HTTP ${response.status}`);
- if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v42.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v43.7"))throw Error('线上 sw-v42.js 仍不是 V43.7。请重新覆盖 sw-v42.js，并确认 Vercel 已部署最新 Git 提交。');
- try{new Function(text)}catch(error){throw Error(`线上 sw-v42.js 语法无效：${error.message}`)}return true;
+ const response=await fetch('/sw-v44.js?build=44.0&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
+ if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
+ if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
+ if(!text.includes("pokeji-v44.0"))throw Error('线上 sw-v44.js 仍不是 V44.0。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
+ try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.7 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V43.7 更新…');
- try{await v43FetchWorkerScript();const registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('V43.7 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V43.7 更新检查完成')}
- catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V43\.1|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v42.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V44.0 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V44.0 更新…');
+ try{await v43FetchWorkerScript();const registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('V44.0 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V44.0 更新检查完成')}
+ catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V44\.1|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v44.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
 
 
-/* V43.7 layout correction: small spacing, inline read button */
+/* V44.0 layout correction: small spacing, inline read button */
 function v43InlineReadButton(chatId,idx,message){
  const key=messageAudioKey(chatId,idx,message),playing=activeAudioMessageKey===key;
  return`<button class="message-read-button inline-read ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${idx})" aria-label="${playing?'正在朗读':'朗读这条消息'}" title="${playing?'正在朗读':'朗读这条消息'}">${v43SpeakerIcon()}</button>`;
@@ -2201,7 +2220,7 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 }
 
 
-/* POKEJI V43.7 full phone desktop and app regions */
+/* POKEJI V44.0 full phone desktop and app regions */
 Object.assign(SIM_APP_CATALOG,{
  music:{name:'音乐',icon:'♫',accent:'#777b87',description:'最近播放与收藏',actions:['最近播放','收藏']},
  maps:{name:'地图',icon:'⌖',accent:'#738074',description:'地点与路线',actions:['地点','路线']},
@@ -2266,7 +2285,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 
 
 /* =========================================================
-   POKEJI V43.7 · feed personas / API library / status / phone interactions
+   POKEJI V44.0 · feed personas / API library / status / phone interactions
    ========================================================= */
 
 /* ---------- reusable SVG icons ---------- */
@@ -2298,7 +2317,7 @@ const V435_FUNCTION_LABELS={chat:'主聊天',translation:'翻译',feed:'动态�
 function v435CapabilityForKind(kind){return kind==='voice'?'voice':kind==='image'?'image':'text'}
 function v435EnsureApiLibrary(){
  data.apiConfigs=data.apiConfigs&&typeof data.apiConfigs==='object'&&!Array.isArray(data.apiConfigs)?data.apiConfigs:{};data.modelBindings=data.modelBindings&&typeof data.modelBindings==='object'?data.modelBindings:{};
- for(const [kind,profile] of Object.entries(data.models||{})){if(data.modelBindings[kind]&&data.apiConfigs[data.modelBindings[kind]])continue;if(!profile||!(profile.base||profile.key||profile.model))continue;const capability=v435CapabilityForKind(kind),signature=[capability,profile.provider,profile.base,profile.key,profile.model,profile.voice].join('|');let id=Object.keys(data.apiConfigs).find(key=>data.apiConfigs[key].signature===signature);if(!id){id='api_'+crypto.randomUUID();data.apiConfigs[id]={id,name:`${V435_FUNCTION_LABELS[kind]||kind}配置`,capability,provider:profile.provider||'openai',base:profile.base||'',key:profile.key||'',model:profile.model||'',voice:profile.voice||'alloy',speed:Number(profile.speed)||1,signature}}data.modelBindings[kind]=id}
+ for(const [kind,profile] of Object.entries(data.models||{})){if(data.modelBindings[kind]&&data.apiConfigs[data.modelBindings[kind]])continue;if(!profile||!(profile.base||profile.key||profile.model))continue;const capability=v435CapabilityForKind(kind),signature=[capability,profile.provider,profile.base,profile.key,profile.model,profile.voice].join('|');let id=Object.keys(data.apiConfigs).find(key=>data.apiConfigs[key].signature===signature);if(!id){id='api_'+v44UUID();data.apiConfigs[id]={id,name:`${V435_FUNCTION_LABELS[kind]||kind}配置`,capability,provider:profile.provider||'openai',base:profile.base||'',key:profile.key||'',model:profile.model||'',voice:profile.voice||'alloy',speed:Number(profile.speed)||1,signature}}data.modelBindings[kind]=id}
 }
 v435EnsureApiLibrary();save();
 const v435LegacyModelProfile=modelProfile;
@@ -2310,7 +2329,7 @@ function v435ConfigSummary(cfg){return`${cfg.model||'未填写模型'} · ${cfg.
 function renderModelProfiles(){v435EnsureApiLibrary();const e=document.getElementById('modelProfiles');if(!e)return;const configs=Object.values(data.apiConfigs);e.innerHTML=`<div class="api-library-head"><span><b>API 配置库</b><small>${configs.length} 套已保存配置</small></span><button onclick="v435EditApiConfig()">＋ 新增</button></div><div class="api-library-list">${configs.length?configs.map(cfg=>`<button onclick="v435EditApiConfig('${attr(cfg.id)}')"><span class="api-kind">${cfg.capability==='voice'?'V':cfg.capability==='image'?'I':'A'}</span><span><b>${esc(cfg.name)}</b><small>${esc(v435ConfigSummary(cfg))}</small></span><i>编辑 ›</i></button>`).join(''):'<div class="api-library-empty">还没有保存 API 配置</div>'}</div><div class="api-bind-title">功能绑定</div><div class="api-bindings">${Object.entries(V435_FUNCTION_LABELS).map(([kind,label])=>{const cfg=data.apiConfigs[data.modelBindings[kind]];return`<button onclick="v435BindFunction('${kind}')"><span><b>${label}</b><small>${esc(cfg?.model||'未绑定')}</small></span><i>${esc(cfg?.name||'选择配置')} ›</i></button>`}).join('')}</div>`}
 function v435EditApiConfig(id=''){const cfg=id&&data.apiConfigs[id]||{id:'',name:'',capability:'text',provider:'openai',base:'',key:'',model:'',voice:'alloy',speed:1};modal(`<h2>${id?'编辑 API 配置':'新增 API 配置'}</h2><div class="field"><label>配置名称</label><input id="apiCfgName" value="${attr(cfg.name)}" placeholder="例如：主线路、备用 Claude"></div><div class="field"><label>能力类型</label><select id="apiCfgCapability" onchange="v435ApiCapabilityChanged()"><option value="text" ${cfg.capability==='text'?'selected':''}>文本 / 识图</option><option value="voice" ${cfg.capability==='voice'?'selected':''}>声音</option><option value="image" ${cfg.capability==='image'?'selected':''}>生图</option></select></div><div class="field"><label>服务商</label><select id="mpProvider" onchange="modelProviderChanged()">${v435ProviderOptions(cfg.capability,cfg.provider)}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" value="${attr(cfg.base)}" placeholder="https://..."></div><div class="field"><label>API Key</label><input id="mpKey" type="password" value="${attr(cfg.key)}"></div><div class="field"><label>模型</label><div class="model-input-row"><input id="mpModel" value="${attr(cfg.model)}"><button id="mpFetchBtn" onclick="fetchAvailableModels()">获取模型</button></div><div id="mpFetchedModels" class="model-fetch-result"></div></div><div id="apiVoiceFields" style="display:${cfg.capability==='voice'?'block':'none'}"><div class="field"><label>Voice ID</label><input id="mpVoice" value="${attr(cfg.voice||'alloy')}"></div><div class="field"><label>语速</label><input id="mpSpeed" type="number" min="0.5" max="2" step="0.05" value="${attr(cfg.speed||1)}"></div></div><div class="form-actions">${id?`<button class="danger" onclick="v435DeleteApiConfig('${attr(id)}')">删除</button>`:''}<button onclick="closeModal()">取消</button><button class="primary" onclick="v435SaveApiConfig('${attr(id)}')">保存</button></div>`)}
 function v435ApiCapabilityChanged(){const capability=document.getElementById('apiCfgCapability')?.value||'text',provider=document.getElementById('mpProvider'),voice=document.getElementById('apiVoiceFields');if(provider)provider.innerHTML=v435ProviderOptions(capability,capability==='voice'?'openai':capability==='image'?'openai_image':'openai');if(voice)voice.style.display=capability==='voice'?'block':'none';modelProviderChanged()}
-function v435SaveApiConfig(id=''){const name=document.getElementById('apiCfgName')?.value.trim(),capability=document.getElementById('apiCfgCapability')?.value||'text';if(!name)return toast('请填写配置名称');const cfg={id:id||'api_'+crypto.randomUUID(),name,capability,provider:document.getElementById('mpProvider')?.value||'openai',base:document.getElementById('mpBase')?.value.trim()||'',key:document.getElementById('mpKey')?.value.trim()||'',model:document.getElementById('mpModel')?.value.trim()||'',voice:document.getElementById('mpVoice')?.value.trim()||'alloy',speed:Math.min(2,Math.max(.5,Number(document.getElementById('mpSpeed')?.value)||1))};cfg.signature=[cfg.capability,cfg.provider,cfg.base,cfg.key,cfg.model,cfg.voice].join('|');data.apiConfigs[cfg.id]=cfg;save();closeModal();renderModelProfiles();toast('API 配置已保存')}
+function v435SaveApiConfig(id=''){const name=document.getElementById('apiCfgName')?.value.trim(),capability=document.getElementById('apiCfgCapability')?.value||'text';if(!name)return toast('请填写配置名称');const cfg={id:id||'api_'+v44UUID(),name,capability,provider:document.getElementById('mpProvider')?.value||'openai',base:document.getElementById('mpBase')?.value.trim()||'',key:document.getElementById('mpKey')?.value.trim()||'',model:document.getElementById('mpModel')?.value.trim()||'',voice:document.getElementById('mpVoice')?.value.trim()||'alloy',speed:Math.min(2,Math.max(.5,Number(document.getElementById('mpSpeed')?.value)||1))};cfg.signature=[cfg.capability,cfg.provider,cfg.base,cfg.key,cfg.model,cfg.voice].join('|');data.apiConfigs[cfg.id]=cfg;save();closeModal();renderModelProfiles();toast('API 配置已保存')}
 function v435DeleteApiConfig(id){if(!confirm('删除这套 API 配置？使用它的功能会变成未绑定。'))return;delete data.apiConfigs[id];for(const kind of Object.keys(data.modelBindings||{}))if(data.modelBindings[kind]===id)delete data.modelBindings[kind];save();closeModal();renderModelProfiles()}
 function v435BindFunction(kind){v435EnsureApiLibrary();const capability=v435CapabilityForKind(kind),configs=Object.values(data.apiConfigs).filter(cfg=>cfg.capability===capability),current=data.modelBindings[kind]||'';modal(`<h2>绑定${V435_FUNCTION_LABELS[kind]}</h2>${configs.length?`<div class="api-binding-picker">${configs.map(cfg=>`<label><input type="radio" name="apiBinding" value="${attr(cfg.id)}" ${cfg.id===current?'checked':''}><span><b>${esc(cfg.name)}</b><small>${esc(v435ConfigSummary(cfg))}</small></span></label>`).join('')}</div>`:'<div class="note">没有兼容的 API 配置，请先新建。</div>'}<div class="form-actions"><button onclick="closeModal();v435EditApiConfig()">新增配置</button><button class="primary" onclick="v435SaveBinding('${kind}')">保存绑定</button></div>`)}
 function v435SaveBinding(kind){const id=document.querySelector('input[name="apiBinding"]:checked')?.value;if(!id)return toast('请选择配置');data.modelBindings[kind]=id;save();closeModal();renderModelProfiles();toast(`${V435_FUNCTION_LABELS[kind]}已绑定`)}
@@ -2319,7 +2338,7 @@ saveModelProfile=function(kind){v435SaveApiConfig(data.modelBindings?.[kind]||''
 
 /* ---------- character status: off / fixed / AI override ---------- */
 const v435BaseNormalizeCharacter=normalizeCharacter;
-normalizeCharacter=function(c={}){const value=v435BaseNormalizeCharacter(c),mode=['off','manual','ai'].includes(c.statusMode)?c.statusMode:'manual';return{...value,statusMode:mode,aiStatus:String(c.aiStatus||''),statusUpdatedAt:String(c.statusUpdatedAt||'')}};
+normalizeCharacter=function(c={}){c=c&&typeof c==='object'?c:{};const value=v435BaseNormalizeCharacter(c),mode=['off','manual','ai'].includes(c.statusMode)?c.statusMode:'manual';return{...value,statusMode:mode,aiStatus:String(c.aiStatus||''),statusUpdatedAt:String(c.statusUpdatedAt||'')}};
 for(const character of data.characters){character.statusMode=['off','manual','ai'].includes(character.statusMode)?character.statusMode:'manual';character.aiStatus=String(character.aiStatus||'');character.statusUpdatedAt=String(character.statusUpdatedAt||'')}
 function v435CharacterStatus(c){if(!c||c.statusMode==='off')return'';return c.statusMode==='ai'?(c.aiStatus||c.status||''):String(c.status||'')}
 characterEditorHero=function(d){return`<div class="editor-hero"><div class="editor-avatar">${d.image?`<img src="${attr(d.image)}" alt="">`:'<span>♠</span>'}</div><div><small>${d.__new?'NEW CHARACTER':'CHARACTER PROFILE'}</small><h2>${esc(d.name||'未命名角色')}</h2><p>${esc(v435CharacterStatus(d)||'未显示状态')}</p></div><button onclick="pickCharacterImage()">更换头像</button></div>`};
@@ -2336,7 +2355,7 @@ parseAssistantSegments=function(raw,options={}){let source=String(raw||''),lates
 function feedPersona(){const requested=String(data.settings?.activeFeedPersonaId||data.activePersonaId||'');return data.personas.find(item=>item.id===requested)||data.personas.find(item=>item.id===data.activePersonaId)||data.personas[0]||defaultPersona()}
 function setFeedPersona(id){if(!data.personas.some(item=>item.id===id))return;data.settings.activeFeedPersonaId=id;save();renderFeed()}
 function newPost(){postImageDrafts=[];const persona=feedPersona();modal(`<h2>我发动态</h2><div class="feed-compose-author">${feedProfileAvatar(persona)}<div><b>${esc(persona.name)}</b><small>发布到这张面具的动态</small></div></div><div class="field"><label>动态内容</label><textarea id="pt" placeholder="写下这一刻…"></textarea></div><div class="field"><label>位置（可选）</label><input id="pl" maxlength="60"></div><div class="field"><label>图片（最多9张）</label><input type="file" accept="image/*" multiple onchange="preparePostImages(event)"><div id="postImageDraftPreview" class="post-image-draft-preview"></div></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createPost()">发布</button></div>`)}
-function createPost(){const text=document.getElementById('pt')?.value.trim(),persona=feedPersona();if(!text)return toast('请输入内容');data.posts.unshift({id:'p_'+crypto.randomUUID(),char:'',authorType:'persona',authorId:persona.id,text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images:[...postImageDrafts],location:document.getElementById('pl')?.value.trim()||'',comments:[],generated:false,personaId:persona.id});postImageDrafts=[];save();closeModal();renderFeed();toast('动态已发布')}
+function createPost(){const text=document.getElementById('pt')?.value.trim(),persona=feedPersona();if(!text)return toast('请输入内容');data.posts.unshift({id:'p_'+v44UUID(),char:'',authorType:'persona',authorId:persona.id,text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images:[...postImageDrafts],location:document.getElementById('pl')?.value.trim()||'',comments:[],generated:false,personaId:persona.id});postImageDrafts=[];save();closeModal();renderFeed();toast('动态已发布')}
 function v435FeedAuthor(post,persona){if(post.authorType==='persona'||!post.char&&post.authorId)return{kind:'persona',entity:data.personas.find(item=>item.id===(post.authorId||post.personaId))||persona};return{kind:'character',entity:data.characters.find(item=>item.id===post.char)}}
 function renderFeed(){const e=document.getElementById('feedList');if(!e)return;const persona=feedPersona(),cover=safeImageSrc(data.feedCovers?.[persona.id]),tabs=`<div class="feed-persona-tabs">${data.personas.map(item=>`<button class="${item.id===persona.id?'on':''}" onclick="setFeedPersona('${attr(item.id)}')">${esc(item.name)}</button>`).join('')}</div>`,hero=`${tabs}<section class="feed-profile"><button class="feed-cover" onclick="chooseFeedCover()">${cover?`<img src="${attr(cover)}" alt="">`:'<span>更换封面</span>'}</button><div class="feed-profile-copy"><b>${esc(persona.name||'我')}</b>${feedProfileAvatar(persona)}</div></section><div class="feed-primary-actions feed-two-actions"><button class="primary" onclick="newPost()">＋ 我发动态</button><button onclick="showAutoPostPicker()">✦ 角色发动态</button></div>`;
  const posts=data.posts.filter(post=>post.personaId===persona.id).map(post=>{const author=v435FeedAuthor(post,persona),entity=author.entity;if(!entity)return'';const comments=Array.isArray(post.comments)?post.comments:[],avatarHtml=author.kind==='persona'?`<span class="avatar feed-self-avatar">${safeImageSrc(entity.image)?`<img src="${attr(safeImageSrc(entity.image))}" alt="">`:`<b>${esc(String(entity.name||'我').slice(0,1))}</b>`}</span>`:avatar(entity);return`<article class="feed-item"><div class="feed-author">${avatarHtml}<div><b>${esc(entity.name)}</b><small>${author.kind==='persona'?'我的动态':post.generated?'角色动态':''}</small></div><button class="feed-more" onclick="showPostMenu('${attr(post.id)}')">⋯</button></div><div class="feed-body"><div class="feed-text">${esc(post.text)}</div>${postImagesMarkup(post)}${post.location?`<div class="feed-location">⌖ ${esc(post.location)}</div>`:''}<div class="feed-meta"><time>${esc(post.time||'刚刚')}</time></div><div class="feed-actions"><button class="${post.likedByUser?'on':''}" onclick="like('${attr(post.id)}')">${post.likedByUser?'♥':'♡'} ${Math.max(0,Number(post.likes)||0)}</button><button onclick="commentPost('${attr(post.id)}')">○ ${comments.length}</button></div>${postCommentsMarkup(post)}</div></article>`}).join('');e.innerHTML=hero+(posts||'<div class="empty feed-empty"><div class="big">◌</div>还没有动态</div>')}
@@ -2357,29 +2376,29 @@ openSimPhoneApp=function(owner,key){v43OpenPhoneApp(owner,key)};
 function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(currentChat),character=!group&&directCharacterForChat(currentChat);modal(`<div class="chat-plus-sheet"><div class="chat-plus-title"><small>MORE</small><h2>${group?'群聊工具':esc(character?.name||'聊天工具')}</h2></div><div class="chat-plus-grid"><button onclick="showStickerPicker()"><span class="tool-svg">${v435Svg('sticker')}</span><b>表情包</b><small>表情与图片</small></button><button onclick="showImageGenerator()"><span class="tool-svg">${v435Svg('image')}</span><b>AI 生图</b><small>生成并发送图片</small></button>${group?'':`<button onclick="${currentChatMode==='offline'?`closeModal();openChat('${attr(character.id)}','online')`:`showOfflineEntryChoices('${attr(character.id)}')`}"><span class="tool-svg">${v435Svg('mode')}</span><b>${currentChatMode==='offline'?'返回线上':'线下相遇'}</b><small>切换聊天场景</small></button><button onclick="openCheckPhone()"><span class="tool-svg">${v435Svg('eye')}</span><b>查手机</b><small>查看 TA 的手机</small></button><button onclick="openReversePhone()"><span class="tool-svg">${v435Svg('reverse')}</span><b>反查手机</b><small>让 TA 查看我的手机</small></button>`}<button onclick="openSimPhone('user')"><span class="tool-svg">${v435Svg('chat')}</span><b>我的手机</b><small>直接打开</small></button></div></div>`)}
 
 
-/* V43.7 forward-compatible Service Worker update check */
+/* V44.0 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V42_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'43.7')}
+function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'44.0')}
 async function v43FetchWorkerScript(){
- const expected=v435ExpectedBuild(),response=await fetch(`/sw-v42.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
- if(!response.ok)throw Error(`线上缺少 sw-v42.js：HTTP ${response.status}`);
- if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v42.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
+ const expected=v435ExpectedBuild(),response=await fetch(`/sw-v44.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
+ if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
+ if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
  const match=text.match(/CACHE_NAME\s*=\s*['"]pokeji-v(\d+(?:\.\d+)*)['"]/i),online=match?.[1]||'';
- if(!online)throw Error('线上 sw-v42.js 无法识别版本，可能上传了错误文件。');
+ if(!online)throw Error('线上 sw-v44.js 无法识别版本，可能上传了错误文件。');
  if(v435CompareVersions(online,expected)<0)throw Error(`线上 Service Worker 版本 ${online} 低于当前页面要求的 ${expected}。请成套覆盖部署文件。`);
- try{new Function(text)}catch(error){throw Error(`线上 sw-v42.js 语法无效：${error.message}`)}
+ try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}
  return{online,expected};
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.7 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
- try{const versions=await v43FetchWorkerScript(),registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast(`更新检查完成 · Worker ${versions.online}`)}
- catch(error){const detail=String(error?.message||error);if(/Service Worker 版本|sw-v42\.js|ServiceWorker|Failed to update|unknown error|fetching the script|Content-Type|语法无效|无法识别版本/i.test(detail)){modal(`<h2>离线服务版本不一致</h2><div class="note">${esc(detail)}<br><br>当前页面可能仍由旧缓存控制。请先把同一版本的 index.html、assets/app.js、assets/app.css、sw-v42.js、repair-sw.html 一起部署，再打开修复页。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V44.0 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
+ try{const versions=await v43FetchWorkerScript(),registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast(`更新检查完成 · Worker ${versions.online}`)}
+ catch(error){const detail=String(error?.message||error);if(/Service Worker 版本|sw-v44\.js|ServiceWorker|Failed to update|unknown error|fetching the script|Content-Type|语法无效|无法识别版本/i.test(detail)){modal(`<h2>离线服务版本不一致</h2><div class="note">${esc(detail)}<br><br>当前页面可能仍由旧缓存控制。请先把同一版本的 index.html、assets/app.js、assets/app.css、sw-v44.js、repair-sw.html 一起部署，再打开修复页。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
 
 
 /* =========================================================
-   POKEJI V43.7 · clearer character studio / additive completion
+   POKEJI V44.0 · clearer character studio / additive completion
    ========================================================= */
 const V436_COMPLETION_FIELDS={bio:'身份概要',personality:'性格',background:'过往经历',appearance:'外貌与气质',speechStyle:'说话方式',relationship:'与用户关系',scenario:'当前情境',firstMessage:'首条消息',exampleDialogue:'对话示例',systemPrompt:'角色专属指令',boundaries:'边界与禁区'};
 V435_FUNCTION_LABELS.characterCompletion='角色补全';
@@ -2405,7 +2424,7 @@ characterBindingPage=function(d){return`${v436BaseCharacterBindingPage(d)}<div c
 
 
 /* =========================================================
-   POKEJI V43.7 · tolerant character-completion JSON parser
+   POKEJI V44.0 · tolerant character-completion JSON parser
    ========================================================= */
 function v437CompletionCandidate(raw){
  const source=String(raw||'').trim(),fenced=source.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]||source,start=fenced.indexOf('{');if(start<0)return fenced;
@@ -2446,3 +2465,376 @@ function v436SafeJsonObject(raw){
   try{return JSON.parse(v437RepairJson(candidate))}catch(secondError){const partial=v437ExtractCompletionFields(candidate);if(Object.keys(partial).length){console.warn('角色补全 JSON 不完整，已恢复可读字段');return partial}const error=Error('补全模型返回内容格式不完整，自动修复后仍无法读取。请重试一次，或换用更稳定的补全模型。');error.cause=secondError;throw error}
  }
 }
+
+
+/* =========================================================
+   POKEJI V44.0 · per-chat time sense / protocol-brand split
+   ========================================================= */
+
+/* ---------- per-chat real / virtual timeline ---------- */
+let v438PromptChatId='';
+function v438DefaultTimeline(){const now=Date.now();return{mode:'real',virtualTimeMs:now,totalElapsedSeconds:0,lastElapsedSeconds:0,createdAt:now,lastRequestAt:now,lastUpdatedAt:now}}
+function v438Timeline(chatId=currentChat){chatId=canonicalChatId(chatId);data.chatTimelines=data.chatTimelines&&typeof data.chatTimelines==='object'&&!Array.isArray(data.chatTimelines)?data.chatTimelines:{};const raw=data.chatTimelines[chatId]&&typeof data.chatTimelines[chatId]==='object'?data.chatTimelines[chatId]:{};const timeline=data.chatTimelines[chatId]={...v438DefaultTimeline(),...raw};timeline.mode=timeline.mode==='virtual'?'virtual':'real';timeline.virtualTimeMs=Number(timeline.virtualTimeMs)||Date.now();timeline.totalElapsedSeconds=Math.max(0,Number(timeline.totalElapsedSeconds)||0);timeline.lastElapsedSeconds=Math.max(0,Number(timeline.lastElapsedSeconds)||0);return timeline}
+function v438Duration(seconds){seconds=Math.max(0,Math.floor(Number(seconds)||0));const days=Math.floor(seconds/86400);seconds%=86400;const hours=Math.floor(seconds/3600);seconds%=3600;const minutes=Math.floor(seconds/60),secs=seconds%60;return[days&&`${days}天`,hours&&`${hours}小时`,minutes&&`${minutes}分钟`,`${secs}秒`].filter(Boolean).join('')}
+function v438DateText(ms){const date=new Date(Number(ms)||Date.now()),zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'本地时区';return`${date.toLocaleString('zh-CN',{hour12:false,year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',second:'2-digit'})} · ${zone}`}
+function v438TimeContext(chatId=currentChat){const timeline=v438Timeline(chatId);if(timeline.mode==='virtual')return`时间模式：虚拟时间\n当前虚拟时间：${v438DateText(timeline.virtualTimeMs)}\n虚拟会话累计经过：${v438Duration(timeline.totalElapsedSeconds)}\n上一轮经过：${v438Duration(timeline.lastElapsedSeconds)}\n你必须把该时间当作人物所在世界的当前时间，不要引用设备现实时间。根据本轮剧情实际发生的动作、等待、移动和对话，额外输出一次 <elapsed_seconds>非负整数秒数</elapsed_seconds>。纯短消息通常是数秒到数分钟；明确等待、睡眠、路程等按内容估算。标签只用于推进时间，不要在台词中解释。`;const now=Date.now(),elapsed=Math.max(0,Math.floor((now-(Number(timeline.lastRequestAt)||now))/1000));return`时间模式：现实时间\n当前现实时间：${v438DateText(now)}\n距离本会话上一次请求真实经过：${v438Duration(elapsed)}\n角色必须理解日期、星期、时区、昼夜和真实等待时长；不要输出 elapsed_seconds 标签。`}
+function currentTimeContext(){return'时间信息位于系统提示词末尾。'}
+function v438WrapPrompt(base,chatId){return`${base}\n\n【会话时间感｜以此为准】\n${v438TimeContext(chatId)}`}
+const v438BaseBuildSystem=buildSystemPrompt,v438BaseBuildOffline=buildOfflineSystemPrompt,v438BaseBuildGroup=buildGroupSystemPrompt;
+buildSystemPrompt=function(c,userMessage='',chatId=currentChat){v438PromptChatId=chatId;try{return v438WrapPrompt(v438BaseBuildSystem(c,userMessage,chatId),chatId)}finally{v438PromptChatId=''}};
+buildOfflineSystemPrompt=function(c,userMessage='',chatId=currentChat,sceneMode='direct'){v438PromptChatId=chatId;try{return v438WrapPrompt(v438BaseBuildOffline(c,userMessage,chatId,sceneMode),chatId)}finally{v438PromptChatId=''}};
+buildGroupSystemPrompt=function(g,c,userMessage='',chatId=currentChat){v438PromptChatId=chatId;try{return v438WrapPrompt(v438BaseBuildGroup(g,c,userMessage,chatId),chatId)}finally{v438PromptChatId=''}};
+const v438BaseParseSegments=parseAssistantSegments;
+parseAssistantSegments=function(raw,options={}){let source=String(raw||''),elapsed=null;source=source.replace(/<elapsed_seconds(?:\s+[^>]*)?>([\s\S]*?)<\/elapsed_seconds>/gi,(_,value)=>{const match=String(value||'').match(/\d+/);if(match)elapsed=Math.min(31536000,Math.max(0,Number(match[0])||0));return''});const chatId=options.chatId||currentChat,timeline=v438Timeline(chatId);if(timeline.mode==='virtual'&&elapsed!==null){timeline.lastElapsedSeconds=elapsed;timeline.totalElapsedSeconds+=elapsed;timeline.virtualTimeMs+=elapsed*1000;timeline.lastUpdatedAt=Date.now();save()}return v438BaseParseSegments(source,options)};
+function v438MarkRealRequest(chatId){const timeline=v438Timeline(chatId);if(timeline.mode==='real'){timeline.lastElapsedSeconds=Math.max(0,Math.floor((Date.now()-(Number(timeline.lastRequestAt)||Date.now()))/1000));timeline.totalElapsedSeconds+=timeline.lastElapsedSeconds;timeline.lastRequestAt=Date.now();timeline.lastUpdatedAt=Date.now();save()}}
+const v438BaseCommit=commitAssistantReply;
+commitAssistantReply=function(chatId,raw,options={}){const indexes=v438BaseCommit(chatId,raw,options);v438MarkRealRequest(chatId);const timeline=v438Timeline(chatId);for(const idx of indexes){const message=(data.chats[chatId]||[])[idx];if(message){message.timelineMode=timeline.mode;message.timelineAtMs=timeline.mode==='virtual'?timeline.virtualTimeMs:Date.now();message.elapsedSeconds=timeline.lastElapsedSeconds}}save();return indexes};
+function showTimeSenseSettings(){if(!currentChat)return;const timeline=v438Timeline(currentChat),date=new Date(timeline.virtualTimeMs),local=new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,19);modal(`<h2>会话时间感</h2><div class="time-mode-picker"><button class="${timeline.mode==='real'?'on':''}" onclick="v438SetTimeMode('real')"><b>现实时间</b><small>跟随设备时间与真实经过时长</small></button><button class="${timeline.mode==='virtual'?'on':''}" onclick="v438SetTimeMode('virtual')"><b>虚拟时间</b><small>由剧情内容推进秒、分钟与小时</small></button></div><div class="time-current-card"><small>${timeline.mode==='virtual'?'当前虚拟时间':'当前现实时间'}</small><b>${esc(v438DateText(timeline.mode==='virtual'?timeline.virtualTimeMs:Date.now()))}</b><span>累计 ${esc(v438Duration(timeline.totalElapsedSeconds))} · 上轮 ${esc(v438Duration(timeline.lastElapsedSeconds))}</span></div>${timeline.mode==='virtual'?`<div class="field"><label>手动校准虚拟时间</label><input id="virtualTimeInput" type="datetime-local" step="1" value="${attr(local)}"></div>`:''}<div class="form-actions"><button onclick="closeModal()">取消</button>${timeline.mode==='virtual'?'<button onclick="v438ResetTimeline()">重置累计</button><button class="primary" onclick="v438SaveVirtualTime()">保存校准</button>':'<button class="primary" onclick="closeModal()">完成</button>'}</div>`)}
+function v438SetTimeMode(mode){const timeline=v438Timeline(currentChat);timeline.mode=mode==='virtual'?'virtual':'real';timeline.lastRequestAt=Date.now();if(timeline.mode==='virtual'&&!timeline.virtualTimeMs)timeline.virtualTimeMs=Date.now();save();showTimeSenseSettings()}
+function v438SaveVirtualTime(){const value=document.getElementById('virtualTimeInput')?.value,ms=value?new Date(value).getTime():NaN;if(!Number.isFinite(ms))return toast('请选择有效的日期时间');const timeline=v438Timeline(currentChat);timeline.virtualTimeMs=ms;timeline.lastUpdatedAt=Date.now();save();closeModal();toast('虚拟时间已校准')}
+function v438ResetTimeline(){const timeline=v438Timeline(currentChat);timeline.totalElapsedSeconds=0;timeline.lastElapsedSeconds=0;timeline.virtualTimeMs=Date.now();timeline.lastRequestAt=Date.now();save();showTimeSenseSettings()}
+
+/* ---------- request protocol independent from model brand ---------- */
+const V438_BRANDS={auto:'自动识别',openai:'GPT / OpenAI',claude:'Claude',gemini:'Gemini',deepseek:'DeepSeek',other:'其他'};
+function v438GuessBrand(model=''){const value=String(model||'').toLowerCase();if(/claude/.test(value))return'claude';if(/gemini/.test(value))return'gemini';if(/deepseek|\bds\b/.test(value))return'deepseek';if(/gpt|o1|o3|o4|openai/.test(value))return'openai';return'other'}
+function v438BrandOptions(selected='auto'){return Object.entries(V438_BRANDS).map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
+function v438ProtocolLabel(provider){return provider==='anthropic'?'Claude 原生':provider==='gemini'?'Gemini 原生':provider==='openai'?'OpenAI 兼容':provider}
+function v435ProviderOptions(capability,selected='openai'){const map={text:[['openai','OpenAI 兼容协议（中转通用）'],['anthropic','Claude 官方原生协议'],['gemini','Gemini 官方原生协议']],voice:[['openai','OpenAI 兼容 TTS'],['fish','Fish Audio'],['minimax','MiniMax']],image:[['openai_image','OpenAI 兼容生图'],['gemini_image','Gemini 原生生图'],['xai_image','xAI Images'],['novelai','NovelAI']]};return(map[capability]||map.text).map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
+function v435ConfigSummary(cfg){const brand=cfg.capability==='text'?(V438_BRANDS[cfg.modelBrand]||V438_BRANDS[v438GuessBrand(cfg.model)]):'';return`${cfg.model||'未填写模型'}${brand?` · ${brand}`:''} · ${cfg.base?cfg.base.replace(/^https?:\/\//,'').split('/')[0]:'未填写地址'}`}
+function v435EditApiConfig(id=''){const cfg=id&&data.apiConfigs[id]||{id:'',name:'',capability:'text',provider:'openai',modelBrand:'auto',base:'',key:'',model:'',voice:'alloy',speed:1};modal(`<h2>${id?'编辑 API 配置':'新增 API 配置'}</h2><div class="field"><label>配置名称</label><input id="apiCfgName" value="${attr(cfg.name)}"></div><div class="field"><label>能力类型</label><select id="apiCfgCapability" onchange="v435ApiCapabilityChanged()"><option value="text" ${cfg.capability==='text'?'selected':''}>文本 / 识图</option><option value="voice" ${cfg.capability==='voice'?'selected':''}>声音</option><option value="image" ${cfg.capability==='image'?'selected':''}>生图</option></select></div><div class="field"><label>请求协议</label><select id="mpProvider" onchange="modelProviderChanged()">${v435ProviderOptions(cfg.capability,cfg.provider)}</select><small>中转站即使承载 Claude、Gemini、GPT 或 DeepSeek，也通常选择 OpenAI 兼容协议。</small></div><div id="apiBrandField" class="field" style="display:${cfg.capability==='text'?'block':'none'}"><label>模型品牌（不改变请求格式）</label><select id="apiModelBrand">${v438BrandOptions(cfg.modelBrand||'auto')}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" value="${attr(cfg.base)}"></div><div class="field"><label>API Key</label><input id="mpKey" type="password" value="${attr(cfg.key)}"></div><div class="field"><label>模型</label><div class="model-input-row"><input id="mpModel" value="${attr(cfg.model)}"><button id="mpFetchBtn" onclick="fetchAvailableModels()">获取模型</button></div><div id="mpFetchedModels" class="model-fetch-result"></div></div><div id="apiVoiceFields" style="display:${cfg.capability==='voice'?'block':'none'}"><div class="field"><label>Voice ID</label><input id="mpVoice" value="${attr(cfg.voice||'alloy')}"></div><div class="field"><label>语速</label><input id="mpSpeed" type="number" min="0.5" max="2" step="0.05" value="${attr(cfg.speed||1)}"></div></div><div class="form-actions">${id?`<button class="danger" onclick="v435DeleteApiConfig('${attr(id)}')">删除</button>`:''}<button onclick="closeModal()">取消</button><button class="primary" onclick="v435SaveApiConfig('${attr(id)}')">保存</button></div>`)}
+function v435ApiCapabilityChanged(){const capability=document.getElementById('apiCfgCapability')?.value||'text',provider=document.getElementById('mpProvider'),voice=document.getElementById('apiVoiceFields'),brand=document.getElementById('apiBrandField');if(provider)provider.innerHTML=v435ProviderOptions(capability,capability==='voice'?'openai':capability==='image'?'openai_image':'openai');if(voice)voice.style.display=capability==='voice'?'block':'none';if(brand)brand.style.display=capability==='text'?'block':'none';modelProviderChanged()}
+function v435SaveApiConfig(id=''){const name=document.getElementById('apiCfgName')?.value.trim(),capability=document.getElementById('apiCfgCapability')?.value||'text';if(!name)return toast('请填写配置名称');const model=document.getElementById('mpModel')?.value.trim()||'',cfg={id:id||'api_'+v44UUID(),name,capability,provider:document.getElementById('mpProvider')?.value||'openai',modelBrand:capability==='text'?(document.getElementById('apiModelBrand')?.value||'auto'):'auto',base:document.getElementById('mpBase')?.value.trim()||'',key:document.getElementById('mpKey')?.value.trim()||'',model,voice:document.getElementById('mpVoice')?.value.trim()||'alloy',speed:Math.min(2,Math.max(.5,Number(document.getElementById('mpSpeed')?.value)||1))};cfg.signature=[cfg.capability,cfg.provider,cfg.base,cfg.key,cfg.model,cfg.voice].join('|');data.apiConfigs[cfg.id]=cfg;save();closeModal();renderModelProfiles();toast(`API 配置已保存 · ${v438ProtocolLabel(cfg.provider)} / ${V438_BRANDS[cfg.modelBrand]||v438GuessBrand(model)}`)}
+for(const cfg of Object.values(data.apiConfigs||{}))if(!cfg.modelBrand)cfg.modelBrand='auto';save();
+
+/* ---------- add time entry to current chat tools ---------- */
+function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(currentChat),character=!group&&directCharacterForChat(currentChat);modal(`<div class="chat-plus-sheet"><div class="chat-plus-title"><small>MORE</small><h2>${group?'群聊工具':esc(character?.name||'聊天工具')}</h2></div><div class="chat-plus-grid"><button onclick="showStickerPicker()"><span class="tool-svg">${v435Svg('sticker')}</span><b>表情包</b><small>表情与图片</small></button><button onclick="showImageGenerator()"><span class="tool-svg">${v435Svg('image')}</span><b>AI 生图</b><small>生成并发送图片</small></button><button onclick="showTimeSenseSettings()"><span class="tool-svg">${v435Svg('schedule')}</span><b>时间感</b><small>${v438Timeline(currentChat).mode==='virtual'?'虚拟时间':'现实时间'}</small></button>${group?'':`<button onclick="${currentChatMode==='offline'?`closeModal();openChat('${attr(character.id)}','online')`:`showOfflineEntryChoices('${attr(character.id)}')`}"><span class="tool-svg">${v435Svg('mode')}</span><b>${currentChatMode==='offline'?'返回线上':'线下相遇'}</b><small>切换聊天场景</small></button><button onclick="openCheckPhone()"><span class="tool-svg">${v435Svg('eye')}</span><b>查手机</b><small>查看 TA 的手机</small></button><button onclick="openReversePhone()"><span class="tool-svg">${v435Svg('reverse')}</span><b>反查手机</b><small>让 TA 查看我的手机</small></button>`}<button onclick="openSimPhone('user')"><span class="tool-svg">${v435Svg('chat')}</span><b>我的手机</b><small>直接打开</small></button></div></div>`)}
+
+
+/* =========================================================
+   POKEJI V44.0 · per-bubble edit target / character self-edit
+   ========================================================= */
+if(data.settings.characterSelfEditEnabled===undefined)data.settings.characterSelfEditEnabled=true;
+function v439EditedMark(message){return message?.role==='assistant'&&message?.editedByCharacter===true?'<span class="edited-mark">已编辑</span>':''}
+function v43MessageItemMarkup(m,i,isLast,chatId){
+ let original='',hasInlineRead=false;
+ const menuEvents=`onclick="showMsgMenu(event,${i})" oncontextmenu="return showMsgMenu(event,${i})" ontouchstart="touchStartMsg(event,${i})" ontouchend="touchEndMsg(event)"`;
+ if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
+ else if(m.kind==='image'){const src=safeImageSrc(m.image);original=src?`<div class="image-bubble" ${menuEvents}><img src="${attr(src)}" alt=""><small>${esc(m.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" ${menuEvents}>${esc(m.imageError||'AI 正在生成图片…')}</div>`}
+ else if(m.kind==='sticker')original=`<div class="sticker-bubble" ${menuEvents}><img src="${attr(safeImageSrc(m.image)||'')}" alt=""></div>`;
+ else{original=`<div class="bubble bubble-original" ${menuEvents}>${esc(m.text)}${v439EditedMark(m)}</div>`;hasInlineRead=m.role==='assistant'}
+ const translation=m.translation?`<div class="bubble-translation" onclick="showMsgMenu(event,${i})"><small>译文</small><span>${esc(m.translation)}</span></div>`:'',inlineRead=hasInlineRead?v43InlineReadButton(chatId,i,m):'',footer=isLast?`<div class="message-footer"><span class="msg-time">${esc(m.time||'')}</span></div>`:'';
+ return`<div class="message-item" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})">${`<div class="bubble-line ${hasInlineRead?'has-inline-read':''}">${original}${inlineRead}</div>`}${translation}${footer}</div>`;
+}
+function saveEditMessage(idx){const text=document.getElementById('editMsgText')?.value.trim();if(!text)return toast('内容不能为空');const message=(data.chats[currentChat]||[])[idx];if(!message)return closeModal();message.text=text;message.editedByUser=true;delete message.edited;delete message.editedByCharacter;delete message.translation;delete message.translationSource;save();closeModal();renderMessages();toast('消息已修改')}
+function v439ParseSelfEdits(raw){const edits=[];const clean=String(raw||'').replace(/<self_edit\b([^>]*)>([\s\S]*?)<\/self_edit>/gi,(_,attrs,text)=>{const targetRaw=attrs.match(/\btarget\s*=\s*["']?([^\s"'>]+)/i)?.[1]||'last',delayRaw=attrs.match(/\bdelay\s*=\s*["']?(\d+)/i)?.[1],delay=Math.min(5000,Math.max(600,Number(delayRaw)||1200));const target=targetRaw==='last'?'last':Math.max(1,Number(targetRaw)||1);const value=String(text||'').trim();if(value)edits.push({target,delay,text:value.slice(0,4000)});return''});return{clean,edits}}
+const v439BaseCommit=commitAssistantReply;
+commitAssistantReply=function(chatId,raw,options={}){const parsed=v439ParseSelfEdits(raw),indexes=v439BaseCommit(chatId,parsed.clean,options);if(data.settings.characterSelfEditEnabled!==false&&parsed.edits.length)v439ScheduleSelfEdits(chatId,indexes,parsed.edits);return indexes};
+function v439ScheduleSelfEdits(chatId,indexes,edits){const eligible=indexes.filter(idx=>{const message=(data.chats[chatId]||[])[idx];return message?.role==='assistant'&&(message.kind||'message')==='message'});for(const edit of edits){const position=edit.target==='last'?eligible.length-1:Number(edit.target)-1,targetIndex=eligible[position];if(!Number.isInteger(targetIndex))continue;const target=(data.chats[chatId]||[])[targetIndex];if(!target)continue;const targetId=target.id;setTimeout(()=>v439ApplySelfEdit(chatId,targetId,edit.text),edit.delay)}}
+function v439ApplySelfEdit(chatId,messageId,newText){const messages=data.chats[chatId]||[],message=messages.find(item=>item.id===messageId);if(!message||message.role!=='assistant'||(message.kind||'message')!=='message')return;const text=applyRegexPipeline(String(newText||''),'AI 回复').trim();if(!text||text===message.text)return;message.editHistory=Array.isArray(message.editHistory)?message.editHistory:[];message.editHistory.push({text:message.text,at:new Date().toISOString()});message.text=text;message.editedByCharacter=true;message.editedAt=new Date().toISOString();delete message.translation;delete message.translationSource;save();if(currentChat===chatId)renderMessages()}
+function v439SelfEditPrompt(){return data.settings.characterSelfEditEnabled===false?'不得输出 self_edit 标签。':`角色可以偶尔像真人一样修改自己刚发出的文字气泡，但只有在确实想纠正措辞、补一个重要细节或改变表达时使用，不能每轮使用。格式：<self_edit target="本批第几条文字气泡或last" delay="600到5000毫秒">修正后的完整文本</self_edit>。目标只能是本批次中角色自己的 message，不能修改 USER、语音、图片、表情、旁白或内心话。原消息会先显示，随后才更新并标记“已编辑”。`}
+const v439BaseSystem=buildSystemPrompt,v439BaseOffline=buildOfflineSystemPrompt,v439BaseGroup=buildGroupSystemPrompt;
+buildSystemPrompt=function(c,...args){return`${v439BaseSystem(c,...args)}\n\n【角色主动编辑消息】\n${v439SelfEditPrompt()}`};buildOfflineSystemPrompt=function(c,...args){return`${v439BaseOffline(c,...args)}\n\n【角色主动编辑消息】\n${v439SelfEditPrompt()}`};buildGroupSystemPrompt=function(g,c,...args){return`${v439BaseGroup(g,c,...args)}\n\n【角色主动编辑消息】\n${v439SelfEditPrompt()}`};
+const v439BaseLoadSettings=loadSettings;
+loadSettings=function(){v439BaseLoadSettings();const input=document.getElementById('characterSelfEditEnabled');if(input)input.checked=data.settings.characterSelfEditEnabled!==false};
+function saveCharacterSelfEditSetting(){data.settings.characterSelfEditEnabled=document.getElementById('characterSelfEditEnabled')?.checked!==false;save();toast(data.settings.characterSelfEditEnabled?'角色主动编辑已开启':'角色主动编辑已关闭')}
+
+
+/* =========================================================
+   POKEJI V44.0 · stable message-id operations
+   ========================================================= */
+function v4310EnsureMessageIds(chatId=currentChat){const messages=data.chats?.[chatId]||[];let changed=false;for(const message of messages){if(message?.id)continue;message.id='msg_'+v44UUID();changed=true}if(changed)save();return messages}
+function v4310ResolveMessage(chatId=currentChat,ref=msgMenuTarget){const messages=v4310EnsureMessageIds(chatId);if(typeof ref==='number'&&Number.isInteger(ref)){const message=messages[ref];return message?{message,index:ref,id:message.id}:null}const id=String(ref??'');if(!id)return null;const index=messages.findIndex(message=>String(message?.id||'')===id);return index>=0?{message:messages[index],index,id}:null}
+function v4310MessageIdFromNode(node){return String(node?.closest?.('[data-message-id]')?.dataset?.messageId||'')}
+function v4310MenuFromNode(event,node){const id=v4310MessageIdFromNode(node);return id?showMsgMenu(event,id):false}
+function v4310TouchStart(event,node){const id=v4310MessageIdFromNode(node);if(id)touchStartMsg(event,id)}
+function v4310PlayMessageByNode(event,node){event?.stopPropagation?.();const id=v4310MessageIdFromNode(node),resolved=v4310ResolveMessage(currentChat,id);if(resolved)void playMessageAudio(currentChat,resolved.index)}
+function touchStartMsg(event,ref){clearTimeout(msgTouchTimer);msgTouchTimer=setTimeout(()=>showMsgMenu(event,ref),600)}
+function touchEndMsg(){clearTimeout(msgTouchTimer)}
+function v4310MessageEvents(){return'oncontextmenu="return v4310MenuFromNode(event,this)" ontouchstart="v4310TouchStart(event,this)" ontouchend="touchEndMsg()" ontouchcancel="touchEndMsg()"'}
+function v43InlineReadButton(chatId,idx,message){const key=messageAudioKey(chatId,idx,message),playing=activeAudioMessageKey===key;return`<button class="message-read-button inline-read ${playing?'is-playing':''}" data-message-id="${attr(message.id)}" onclick="v4310PlayMessageByNode(event,this)" aria-label="${playing?'正在朗读':'朗读这条消息'}" title="${playing?'正在朗读':'朗读这条消息'}">${v43SpeakerIcon()}</button>`}
+function v43MessageItemMarkup(message,index,isLast,chatId){
+ const id=String(message.id),data=`data-message-id="${attr(id)}"`,events=v4310MessageEvents();let original='',hasInlineRead=false;
+ if(message.kind==='voice'){const key=messageAudioKey(chatId,index,message),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" ${data} onclick="v4310PlayMessageByNode(event,this)"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(message)}</em></button>`}
+ else if(message.kind==='image'){const src=safeImageSrc(message.image);original=src?`<div class="image-bubble" ${data} onclick="v4310MenuFromNode(event,this)"><img src="${attr(src)}" alt=""><small>${esc(message.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" ${data} onclick="v4310MenuFromNode(event,this)">${esc(message.imageError||'AI 正在生成图片…')}</div>`}
+ else if(message.kind==='sticker')original=`<div class="sticker-bubble" ${data} onclick="v4310MenuFromNode(event,this)"><img src="${attr(safeImageSrc(message.image)||'')}" alt=""></div>`;
+ else{original=`<div class="bubble bubble-original" ${data} onclick="v4310MenuFromNode(event,this)">${esc(message.text)}${v439EditedMark(message)}</div>`;hasInlineRead=message.role==='assistant'}
+ const translation=message.translation?`<div class="bubble-translation" ${data} onclick="v4310MenuFromNode(event,this)"><small>译文</small><span>${esc(message.translation)}</span></div>`:'',inlineRead=hasInlineRead?v43InlineReadButton(chatId,index,message):'',footer=isLast?`<div class="message-footer" ${data} onclick="v4310MenuFromNode(event,this)"><span class="msg-time">${esc(message.time||'')}</span></div>`:'';
+ return`<div class="message-item" ${data} ${events}><div class="bubble-line ${hasInlineRead?'has-inline-read':''}">${original}${inlineRead}</div>${translation}${footer}</div>`;
+}
+function renderMessages(){
+ const container=document.getElementById('messages'),messages=v4310EnsureMessageIds(currentChat);if(!container)return;if(!messages.length){container.innerHTML='<div class="empty"><div class="big">♡</div>还没有消息</div>';return}
+ const groupChat=groupForChat(currentChat),showAvatars=data.settings.chatAvatarMode!=='none',persona=activePersonaFor(currentChat),directCharacter=!groupChat&&directCharacterForChat(currentChat),html=[];
+ for(let index=0;index<messages.length;){const message=messages[index],id=String(message.id),data=`data-message-id="${attr(id)}"`,events=v4310MessageEvents();
+  if(message.kind==='phoneEvent'){index++;continue}
+  if(message.kind==='thought'){html.push(`<div class="thought-entry" ${data} ${events} onclick="v4310MenuFromNode(event,this)"><span>内心话</span><p>${esc(message.text)}</p>${message.translation?`<div class="thought-translation"><small>译文</small>${esc(message.translation)}</div>`:''}</div>`);index++;continue}
+  if(message.kind==='narration'){html.push(`<div class="narration-entry" ${data} ${events}><div class="narration-text" onclick="v4310MenuFromNode(event,this)">${esc(message.text)}${v439EditedMark(message)}</div>${message.translation?`<div class="narration-translation" onclick="v4310MenuFromNode(event,this)"><small>译文</small><span>${esc(message.translation)}</span></div>`:''}</div>`);index++;continue}
+  const key=v43GroupKey(message),batch=[{m:message,i:index}];let next=index+1;while(next<messages.length&&v43Renderable(messages[next])&&v43GroupKey(messages[next])===key){batch.push({m:messages[next],i:next});next++}
+  const first=batch[0].m,speaker=groupChat&&first.role==='assistant'?data.characters.find(character=>character.id===first.speaker):directCharacter,entity=first.role==='user'?persona:speaker,label=(groupChat&&first.role==='assistant'?speaker?.name:'')||(first.proactive?'主动来信':''),avatarHtml=showAvatars?messageAvatar(entity,first.role==='user'?'我':'AI'):'',items=batch.map((entry,position)=>v43MessageItemMarkup(entry.m,entry.i,position===batch.length-1,currentChat)).join('');
+  html.push(`<div class="msg-group ${first.role==='user'?'me':''} ${showAvatars?'with-avatar':'without-avatar'} ${first.mode==='offline'?'offline-message':''} ${batch.length>1?'batch-message':''}" data-batch="${attr(first.batchId||first.id)}">${avatarHtml}<div class="message-column">${label?`<div class="msg-speaker">${esc(label)}</div>`:''}${items}</div></div>`);index=next;
+ }
+ container.innerHTML=html.join('');const scroller=container.parentElement;if(scroller)scroller.scrollTop=scroller.scrollHeight;
+}
+function showMsgMenu(event,ref){event?.preventDefault?.();event?.stopPropagation?.();const resolved=v4310ResolveMessage(currentChat,ref);if(!resolved)return false;const message=resolved.message;msgMenuTarget=resolved.id;const textActions=!['sticker','image','phoneEvent'].includes(message.kind),readable=message.role==='assistant'&&message.kind==='message',history=message.role==='assistant'&&message.editedByCharacter&&Array.isArray(message.editHistory)&&message.editHistory.length;modal(`<h2>消息操作</h2><div class="about-meta message-actions">${textActions?`<div class="meta-row" onclick="translateMessage()"><span>${message.translation?'重新翻译':'翻译消息'}</span><span class="muted">原文在上 · 中文在下 ›</span></div>${message.translation?'<div class="meta-row" onclick="clearMessageTranslation()"><span>清除译文</span><span class="muted">›</span></div>':''}`:''}${readable?'<div class="meta-row" onclick="readMessage()"><span>朗读消息</span><span class="muted">扬声器图标同样可点 ›</span></div>':''}<div class="meta-row" onclick="copyMessage()"><span>复制这条</span><span class="muted">›</span></div>${textActions?'<div class="meta-row" onclick="editMessage()"><span>编辑这条</span><span class="muted">›</span></div>':''}${history?'<div class="meta-row" onclick="showMessageEditHistory()"><span>编辑前内容</span><span class="muted">›</span></div>':''}<div class="meta-row danger-row" onclick="deleteMessage()"><span>删除这条</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">取消</button></div>`);return false}
+function copyMessage(ref=msgMenuTarget){const resolved=v4310ResolveMessage(currentChat,ref);if(!resolved)return;const text=String(resolved.message.text||'');closeModal();navigator.clipboard?.writeText(text).then(()=>toast('已复制这条消息')).catch(()=>{const area=document.createElement('textarea');area.value=text;document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();toast('已复制这条消息')})}
+function editMessage(ref=msgMenuTarget){const resolved=v4310ResolveMessage(currentChat,ref);if(!resolved)return;msgMenuTarget=resolved.id;const text=resolved.message.text;closeModal();setTimeout(()=>modal(`<h2>编辑消息</h2><div class="field"><textarea id="editMsgText">${esc(text)}</textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveEditMessage()">保存</button></div>`),50)}
+function saveEditMessage(ref=msgMenuTarget){const text=document.getElementById('editMsgText')?.value.trim();if(!text)return toast('内容不能为空');const resolved=v4310ResolveMessage(currentChat,ref);if(!resolved)return closeModal();const message=resolved.message;message.text=text;message.editedByUser=true;delete message.edited;delete message.editedByCharacter;delete message.translation;delete message.translationSource;save();closeModal();renderMessages();toast('消息已修改')}
+function deleteMessage(ref=msgMenuTarget){const resolved=v4310ResolveMessage(currentChat,ref);if(!resolved)return closeModal();if(!confirm('删除这条消息？'))return;data.chats[currentChat].splice(resolved.index,1);save();closeModal();renderMessages();toast('已删除这条消息')}
+function clearMessageTranslation(ref=msgMenuTarget){const resolved=v4310ResolveMessage(currentChat,ref);if(!resolved)return closeModal();delete resolved.message.translation;delete resolved.message.translationSource;save();closeModal();renderMessages();toast('译文已清除')}
+async function translateMessage(ref=msgMenuTarget){const chatId=currentChat,resolved=v4310ResolveMessage(chatId,ref);if(!resolved)return;if(!validModel('translation')){closeModal();openView('settings');return toast('请先配置独立翻译模型')}const messageId=resolved.id;closeModal();toast('正在生成中文译文…');try{const live=v4310ResolveMessage(chatId,messageId);if(live)await translateStoredMessage(chatId,live.index,{notify:true,force:true})}catch(error){if(error?.name==='AbortError')errorDetail(error,'翻译超时或已取消');else errorDetail(error,'翻译失败')}}
+function readMessage(ref=msgMenuTarget){const chatId=currentChat,resolved=v4310ResolveMessage(chatId,ref);closeModal();if(resolved)void playMessageAudio(chatId,resolved.index)}
+function showMessageEditHistory(ref=msgMenuTarget){const resolved=v4310ResolveMessage(currentChat,ref);if(!resolved)return;const history=Array.isArray(resolved.message.editHistory)?resolved.message.editHistory:[];modal(`<h2>编辑前内容</h2>${history.length?`<div class="message-edit-history">${history.slice().reverse().map(item=>`<article><small>${esc(item.at?new Date(item.at).toLocaleString('zh-CN'):'')}</small><p>${esc(item.text||'')}</p></article>`).join('')}</div>`:'<div class="note">没有编辑记录</div>'}<div class="form-actions"><button class="primary" onclick="closeModal()">完成</button></div>`)}
+
+
+/* =========================================================
+   POKEJI V44 · final reliability and data-safety hardening
+   No visual redesign: this layer only fixes persistence, routing,
+   version migration, malformed-data handling and interaction races.
+   ========================================================= */
+(function(){
+  const v44NotificationLists=new WeakSet();
+  const v44AllowedKinds=new Set(['message','voice','image','sticker','thought','narration','phoneEvent']);
+  const v44Object=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+  const v44Text=(value,fallback='')=>String(value??fallback);
+  const v44Number=(value,fallback,min,max)=>{
+    const n=Number(value);if(!Number.isFinite(n))return fallback;
+    return Math.min(max,Math.max(min,n));
+  };
+  const v44InlineArg=value=>`decodeURIComponent('${encodeURIComponent(String(value??'')).replace(/'/g,'%27')}')`;
+
+  function v44InstallNotificationFilter(){
+    if(!Array.isArray(data?.notifications))data.notifications=[];
+    const list=data.notifications;
+    if(list.__pokejiV44Filter===true||v44NotificationLists.has(list))return;
+    const native=list.unshift.bind(list);
+    try{Object.defineProperty(list,'__pokejiV44Filter',{value:true,configurable:true})}catch{}
+    v44NotificationLists.add(list);
+    list.unshift=function(...items){
+      const kept=items.filter(item=>!item||item.type!=='chat'||!/(回复了你|主动发来消息|后台完成回复|反查|查看.*手机|手机.*查看|下一步.*查)/.test(String(item.text||'')));
+      return kept.length?native(...kept):list.length;
+    };
+  }
+
+  function v44RepairRuntimeData(){
+    if(!data||typeof data!=='object')data=blank();
+    const defaults=blank().settings;
+    data.settings={...defaults,...v44Object(data.settings)};
+    data.settings.temperature=v44Number(data.settings.temperature,.8,0,2);
+    data.settings.maxHistory=Math.round(v44Number(data.settings.maxHistory,40,4,100));
+    data.settings.summaryKeepTurns=Math.round(v44Number(data.settings.summaryKeepTurns,12,2,100));
+    data.settings.maxTokens=Math.round(v44Number(data.settings.maxTokens,2048,64,32000));
+    let timeout=Number(data.settings.timeout);if(Number.isFinite(timeout)&&timeout>0&&timeout<1000)timeout*=1000;
+    data.settings.timeout=Math.round(v44Number(timeout,60000,10000,180000));
+    data.settings.onlineMaxBubbles=Math.round(v44Number(data.settings.onlineMaxBubbles,4,2,8));
+    data.settings.proactiveMinMinutes=Math.round(v44Number(data.settings.proactiveMinMinutes,60,1,1440));
+    data.settings.proactiveMaxMinutes=Math.round(v44Number(data.settings.proactiveMaxMinutes,180,1,1440));
+    if(data.settings.proactiveMinMinutes>data.settings.proactiveMaxMinutes)[data.settings.proactiveMinMinutes,data.settings.proactiveMaxMinutes]=[data.settings.proactiveMaxMinutes,data.settings.proactiveMinMinutes];
+    data.settings.randomEventChance=Math.round(v44Number(data.settings.randomEventChance,15,0,100));
+    data.settings.chatAvatarMode=data.settings.chatAvatarMode==='none'?'none':'both';
+    for(const key of ['summaryAutoEnabled','promptCache','backgroundRelayEnabled','backgroundNotificationEnabled','screenWakeLockEnabled','proactiveEnabled','onlineMultiBubbleEnabled','innerThoughtsEnabled','autoTranslateEnabled','stickerVisionEnabled','autoReadEnabled','autoReadNarration','dynamicIslandEnabled','fullscreenEnabled','randomEventsEnabled'])data.settings[key]=data.settings[key]===undefined?defaults[key]===true:data.settings[key]===true;
+    data.settings.characterSelfEditEnabled=data.settings.characterSelfEditEnabled!==false;
+    data.settings.dynamicIsland=typeof cleanIslandConfig==='function'?cleanIslandConfig(data.settings.dynamicIsland):{...defaultDynamicIsland(),...v44Object(data.settings.dynamicIsland)};
+    data.settings.homeAppIcons=v44Object(data.settings.homeAppIcons);
+    data.settings.customFont={source:'',label:'',...v44Object(data.settings.customFont)};
+
+    data.models=v44Object(data.models);
+    for(const key of ['chat','translation','feed','random','voice','vision','image','summary','characterCompletion']){
+      const raw=v44Object(data.models[key]);
+      data.models[key]={...emptyModel(),...raw,provider:v44Text(raw.provider,'openai'),base:v44Text(raw.base),key:v44Text(raw.key),model:v44Text(raw.model),voice:v44Text(raw.voice,'alloy'),speed:v44Number(raw.speed,1,.5,2)};
+    }
+    data.apiConfigs=v44Object(data.apiConfigs);
+    for(const [id,raw] of Object.entries(data.apiConfigs)){
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)){delete data.apiConfigs[id];continue}
+      raw.id=v44Text(raw.id,id);raw.name=v44Text(raw.name,'API 配置');raw.capability=['text','voice','image'].includes(raw.capability)?raw.capability:'text';
+      raw.provider=v44Text(raw.provider,'openai');raw.base=v44Text(raw.base);raw.key=v44Text(raw.key);raw.model=v44Text(raw.model);raw.voice=v44Text(raw.voice,'alloy');raw.speed=v44Number(raw.speed,1,.5,2);
+    }
+    data.modelBindings=v44Object(data.modelBindings);
+
+    data.characters=Array.isArray(data.characters)?data.characters.map(item=>{try{return normalizeCharacter(v44Object(item))}catch{return null}}).filter(Boolean):[];
+    data.personas=Array.isArray(data.personas)&&data.personas.length?data.personas.map(item=>{try{return normalizePersona(v44Object(item))}catch{return null}}).filter(Boolean):[defaultPersona()];
+    if(!data.personas.length)data.personas=[defaultPersona()];
+    data.activePersonaId=data.personas.some(item=>item.id===data.activePersonaId)?data.activePersonaId:data.personas[0].id;
+    data.conversationPersonaBindings=v44Object(data.conversationPersonaBindings);
+
+    data.groups=Array.isArray(data.groups)?data.groups.map(group=>{
+      const g=v44Object(group),memberIds=[...new Set((Array.isArray(g.memberIds)?g.memberIds:[]).map(String).filter(id=>data.characters.some(c=>c.id===id)))];
+      return {...g,id:v44Text(g.id,v44UUID()),name:v44Text(g.name,'未命名群聊'),memberIds,turnIndex:Math.max(0,Math.floor(Number(g.turnIndex)||0))};
+    }).filter(g=>g.memberIds.length>=2):[];
+
+    data.chats=v44Object(data.chats);
+    for(const [chatId,rawList] of Object.entries(data.chats)){
+      const list=Array.isArray(rawList)?rawList:[];
+      data.chats[chatId]=list.filter(item=>item&&typeof item==='object').map((raw,index)=>{
+        const message={...raw};message.id=v44Text(message.id,`msg_${v44UUID()}`);message.role=message.role==='user'?'user':'assistant';message.kind=v44AllowedKinds.has(message.kind)?message.kind:'message';message.text=v44Text(message.text);message.time=v44Text(message.time,'');
+        if(message.mode!=='offline'&&message.mode!=='online'&&message.mode!=='group')message.mode=message.mode==='offline'?'offline':'online';
+        if(message.sceneMode!=='story')message.sceneMode='direct';
+        return message;
+      });
+    }
+    data.chatSettings=v44Object(data.chatSettings);
+    data.chatSummaries=v44Object(data.chatSummaries);
+    data.chatTimelines=v44Object(data.chatTimelines);
+    data.translationCache=v44Object(data.translationCache);
+    data.proactiveSchedule=v44Object(data.proactiveSchedule);
+    data.feedCovers=v44Object(data.feedCovers);
+    data.phonePageReplies=v44Object(data.phonePageReplies);
+    data.notifications=Array.isArray(data.notifications)?data.notifications.filter(item=>item&&typeof item==='object').map(item=>({...item,text:String(item.text||''),time:String(item.time||'')})):[];
+    data.worlds=Array.isArray(data.worlds)?data.worlds.filter(item=>item&&typeof item==='object'):[];
+    data.memories=Array.isArray(data.memories)?data.memories.filter(item=>item&&typeof item==='object').map(item=>({...item,title:String(item.title||''),text:String(item.text||''),time:String(item.time||'')})):[];
+    data.posts=Array.isArray(data.posts)?data.posts.filter(item=>item&&typeof item==='object'):[];
+    data.stickerCategories=Array.isArray(data.stickerCategories)?data.stickerCategories.filter(Boolean):[{id:'stickers_default',name:'默认'}];
+    if(!data.stickerCategories.some(item=>item.id==='stickers_default'))data.stickerCategories.unshift({id:'stickers_default',name:'默认'});
+    data.stickers=Array.isArray(data.stickers)?data.stickers.filter(item=>item&&safeImageSrc(item.image)):[];
+    data.simPhones=v44Object(data.simPhones);data.simPhones.personas=v44Object(data.simPhones.personas);data.simPhones.characters=v44Object(data.simPhones.characters);
+    for(const [id,store] of Object.entries(data.simPhones.personas))data.simPhones.personas[id]={items:Array.isArray(store?.items)?store.items.map(normalizeSimPhoneItem):[]};
+    for(const [id,store] of Object.entries(data.simPhones.characters))data.simPhones.characters[id]={items:Array.isArray(store?.items)?store.items.map(normalizeSimPhoneItem):[]};
+    try{data.homeDesktop=normalizeHomeDesktop(data.homeDesktop)}catch{data.homeDesktop=defaultHomeDesktop()}
+    v44InstallNotificationFilter();
+  }
+
+  // Run repair after all legacy migration code has loaded, without altering the visual layer.
+  try{v44RepairRuntimeData();if(typeof v435EnsureApiLibrary==='function')v435EnsureApiLibrary();save();applyAppearance()}catch(error){console.warn('V44 数据修复未完全完成：',error)}
+
+  // Keep one-time phone permission until the request actually finishes. The old override
+  // reset it on every read, which made phone_prompt data impossible to use.
+  getChatSettings=function(id){
+    let canonical='';try{canonical=canonicalChatId(id)}catch{canonical=String(id||'')}
+    data.chatSettings??={};const raw=v44Object(data.chatSettings[canonical]);const saved=v44Object(v43ReadModeStore()[canonical]);
+    const mode=saved.mode==='offline'||raw.mode==='offline'?'offline':'online';
+    const offlineStyle=(saved.offlineStyle||raw.offlineStyle)==='story'?'story':'direct';
+    const granted=raw.reversePhoneGranted===true&&(!raw.reversePhoneGrantedAt||Date.now()-Number(raw.reversePhoneGrantedAt)<15*60*1000);
+    data.chatSettings[canonical]={...raw,background:v44Text(raw.background),personaId:parsePersonaThreadId(canonical)?.personaId||v44Text(raw.personaId),reversePhoneGranted:granted,mode,offlineStyle};
+    return data.chatSettings[canonical];
+  };
+
+  chatModeForId=function(chatId=currentChat){
+    if(isGroupChatId(chatId))return'group';
+    let canonical=String(chatId||'');try{canonical=canonicalChatId(canonical)}catch{}
+    if(canonical===currentChat&&['online','offline'].includes(currentChatMode))return currentChatMode;
+    const saved=v44Object(v43ReadModeStore()[canonical]||data.chatSettings?.[canonical]);
+    return saved.mode==='offline'?'offline':'online';
+  };
+
+  // Chat/contact lists must reopen the remembered scene instead of forcing online mode.
+  renderChats=function(){
+    const e=document.getElementById('chatList');if(!e)return;
+    const q=String(document.getElementById('chatSearch')?.value||'').toLowerCase();
+    const arr=data.characters.filter(c=>String(c.name||'').toLowerCase().includes(q));
+    if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>${q?'没有匹配的角色':'还没有角色<br>请先创建角色。'}</div>`;return}
+    const modes=v43ReadModeStore();
+    e.innerHTML=arr.map(c=>{
+      const chatId=directChatId(c.id),m=(data.chats[chatId]||[]).filter(Boolean).at(-1),saved=modes[chatId]||data.chatSettings?.[chatId]||{};
+      const badge=data.settings.proactiveEnabled===true&&c.proactiveEnabled?'<span class="chat-live-badge">主动</span>':'';
+      return `<div class="row card chat-channel-row"><button class="chat-row-main" onclick="openChat(${v44InlineArg(c.id)})">${avatar(c)}<span class="chat-row-copy"><b>${esc(c.name)} ${badge}</b><span class="muted">${saved.mode==='offline'?'线下 · ':''}${esc(m?.text||'尚未开始聊天')}</span></span><time>${esc(m?.time||'')}</time></button></div>`;
+    }).join('');
+  };
+  renderContacts=function(q=''){
+    const e=document.getElementById('contactList');if(!e)return;
+    const query=String(q||'').toLowerCase(),arr=data.characters.filter(c=>String(c.name||'').toLowerCase().includes(query));
+    const cc=document.getElementById('characterCount'),pc=document.getElementById('personaCount');if(cc)cc.textContent=`${data.characters.length} 个角色`;if(pc)pc.textContent=`${data.personas.length} 张面具`;
+    if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>${query?'没有匹配的角色':'还没有角色<br>从上方角色设置中心开始创建。'}</div>`;return}
+    e.innerHTML=arr.map(c=>`<div class="row card character-list-row" onclick="openChat(${v44InlineArg(c.id)})">${avatar(c)}<div class="character-list-copy"><b>${esc(c.name)}</b><div class="muted">${esc(typeof v435CharacterStatus==='function'?v435CharacterStatus(c):(c.status||c.bio||'尚未填写角色摘要'))}</div></div><button class="icon-btn" aria-label="编辑角色" onclick="event.stopPropagation();editCharacter(${v44InlineArg(c.id)})">⋯</button></div>`).join('');
+  };
+  renderGroups=function(){
+    const e=document.getElementById('groupList');if(!e)return;
+    if(!data.groups.length){e.innerHTML='<div class="empty"><div class="big">❖</div>还没有群聊<br>至少创建 2 个角色后即可建群。</div>';return}
+    e.innerHTML=data.groups.map(g=>{const members=g.memberIds.map(id=>data.characters.find(c=>c.id===id)).filter(Boolean),last=(data.chats[groupChatId(g.id)]||[]).filter(Boolean).at(-1);let preview=last?.text||'尚未开始聊天';if(last?.role==='assistant'){const speaker=data.characters.find(c=>c.id===last.speaker);preview=`${speaker?speaker.name+'：':''}${preview}`};return `<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat(${v44InlineArg(g.id)})">${avatarStack(members)}<div style="flex:1;min-width:0"><b>${esc(g.name)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${esc(preview)}</div></div><span class="muted">${esc(last?.time||'')}</span></div>`}).join('');
+  };
+
+  // Group settings previously edited whichever chat happened to be open.
+  let v44EditingGroupId='';
+  const v44BaseEditGroup=editGroup;
+  editGroup=function(id){v44EditingGroupId=String(id||'');return v44BaseEditGroup(id)};
+  const v44BaseChooseChatBackground=chooseChatBackground;
+  chooseChatBackground=function(){
+    if(!v44EditingGroupId)return v44BaseChooseChatBackground();
+    const target=groupChatId(v44EditingGroupId),input=document.createElement('input');input.type='file';input.accept='image/*';
+    input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;getChatSettings(target).background=await readImageFile(file);save();editGroup(v44EditingGroupId);toast('群聊背景已更换')}catch(error){errorDetail(error,'群聊背景读取失败')}};input.click();
+  };
+  const v44BaseClearChatBackground=clearChatBackground;
+  clearChatBackground=function(){
+    if(!v44EditingGroupId)return v44BaseClearChatBackground();const target=groupChatId(v44EditingGroupId);getChatSettings(target).background='';save();editGroup(v44EditingGroupId);toast('已恢复群聊背景');
+  };
+  const v44BaseCloseModal=closeModal;
+  closeModal=function(){v44EditingGroupId='';return v44BaseCloseModal()};
+
+  // Clipboard and download APIs are optional in installed WebViews.
+  function v44CopyText(text){
+    const value=String(text??'');
+    if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function')return navigator.clipboard.writeText(value);
+    return new Promise((resolve,reject)=>{try{const area=document.createElement('textarea');area.value=value;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();const ok=document.execCommand&&document.execCommand('copy');area.remove();ok?resolve():reject(Error('copy unavailable'))}catch(error){reject(error)}});
+  }
+  copyError=function(){v44CopyText(window.__lastError||'').then(()=>toast('完整报错已复制')).catch(()=>toast('复制失败'))};
+  downloadJSON=function(obj,name){try{const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=String(name||'pokeji-data.json');a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(error){errorDetail(error,'文件导出失败')}};
+
+  // Error details must never recursively open an error modal.
+  const v44BaseErrorDetail=errorDetail;let v44ErrorModalBusy=false;
+  errorDetail=function(error,context='运行错误'){
+    if(v44ErrorModalBusy){try{console.error(redactSensitive(`${context}: ${error?.message||String(error)}`))}catch{}return}
+    v44ErrorModalBusy=true;try{return v44BaseErrorDetail(error,context)}finally{setTimeout(()=>{v44ErrorModalBusy=false},0)}
+  };
+  const v44BaseRedact=redactSensitive;
+  redactSensitive=function(value){
+    let result=String(value??'');const profiles=[...Object.values(data?.models||{}),...Object.values(data?.apiConfigs||{})];
+    for(const profile of profiles){for(const field of ['key','apiKey','token','accessToken']){const secret=String(profile?.[field]||'');if(secret.length>=4)result=result.split(secret).join('[REDACTED]')}}
+    const legacyKey=String(data?.settings?.apiKey||'');if(legacyKey.length>=4)result=result.split(legacyKey).join('[REDACTED]');
+    return result.replace(/(authorization\s*[:=]\s*bearer\s+)[^\s,;]+/gi,'$1[REDACTED]').replace(/(x-api-key\s*[:=]\s*)[^\s,;]+/gi,'$1[REDACTED]').replace(/([?&](?:key|api[_-]?key|access_token|token)=)[^&\s]+/gi,'$1[REDACTED]').replace(/(\"?(?:api[_-]?key|access[_-]?token|token)\"?\s*[:=]\s*\"?)[^\"\s,}]+/gi,'$1[REDACTED]');
+  };
+
+  // Export never carries credentials, including the newer API configuration library.
+  exportSJ=function(){
+    try{
+      const copy=JSON.parse(JSON.stringify(data));
+      for(const profile of Object.values(copy.models||{}))if(profile&&typeof profile==='object')delete profile.key;
+      for(const profile of Object.values(copy.apiConfigs||{}))if(profile&&typeof profile==='object'){delete profile.key;delete profile.apiKey;delete profile.token;delete profile.accessToken;delete profile.signature}
+      if(copy.settings&&typeof copy.settings==='object'){delete copy.settings.apiKey;delete copy.settings.apiKeyToken}
+      downloadJSON({format:'pokeji-data',version:44,exportedAt:new Date().toISOString(),data:copy},`pokeji-data-${Date.now()}.json`);toast('最终资料已导出（API Key 未包含）');
+    }catch(error){errorDetail(error,'资料导出失败')}
+  };
+  importSJ=function(ev){
+    const file=ev?.target?.files?.[0];if(!file)return;
+    if(file.size>30*1024*1024){toast('资料文件过大（上限 30MB）');if(ev.target)ev.target.value='';return}
+    file.text().then(txt=>{
+      const obj=JSON.parse(txt);if(!['pokeji-data','private-ai-data','pokeji'].includes(obj?.format)||!obj.data)throw Error('这不是扑克机最终资料文件');
+      if(!confirm('最终资料导入会覆盖当前业务数据，继续吗？'))return;
+      const oldModels=v44Object(data.models),oldConfigs=v44Object(data.apiConfigs),oldLegacyKey=String(data.settings?.apiKey||'');
+      const imported=normalize(obj.data);data=imported;
+      data.models??={};
+      for(const [kind,profile] of Object.entries(data.models)){if(!profile||typeof profile!=='object')data.models[kind]=emptyModel();if(!data.models[kind].key&&oldModels[kind]?.key)data.models[kind].key=oldModels[kind].key}
+      data.apiConfigs=v44Object(data.apiConfigs);
+      for(const [id,cfg] of Object.entries(data.apiConfigs)){if(!cfg.key&&oldConfigs[id]?.key)cfg.key=oldConfigs[id].key;else if(!cfg.key){const match=Object.values(oldConfigs).find(old=>old&&old.name===cfg.name&&old.provider===cfg.provider&&old.model===cfg.model);if(match?.key)cfg.key=match.key}}
+      if(!data.settings.apiKey&&oldLegacyKey)data.settings.apiKey=oldLegacyKey;
+      v44RepairRuntimeData();if(typeof v435EnsureApiLibrary==='function')v435EnsureApiLibrary();save();location.reload();
+    }).catch(error=>errorDetail(error,'资料导入失败')).finally(()=>{if(ev?.target)ev.target.value=''});
+  };
+
+  // Provider URL and response parsing fixes for common compatible endpoints.
+  normalizeGeminiBase=function(base){let value=String(base||'').trim().replace(/\/+$/,'');value=value.replace(/\/v1beta(?:\/models(?:\/[^/?]+(?::generateContent)?)?)?$/i,'');return value||'https://generativelanguage.googleapis.com'};
+  const v44BaseParseProviderResponse=parseProviderResponse;
+  parseProviderResponse=function(provider,text){
+    const source=String(text||'').trim();
+    if(/^data:\s*/m.test(source)){
+      const pieces=[];
+      for(const line of source.split(/\r?\n/)){const payload=line.replace(/^data:\s*/,'').trim();if(!payload||payload==='[DONE]')continue;try{const j=JSON.parse(payload);const piece=extractProviderContent(provider,j)||j?.choices?.[0]?.delta?.content||j?.delta?.text||j?.content_block_delta?.delta?.text||'';if(piece)pieces.push(String(piece))}catch{}}
+      if(pieces.join('').trim())return pieces.join('');
+    }
+    return v44BaseParseProviderResponse(provider,source);
+  };
+
+  // A missing clipboard or malformed legacy message must not break message menus.
+  const v44BaseCopyMessage=copyMessage;
+  copyMessage=function(ref=msgMenuTarget){const resolved=v4310ResolveMessage(currentChat,ref);if(!resolved)return;const text=String(resolved.message.text||'');closeModal();v44CopyText(text).then(()=>toast('已复制这条消息')).catch(()=>toast('复制失败'))};
+
+  // Remember the current scene when a character is opened from every list.
+  const v44BaseOpenChatFromChatId=openChatFromChatId;
+  openChatFromChatId=function(chatId,mode=null,sceneMode='direct'){return v44BaseOpenChatFromChatId(chatId,mode,sceneMode)};
+
+  // Keep the install status truthful after Chrome reports appinstalled.
+  const v44BaseInstallStatus=updateInstallStatus;
+  updateInstallStatus=function(){
+    if(installRequestState==='installed'){document.documentElement.classList.add('installed-mode');const el=document.getElementById('installAppStatus');if(el)el.textContent='已安装 ✓';return}
+    return v44BaseInstallStatus();
+  };
+
+  // Refresh visible settings after the data repair; UI structure and CSS remain untouched.
+  try{renderHomeDesktop();renderChats();renderContacts();updateInstallStatus()}catch{}
+})();
