@@ -13,7 +13,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=42">
 <link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=42">
 <link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=42">
-<link rel="stylesheet" href="/assets/app.css?v=43.5">
+<link rel="stylesheet" href="/assets/app.css?v=43.6">
 </head>
 <body>
 
@@ -120,7 +120,7 @@
 
 <section id="contacts" class="view app-view">
 <div class="header"><h1>角色</h1><div class="actions"><button class="icon-btn" onclick="importCharacterCard()" aria-label="导入角色卡">⇧</button><button class="icon-btn" onclick="newCharacter()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
-<div class="scroll"><div class="character-studio-hero"><small>CHARACTER STUDIO</small><h2>角色设置中心</h2><p>完整档案、人格、对话行为和会话绑定都在这里。</p><div class="character-studio-stats"><span id="characterCount">0 个角色</span><span id="personaCount">1 张面具</span></div><div class="character-studio-actions"><button class="primary" onclick="newCharacter()">＋ 新建角色</button><button onclick="openPersonaManager('contacts')">◈ USER 设定</button><button onclick="importCharacterCard()">⇧ 导入角色卡</button></div></div><div class="section character-search"><input class="search" placeholder="搜索角色" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
+<div class="scroll"><div class="character-studio-hero"><small>CHARACTER STUDIO</small><h2>角色与设定</h2><p>创建角色、编辑完整设定，或在原有内容上追加补全。</p><div class="character-studio-stats"><span id="characterCount">0 个角色</span><span id="personaCount">1 张面具</span></div><div class="character-studio-actions"><button class="primary" onclick="newCharacter()">＋ 新建角色</button><button onclick="importCharacterCard()">⇧ 导入角色卡</button><button onclick="openPersonaManager('contacts')">◈ USER 面具</button><button onclick="openView('settings')">⚙ API / 补全模型</button></div></div><div class="section character-search"><input class="search" placeholder="搜索角色" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
 </section>
 
 <section id="characterEditor" class="view app-view studio-view">
@@ -275,7 +275,7 @@
 <div id="toast" class="toast"></div>
 </div></div>
 
-<script src="/assets/app.js?v=43.5"></script>
+<script src="/assets/app.js?v=43.6"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
