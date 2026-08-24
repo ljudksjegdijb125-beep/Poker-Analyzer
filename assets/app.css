@@ -943,7 +943,7 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 
 
 /* =========================================================
-   POKEJI V43.3 · aligned chat groups / voice bars
+   POKEJI V43.4 · aligned chat groups / voice bars
    ========================================================= */
 #chat .messages{gap:10px;padding:16px 12px 20px}
 #chat .msg-group{display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:8px;align-items:start;width:auto;max-width:88%;align-self:flex-start;gap:0}
@@ -996,7 +996,7 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 @media(max-width:360px){#chat .msg-group{max-width:92%}#chat .msg-group>.message-avatar{width:31px;height:31px;flex-basis:31px}#chat .msg-group.without-avatar{max-width:88%}}
 
 
-/* POKEJI V43.3 compact grouped bubbles + right-side read button */
+/* POKEJI V43.4 compact grouped bubbles + right-side read button */
 #chat .messages{gap:9px}
 #chat .msg-group .message-column{gap:2px}
 #chat .msg-group .message-item{gap:2px}
@@ -1015,8 +1015,43 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 #chat .msg-group .msg-time{line-height:1.2}
 #chat .msg-group.batch-message{margin-top:0;margin-bottom:0}
 
-/* POKEJI V43.3 balanced avatar and bubble spacing */
+/* POKEJI V43.4 balanced avatar and bubble spacing */
 #chat .msg-group{column-gap:10px}
 #chat .msg-group .message-column{gap:2px}
 #chat .msg-group .message-item+.message-item{margin-top:2px}
 #chat .msg-group.batch-message .message-item+.message-item{margin-top:2px}
+
+/* POKEJI V43.4 full phone desktop and apps */
+#modal.phone-fullscreen{background:#08080a;backdrop-filter:none}
+#modal.phone-fullscreen>.sheet{inset:0;left:0;right:0;bottom:0;width:100%;height:100%;max-height:none;padding:0;border:0;border-radius:0;background:#08080a;overflow:hidden;animation:none}
+#modal.phone-fullscreen .handle{display:none}
+#modal.phone-fullscreen #modalContent{height:100%;padding:0}
+.vphone{position:relative;width:100%;height:100%;min-height:0;overflow:hidden;background:#171719;color:#f2f2ef}
+.vphone-status{position:absolute;z-index:10;top:0;left:0;right:0;height:28px;padding:8px 17px 0;display:flex;justify-content:space-between;font-size:8px;pointer-events:none}
+.vphone-status>span:last-child{display:flex;gap:5px;align-items:center}.vphone-status i{width:12px;height:7px;border:1px solid currentColor;border-radius:2px}.vphone-status b{font-size:8px;font-weight:500}
+.vphone-home{position:absolute;inset:0;padding:55px 18px 88px;overflow:auto;background:radial-gradient(circle at 18% 7%,rgba(124,119,112,.32),transparent 28%),radial-gradient(circle at 89% 88%,#45484e,transparent 29%),linear-gradient(145deg,#454346,#111216 56%,#2b2d32)}
+.vphone.is-character .vphone-home{background:radial-gradient(circle at 77% 7%,rgba(135,115,78,.32),transparent 28%),radial-gradient(circle at 10% 88%,#484b51,transparent 29%),linear-gradient(145deg,#3f3c3c,#111216 56%,#2c2e33)}
+.vphone-home:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.1;background:repeating-linear-gradient(122deg,transparent 0 72px,#fff 73px,transparent 74px)}
+.vphone-exit{position:relative;z-index:2;height:30px;padding:0 9px;border:0;border-radius:10px;background:#11121685;color:#eee;font-size:9px;backdrop-filter:blur(12px)}
+.vphone-clock{position:relative;z-index:1;text-align:center;margin:15px 0 34px}.vphone-clock strong{display:block;font-size:49px;line-height:1;font-weight:270}.vphone-clock span{display:block;margin-top:7px;color:#d0cfca;font-size:9px}
+.vphone-icons{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));row-gap:24px;column-gap:12px}
+.vphone-icon{text-align:center;color:#f4f3ee;font-size:8px;text-shadow:0 2px 6px #0009}.vphone-icon button{width:57px;height:57px;margin:auto;border:0;border-radius:17px;background:linear-gradient(145deg,#53545a,#1c1d21);color:#f5f4ef;display:grid;place-items:center;font-size:21px;box-shadow:0 10px 19px #0008,inset 0 0 0 1px #ffffff22}
+.vphone.is-character .vphone-icon button{background:linear-gradient(145deg,#eeeeea,#b9b9b6);color:#242428;box-shadow:0 10px 19px #0008,inset 0 0 0 1px #ffffff90}
+.vphone-icon span{display:block;margin-top:6px;white-space:nowrap}
+.vphone-dock{position:absolute;z-index:6;left:15px;right:15px;bottom:15px;height:65px;padding:8px 12px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;border-radius:21px;background:#101115d8;backdrop-filter:blur(20px);box-shadow:0 14px 30px #0009,inset 0 0 0 1px #ffffff18}
+.vphone-dock button{border:0;border-radius:14px;background:#ffffff10;color:#f3f2ed}.vphone-dock b,.vphone-dock small{display:block}.vphone-dock b{font-size:18px;font-weight:400}.vphone-dock small{margin-top:2px;font-size:7px}
+.vphone-app{overflow:auto;background:#151518}.vphone-app-head{position:sticky;z-index:8;top:0;height:72px;padding:29px 13px 8px;display:grid;grid-template-columns:31px 1fr 31px;align-items:center;background:#151518eb;border-bottom:1px solid #ffffff10;backdrop-filter:blur(18px)}
+.vphone-app-head button{width:31px;height:31px;border:0;background:none;color:#eee;font-size:24px}.vphone-app-head h2{margin:0;text-align:center;font-size:15px;font-weight:550}.vphone-app-head button:last-child{font-size:18px}
+.vphone-app-body{padding:14px 14px 28px;min-height:calc(100% - 72px)}.vphone-search{height:37px;padding:0 11px;border-radius:11px;background:#252529;color:#999;display:flex;align-items:center;font-size:10px}
+.vphone-section{margin-top:17px}.vphone-section:first-child{margin-top:0}.vphone-title{display:flex;justify-content:space-between;align-items:center;padding:0 3px 8px}.vphone-title b{font-size:11px}.vphone-title small{font-size:7px;color:#777}
+.vphone-empty{padding:36px 12px;text-align:center;color:#737378;font-size:10px;border-radius:15px;background:#1d1d21}
+.vphone-list,.vphone-chat-list{overflow:hidden;border-radius:15px;background:#1e1e22}.vphone-row,.vphone-chat-list article{min-height:63px;padding:9px 10px;display:grid;grid-template-columns:40px 1fr auto;gap:9px;align-items:center;border-bottom:1px solid #ffffff0d}.vphone-row:last-child,.vphone-chat-list article:last-child{border:0}
+.vphone-row>span,.vphone-chat-list article>span{width:40px;height:40px;border-radius:12px;background:#eee;color:#222;display:grid;place-items:center;font-size:11px}.vphone-row div,.vphone-chat-list article div{min-width:0}.vphone-row b,.vphone-row small,.vphone-chat-list b,.vphone-chat-list small{display:block}.vphone-row b,.vphone-chat-list b{font-size:10px}.vphone-row small,.vphone-chat-list small{margin-top:4px;color:#888;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vphone-row i{font-style:normal;color:#777}.vphone-chat-list time{align-self:start;margin-top:3px;color:#777;font-size:7px}
+.vphone-feed{display:flex;flex-direction:column;gap:10px}.vphone-feed>article{padding:13px;border-radius:16px;background:#1e1e22}.vphone-feed header{display:flex;align-items:center;gap:9px}.vphone-feed header>span{width:36px;height:36px;border-radius:11px;background:#eee;color:#222;display:grid;place-items:center;font-size:10px}.vphone-feed header b,.vphone-feed header small{display:block}.vphone-feed header b{font-size:10px}.vphone-feed header small{margin-top:3px;color:#777;font-size:7px}.vphone-feed p{margin:11px 0 0;color:#d5d5d2;font-size:11px;line-height:1.65}.vphone-feed img{display:block;width:100%;max-height:290px;margin-top:10px;border-radius:14px;object-fit:cover}
+.vphone-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.vphone-gallery figure{margin:0;min-width:0;position:relative;aspect-ratio:1;overflow:hidden;background:#242428}.vphone-gallery img{width:100%;height:100%;object-fit:cover}.vphone-gallery figcaption{position:absolute;left:0;right:0;bottom:0;padding:13px 5px 4px;background:linear-gradient(transparent,#000b);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#eee;font-size:7px}
+.vphone-bank-card{padding:18px;border-radius:17px;background:#eeeeea;color:#222}.vphone-bank-card small,.vphone-bank-card b,.vphone-bank-card span{display:block}.vphone-bank-card small{color:#777;font-size:8px}.vphone-bank-card b{margin-top:10px;font-size:22px}.vphone-bank-card span{margin-top:6px;color:#777;font-size:8px}
+.vphone-market-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.vphone-market-tabs span{height:32px;border-radius:10px;background:#222226;display:grid;place-items:center;color:#aaa;font-size:8px}.vphone-market-tabs span:first-child{background:#eee;color:#222}
+.vphone-weather{min-height:310px;padding:33px 20px;border-radius:20px;background:radial-gradient(circle at 80% 18%,#ffffff25,transparent 24%),linear-gradient(155deg,#666c73,#2a2d34);display:flex;flex-direction:column;align-items:center;text-align:center}.vphone-weather small,.vphone-weather b,.vphone-weather span{display:block}.vphone-weather small{font-size:10px}.vphone-weather b{margin-top:35px;font-size:29px;font-weight:400}.vphone-weather span{margin-top:13px;color:#ccc;font-size:10px}
+.vphone-settings{overflow:hidden;border-radius:15px;background:#1e1e22}.vphone-settings article{min-height:60px;padding:9px 11px;display:grid;grid-template-columns:37px 1fr auto;gap:9px;align-items:center;border-bottom:1px solid #ffffff0d}.vphone-settings article:last-child{border:0}.vphone-settings>article>span{width:37px;height:37px;border-radius:11px;background:#eee;color:#222;display:grid;place-items:center}.vphone-settings b,.vphone-settings small{display:block}.vphone-settings b{font-size:10px}.vphone-settings small{margin-top:3px;color:#888;font-size:8px}.vphone-settings i{font-style:normal;color:#777}
+@media(max-width:360px){.vphone-icons{column-gap:8px;row-gap:20px}.vphone-icon button{width:52px;height:52px}.vphone-home{padding-left:14px;padding-right:14px}}
+
