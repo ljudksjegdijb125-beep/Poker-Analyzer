@@ -314,8 +314,15 @@ button:active{transform:scale(.975)}
 #settings>.scroll,#dataCenter>.scroll{-webkit-overflow-scrolling:touch}
 #settings>.scroll:after,#dataCenter>.scroll:after{content:"";display:block;height:8px}
 
-/* ---------- chat ---------- */
-#chat{background:#09090a}
+/* ---------- chat: full-screen and status ---------- */
+.chat-head-copy{min-width:0;flex:1;overflow:hidden}.chat-status-line{margin-top:3px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gold);font-size:9px;opacity:.82}.chat-fullscreen-btn{margin-left:auto}.chat-head .chat-fullscreen-btn+.icon-btn{margin-left:0}
+#chat.chat-fullscreen{position:fixed;inset:0;z-index:200;width:100vw;height:100dvh;border-radius:0;margin:0!important;background:#09090a}.chat-fullscreen .chat-head{height:78px;padding-top:calc(10px + env(safe-area-inset-top));padding-bottom:10px}.chat-fullscreen .messages{padding-left:max(18px,calc((100vw - 720px)/2));padding-right:max(18px,calc((100vw - 720px)/2));max-width:1000px;margin:auto;width:100%}.chat-fullscreen .composer{padding-left:max(14px,calc((100vw - 760px)/2));padding-right:max(14px,calc((100vw - 760px)/2));}.chat-fullscreen .chat-fullscreen-btn{color:var(--gold-hi);background:rgba(201,163,92,.13)}
+.chat-fullscreen .chat-head-copy{max-width:none}.chat-fullscreen .chat-status-line{max-width:42vw}
+@media(max-width:599px){#chat.chat-fullscreen .chat-head{padding-top:calc(12px + env(safe-area-inset-top));height:calc(73px + env(safe-area-inset-top))}}
+
+/* ---------- role / mask memory studio ---------- */
+.memory-dashboard{padding:14px 16px 4px}.memory-hero{padding:18px;border:1px solid rgba(224,201,148,.2);border-radius:22px;background:radial-gradient(circle at 90% 0,rgba(201,163,92,.16),transparent 45%),linear-gradient(145deg,rgba(238,218,159,.09),rgba(238,218,159,.018));box-shadow:0 16px 35px rgba(0,0,0,.22)}.memory-hero small{color:var(--gold);font-size:8px;letter-spacing:2px}.memory-hero h2{margin:8px 0 5px;font:24px Georgia,"Songti SC",serif;font-weight:400}.memory-hero p{margin:0;color:var(--muted);font-size:11px;line-height:1.7}.memory-scope-switch{display:flex;gap:7px;margin-top:15px;overflow:auto}.memory-scope-switch button{flex:1;min-width:78px;padding:9px 8px;border:1px solid var(--line);border-radius:11px;color:var(--muted);font-size:10px;background:rgba(0,0,0,.16)}.memory-scope-switch button.on{color:#160f05;background:var(--gold-grad);border-color:transparent;font-weight:650}.memory-filter-row{display:flex;gap:8px;align-items:center;margin:12px 0 4px}.memory-filter-row select{flex:1;border:1px solid var(--line);border-radius:11px;background:var(--panel);color:var(--ivory);padding:9px;font-size:11px}.memory-filter-row button{width:38px;height:36px;border:1px solid var(--line);border-radius:11px;color:var(--gold-hi)}.memory-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 16px 8px;color:var(--gold);font-size:10px;letter-spacing:1.2px}.memory-section-title small{color:var(--muted);letter-spacing:0}.memory-card{margin:0 16px 9px;padding:14px 15px;cursor:pointer}.memory-card .memory-card-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.memory-card .memory-card-top b{font-size:13px}.memory-card .memory-scope{font-size:9px;color:var(--gold-hi);padding:3px 7px;border-radius:99px;background:rgba(201,163,92,.1);white-space:nowrap}.memory-card p{margin:8px 0 0;color:var(--muted);font-size:11px;line-height:1.7;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.memory-card-foot{display:flex;justify-content:space-between;margin-top:9px;color:var(--whisper);font-size:9px}.memory-empty{margin-top:20px}.memory-role-banner{margin:0 16px 12px;padding:11px 13px;border-left:2px solid var(--gold);background:rgba(201,163,92,.05);color:var(--muted);font-size:10px;line-height:1.6}
+
 .chat-head{
  height:73px;padding:31px 11px 8px;display:flex;gap:8px;align-items:center;
  background:rgba(8,8,9,.9);backdrop-filter:blur(18px);
@@ -579,7 +586,11 @@ button:active{transform:scale(.975)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 
-/* ---------- V15 mobile chat layout fix ---------- */
+/* ---------- V45 presentation details ---------- */
+.stream-caret{display:inline-block;margin-left:3px;color:#777;animation:v45Caret .75s step-end infinite}@keyframes v45Caret{50%{opacity:0}}
+.change-log-list{margin:0 16px 14px;display:flex;flex-direction:column;gap:8px}.change-log-list article{padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.035)}.change-log-list time,.change-log-list b,.change-log-list p{display:block}.change-log-list time{font-size:8px;color:var(--whisper)}.change-log-list b{margin-top:4px;font-size:11px;color:var(--gold-hi)}.change-log-list p{margin:4px 0 0;color:var(--muted);font-size:10px;line-height:1.5}.api-library-head small,.api-bind-title{color:var(--muted)}
+#mpKey{-webkit-text-security:disc;text-security:disc}
+
 #chat.view.active{display:flex;flex-direction:column;}
 #chat .chat-head{flex:0 0 73px;}
 #chat > .scroll{flex:1 1 auto;min-height:0;height:auto;overflow:auto;padding-bottom:0;}
@@ -590,7 +601,9 @@ button:active{transform:scale(.975)}
 #chat.has-custom-bg .chat-head{background:rgba(8,8,9,.72);}
 #chat.has-custom-bg .composer{background:rgba(11,11,12,.78);}
 .p12-home.has-custom-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
-/* V30 functional additions */
+/* ---------- V45 phone, call, safety additions ---------- */
+.safety-sheet{margin:18px 16px;padding:26px 20px;border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.035));text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.25)}.safety-mark{width:58px;height:58px;margin:0 auto 13px;border-radius:18px;background:#ededE9;color:#202023;display:grid;place-items:center;font-size:27px}.safety-sheet>small{font-size:7px;letter-spacing:2px;color:#999}.safety-sheet h2{margin:10px 0 8px;font-size:22px}.safety-sheet p{margin:0;color:#999;font-size:11px;line-height:1.8;text-align:left}.safety-rule{margin-top:17px;padding:13px;border-radius:15px;background:rgba(141,72,78,.14);text-align:left}.safety-rule b,.safety-rule span{display:block}.safety-rule b{color:#e6b5b9;font-size:11px}.safety-rule span{margin-top:6px;color:#999;font-size:9px;line-height:1.6}
+.v45-phone-row{width:100%;display:grid;grid-template-columns:47px 1fr auto;align-items:center;gap:9px;padding:10px;border:0;border-radius:15px;background:rgba(255,255,255,.72);color:#26262a;text-align:left}.v45-phone-row>span{font-size:7px;color:#888}.v45-phone-row>div{min-width:0}.v45-phone-row b,.v45-phone-row small{display:block}.v45-phone-row b{font-size:10px}.v45-phone-row small{margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#777;font-size:8px}.v45-phone-row>i{font-style:normal;color:#999}.v45-phone-row.is-readonly{cursor:default}.v45-phone-actions{margin-top:10px}.v45-phone-history-title{margin:12px 3px 5px;color:#777;font-size:9px;letter-spacing:1px}.phone-record{align-self:center;width:min(86%,430px);margin:7px auto;padding:9px 12px;border-radius:15px;display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.74);color:#444;box-shadow:0 6px 18px rgba(0,0,0,.07)}.phone-record>span{width:29px;height:29px;border-radius:10px;display:grid;place-items:center;background:#222;color:#eee}.phone-record small{display:block;font-size:7px;letter-spacing:1px;color:#888}.phone-record p{margin:3px 0 0;font-size:10px;line-height:1.5}.phone-record.is-incoming{background:rgba(214,226,217,.8)}.phone-record.is-outgoing{background:rgba(238,232,214,.82)}.voice-transcript{margin-top:5px;max-width:100%;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.55);color:#555;font-size:10px;line-height:1.5}.voice-transcript small{display:block;margin-bottom:2px;font-size:7px;letter-spacing:1px;color:#999}.voice-transcript span{white-space:pre-wrap}.call-fullscreen{background:#101014!important}.call-fullscreen>.sheet{inset:0!important;width:100%!important;height:100%!important;max-height:none!important;border:0!important;border-radius:0!important;padding:0!important;background:#101014!important}.call-fullscreen .handle{display:none}.call-fullscreen #modalContent{height:100%;padding:0}.call-screen{height:100%;min-height:100dvh;display:flex;flex-direction:column;color:#eee;background:radial-gradient(circle at 50% 0,rgba(179,151,93,.18),transparent 38%),#101014}.call-screen.is-incoming{background:radial-gradient(circle at 50% 0,rgba(103,141,116,.2),transparent 40%),#101014}.call-topline{height:55px;padding:18px 18px 0;display:flex;justify-content:space-between;color:#aaa;font-size:10px}.call-topline button{font-size:22px;color:#aaa}.call-person{text-align:center;padding:22px 20px 14px}.call-avatar{width:78px;height:78px;margin:auto}.call-avatar .avatar{width:78px;height:78px;border-radius:25px}.call-person small{display:block;margin-top:13px;color:#999;font-size:9px}.call-person h2{margin:7px 0 0;font-size:24px;font-weight:500}.call-person p{margin:7px 0 0;color:#888;font-size:10px}.call-transcript{flex:1;overflow:auto;padding:12px 18px}.call-line{display:flex;gap:8px;margin:8px 0;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.07);font-size:11px;line-height:1.55}.call-line b{flex:none;color:#cdbb8e}.call-line span{white-space:pre-wrap}.call-line.from-user{justify-content:flex-end;background:rgba(201,163,92,.12)}.call-line.from-user b{order:2}.call-empty{text-align:center;color:#777;font-size:11px;margin-top:25px}.call-composer{display:flex;gap:8px;padding:10px 15px;background:rgba(0,0,0,.18)}.call-composer input{min-width:0;flex:1;height:40px;border:0;border-radius:13px;padding:0 12px;background:rgba(255,255,255,.1);color:#eee}.call-composer button{width:40px;border-radius:13px;background:#eee;color:#222}.call-actions{display:flex;gap:12px;padding:14px 22px calc(18px + env(safe-area-inset-bottom))}.call-actions button{flex:1;height:48px;border-radius:18px;font-size:12px}.call-answer{background:#9db8a0;color:#17221a}.call-decline,.call-hangup{background:#8d555d;color:#fff}
 .error-detail{max-height:45vh;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#141418;color:#ffd7d7;padding:14px;border-radius:12px;font-size:11px;line-height:1.55}
 @media(prefers-reduced-motion:reduce){.boot-grid,.boot-seal:before,.boot-seal:after,.boot-suit,.boot-flare,.island-pulse{animation:none!important}.p12-island{transition-duration:.01ms!important}}
 
@@ -1081,3 +1094,185 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 #chat [data-message-id]{-webkit-user-select:none;user-select:none}
 #chat .bubble-original,#chat .bubble-translation,#chat .image-bubble,#chat .sticker-bubble,#chat .narration-text,#chat .thought-entry{cursor:pointer}
 .message-edit-history{margin:0 16px 13px;display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow:auto}.message-edit-history article{padding:11px;border-radius:13px;background:#1d1d21}.message-edit-history small{color:#777;font-size:7px}.message-edit-history p{margin:7px 0 0;color:#ddd;font-size:10px;line-height:1.6;white-space:pre-wrap}
+
+
+/* =========================================================
+   POKEJI V44.1 · high-contrast action controls
+   UI layout is unchanged. This only improves text/background
+   contrast for silver/gray buttons and disabled-looking actions.
+   ========================================================= */
+:root{
+ --action-silver:#e8e8e4;
+ --action-silver-hi:#f7f7f3;
+ --action-silver-text:#171719;
+ --action-dark:#27272b;
+ --action-dark-hi:#36363b;
+ --action-dark-text:#f4f4f1;
+ --action-muted:#b9b9b5;
+}
+
+/* Make every modal action readable on the dark sheet. */
+.form-actions button{
+ color:var(--action-silver-hi);
+ background:linear-gradient(180deg,rgba(255,255,255,.105),rgba(255,255,255,.055));
+ border-color:rgba(255,255,255,.24);
+ text-shadow:0 1px 1px rgba(0,0,0,.45);
+ font-weight:600;
+}
+.form-actions button:hover,.form-actions button:focus-visible{
+ background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.09));
+ border-color:rgba(255,255,255,.48);
+ color:#fff;
+}
+.form-actions button.primary,
+#modalContent button.primary,
+.primary{
+ background:linear-gradient(180deg,var(--action-silver-hi),var(--action-silver));
+ color:var(--action-silver-text)!important;
+ border:1px solid rgba(255,255,255,.9)!important;
+ text-shadow:none;
+ font-weight:750;
+ box-shadow:0 7px 18px rgba(0,0,0,.26),inset 0 1px rgba(255,255,255,.9);
+}
+.form-actions button.primary:hover,
+#modalContent button.primary:hover,
+.primary:hover,
+.form-actions button.primary:focus-visible,
+#modalContent button.primary:focus-visible,
+.primary:focus-visible{
+ background:linear-gradient(180deg,#fff,#e5e5e1);
+ color:#09090b!important;
+ border-color:#fff!important;
+}
+.form-actions button.danger,
+#modalContent button.danger,
+button.danger{
+ background:rgba(116,42,49,.18);
+ color:#f0aeb2!important;
+ border-color:rgba(220,118,127,.58)!important;
+ text-shadow:none;
+}
+.form-actions button.danger:hover,
+#modalContent button.danger:hover,
+button.danger:focus-visible{
+ background:rgba(145,52,61,.32);
+ color:#ffd7da!important;
+ border-color:#ef9da4!important;
+}
+
+/* Explicitly distinguish disabled controls instead of making them look like enabled gray buttons. */
+button:disabled,
+button.disabled,
+input:disabled,
+select:disabled,
+textarea:disabled{
+ opacity:1!important;
+ cursor:not-allowed;
+ filter:none;
+}
+.form-actions button:disabled,
+#modalContent button.primary:disabled,
+.primary:disabled{
+ background:#55565b!important;
+ color:#d9d9d5!important;
+ border:1px solid #77787d!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.14)!important;
+ text-shadow:0 1px 2px rgba(0,0,0,.7)!important;
+}
+
+/* Silver selection cards shown in the screenshots. */
+.time-mode-picker button.on,
+.engine-tabs button.on,
+.editor-tabs button.on,
+.sticker-category-tabs button.on,
+.feed-persona-tabs button.on{
+ background:linear-gradient(180deg,#fafaf7,#dededb)!important;
+ color:#141416!important;
+ border-color:#fff!important;
+ text-shadow:none;
+ box-shadow:0 5px 14px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.95);
+}
+.time-mode-picker button:not(.on),
+.engine-tabs button:not(.on),
+.editor-tabs button:not(.on),
+.sticker-category-tabs button:not(.on),
+.feed-persona-tabs button:not(.on){
+ color:#d0d0cc;
+}
+
+/* Gray utility buttons used inside sheets and settings. */
+.api-library-head button,
+.model-input-row button,
+.provider-presets button,
+.character-completion-bar button,
+.character-completion-model-card button,
+.chat-plus-grid button>span,
+.chat-action-symbol,
+.data-row-primary,
+.data-row-primary .data-row-icon,
+.sticker-library-actions button.primary,
+.data-row-primary,
+#characterEditor .editor-hero>button,
+#characterEditor .editor-tabs button.on,
+#characterEditor .editor-section-title>span{
+ filter:none;
+}
+.api-library-head button,
+.model-input-row button,
+.character-completion-bar button,
+.data-row-primary,
+.sticker-library-actions button.primary{
+ background:linear-gradient(180deg,#fafaf7,#dededb)!important;
+ color:#171719!important;
+ border:1px solid #fff!important;
+ text-shadow:none;
+ font-weight:750;
+}
+.provider-presets button,
+.character-completion-model-card button,
+.sticker-library-actions button:not(.primary),
+.api-bindings button,
+.summary-picker button{
+ color:#e8e8e4;
+ background:rgba(255,255,255,.105);
+ border:1px solid rgba(255,255,255,.2);
+}
+.provider-presets button:hover,
+.character-completion-model-card button:hover,
+.sticker-library-actions button:hover,
+.api-bindings button:hover,
+.summary-picker button:hover{
+ background:rgba(255,255,255,.18);
+ border-color:rgba(255,255,255,.42);
+ color:#fff;
+}
+
+/* The screenshot's large gray cards need dark text only when selected/active. */
+.time-mode-picker button.on b,
+.time-mode-picker button.on small,
+.editor-tabs button.on,
+.sticker-category-tabs button.on,
+.feed-persona-tabs button.on{
+ color:#141416!important;
+}
+
+/* Improve gray text on light bubbles/cards without changing their size. */
+.sim-app-grid button,
+.sim-phone-list>button,
+.vphone-bank-card,
+.vphone-market-tabs span:first-child,
+.vphone.is-character .vphone-icon button{
+ color:#171719;
+}
+.sim-app-grid button small,
+.sim-phone-list>button small,
+.vphone-bank-card small,
+.vphone-bank-card span{color:#55565b}
+
+/* Preserve readable contrast when a primary button is inside a light virtual-phone sheet. */
+.sim-phone .form-actions button.primary{background:linear-gradient(180deg,#303035,#171719)!important;color:#fff!important;border-color:#55565b!important;text-shadow:none}
+.sim-phone .form-actions button:not(.primary){color:#242428;border-color:rgba(30,30,34,.28);background:rgba(255,255,255,.52)}
+
+@media(prefers-contrast:more){
+ .form-actions button,.primary,.time-mode-picker button,.editor-tabs button,.sticker-category-tabs button{border-width:2px!important}
+}

@@ -1,0 +1,168 @@
+/* =========================================================
+   POKEJI V45 FINAL · streaming, cache telemetry, optional API bindings,
+   drawing prompt layers, virtual-phone generation and change announcements.
+   Chat history is intentionally untouched.
+   ========================================================= */
+(function(){
+  if(window.__pokejiV45FinalLoaded)return;
+  window.__pokejiV45FinalLoaded=true;
+  const text=(v,f='')=>String(v??f), obj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const arg=v=>`decodeURIComponent('${encodeURIComponent(String(v??'')).replace(/'/g,'%27')}')`;
+  const now=()=>new Date().toISOString();
+  const labels={...(typeof V435_FUNCTION_LABELS!=='undefined'?V435_FUNCTION_LABELS:{}),characterCompletion:'角色补全'};
+  const scopeNames={global:'全局',persona:'USER 面具',character:'角色',group:'群聊',conversation:'本会话'};
+  const v45Harden=window.v45HardenInputs||function(){};
+  v45Harden();
+  data.settings={...data.settings,streamingEnabled:data.settings?.streamingEnabled!==false,imagePromptGlobal:text(data.settings?.imagePromptGlobal)};
+  data.apiDisabledKinds=obj(data.apiDisabledKinds);data.runtime=obj(data.runtime);data.runtime.cacheDiagnostics=obj(data.runtime.cacheDiagnostics);data.runtime.changeLog=Array.isArray(data.runtime.changeLog)?data.runtime.changeLog:[];
+  data.settings.phoneAutoGenerate=data.settings.phoneAutoGenerate!==false;
+  data.runtime.phoneGeneratedAt=obj(data.runtime.phoneGeneratedAt);
+  for(const c of data.characters||[])c.imagePrompt=text(c.imagePrompt);
+  for(const p of data.personas||[])p.imagePrompt=text(p.imagePrompt);
+
+  function announce(area,detail){
+    const item={area:text(area,'设置'),detail:text(detail),at:now()};
+    data.runtime.changeLog.unshift(item);data.runtime.changeLog=data.runtime.changeLog.slice(0,100);save();toast(`${item.area}已更新：${item.detail}`);
+  }
+  function updateCacheLabel(){
+    const el=document.getElementById('cacheDiagnosticsLabel'),d=data.runtime.cacheDiagnostics||{};if(!el)return;
+    if(!d.at){el.textContent='等待聊天 ›';return}
+    el.textContent=d.hit>0?`已命中 ${d.hit} tokens ›`:d.created>0?'已建立缓存 ›':'未返回命中数据 ›';
+  }
+
+  /* ---------- API configuration library: explicit optional/unbound state ---------- */
+  const v45ApiBase=typeof v435EnsureApiLibrary==='function'?v435EnsureApiLibrary:null;
+  v435EnsureApiLibrary=function(){if(v45ApiBase)v45ApiBase();data.apiDisabledKinds=obj(data.apiDisabledKinds);data.modelBindings=obj(data.modelBindings);for(const [k,off] of Object.entries(data.apiDisabledKinds)){if(off){delete data.modelBindings[k];if(data.models?.[k])data.models[k]=emptyModel()}}};
+  v435EnsureApiLibrary();
+  function providerOptions(capability,selected='openai'){
+    const map={text:[['openai','OpenAI 兼容协议'],['anthropic','Claude 原生协议'],['gemini','Gemini 原生协议']],voice:[['openai','OpenAI 兼容 TTS'],['fish','Fish Audio'],['minimax','MiniMax']],image:[['openai_image','OpenAI 兼容生图'],['gemini_image','Gemini 原生生图'],['xai_image','xAI Images'],['novelai','NovelAI']]};
+    return(map[capability]||map.text).map(([v,l])=>`<option value="${v}" ${v===selected?'selected':''}>${l}</option>`).join('');
+  }
+  function capabilityFor(kind){return kind==='voice'?'voice':kind==='image'?'image':'text'}
+  function configSummary(cfg){return`${cfg?.model||'未填写模型'} · ${cfg?.base?cfg.base.replace(/^https?:\/\//,'').split('/')[0]:'未填写地址'}`}
+  v435ConfigSummary=configSummary;
+  renderModelProfiles=function(){
+    v435EnsureApiLibrary();const e=document.getElementById('modelProfiles');if(!e)return;const configs=Object.values(data.apiConfigs||{});
+    const configRows=configs.length?configs.map(cfg=>`<button onclick="v435EditApiConfig(${arg(cfg.id)})"><span class="api-kind">${cfg.capability==='voice'?'V':cfg.capability==='image'?'I':'A'}</span><span><b>${esc(cfg.name||'API 配置')}</b><small>${esc(configSummary(cfg))}</small></span><i>编辑 ›</i></button>`).join(''):'<div class="api-library-empty">还没有保存 API 配置</div>';
+    const bindingRows=Object.entries(labels).map(([kind,label])=>{const id=data.modelBindings?.[kind],cfg=id&&data.apiConfigs?.[id],disabled=data.apiDisabledKinds?.[kind]===true||!cfg;return`<button onclick="v435BindFunction('${attr(kind)}')"><span><b>${esc(label)}</b><small>${disabled?'未使用':esc(cfg.model||'已绑定')}</small></span><i>${disabled?'选择配置':esc(cfg.name||'选择配置')} ›</i></button>`}).join('');
+    e.innerHTML=`<div class="api-library-head"><span><b>API 配置库</b><small>${configs.length} 套已保存 · 功能可明确选择“不使用”</small></span><button onclick="v435EditApiConfig()">＋ 新增</button></div><div class="api-library-list">${configRows}</div><div class="api-bind-title">功能绑定</div><div class="api-bindings">${bindingRows}</div>`;
+  };
+  v435EditApiConfig=function(id=''){
+    v435EnsureApiLibrary();const cfg=id&&data.apiConfigs[id]||{id:'',name:'',capability:'text',provider:'openai',base:'',key:'',model:'',voice:'alloy',speed:1};
+    modal(`<h2>${id?'编辑 API 配置':'新增 API 配置'}</h2><div class="note">这里只配置请求协议、地址、密钥和模型名。已移除无实际请求作用的“模型品牌”字段；协议决定请求格式，模型名会原样发送给服务商。</div><div class="field"><label>配置名称</label><input id="apiCfgName" autocomplete="off" value="${attr(cfg.name)}" placeholder="例如：主线路、备用线路"></div><div class="field"><label>能力类型</label><select id="apiCfgCapability" onchange="v45ApiCapabilityChanged()"><option value="text" ${cfg.capability==='text'?'selected':''}>文本 / 识图</option><option value="voice" ${cfg.capability==='voice'?'selected':''}>声音</option><option value="image" ${cfg.capability==='image'?'selected':''}>生图</option></select></div><div class="field"><label>请求协议</label><select id="mpProvider" onchange="modelProviderChanged()">${providerOptions(cfg.capability,cfg.provider)}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" autocomplete="off" value="${attr(cfg.base)}" placeholder="https://..."></div><div class="field"><label>API Key / Token</label><input id="mpKey" type="text" name="service-token-value" autocomplete="off" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" style="-webkit-text-security:disc;text-security:disc" value="${attr(cfg.key)}"></div><div class="field"><label>模型名</label><div class="model-input-row"><input id="mpModel" autocomplete="off" value="${attr(cfg.model)}" placeholder="可手填，也可获取模型列表"><button id="mpFetchBtn" type="button" onclick="fetchAvailableModels()">获取模型</button></div><div id="mpFetchedModels" class="model-fetch-result"></div></div><div id="apiVoiceFields" style="display:${cfg.capability==='voice'?'block':'none'}"><div class="field"><label>Voice ID</label><input id="mpVoice" autocomplete="off" value="${attr(cfg.voice||'alloy')}"></div><div class="field"><label>语速</label><input id="mpSpeed" type="number" min="0.5" max="2" step="0.05" value="${attr(cfg.speed||1)}"></div></div><div class="form-actions">${id?`<button class="danger" onclick="v435DeleteApiConfig(${arg(id)})">删除</button>`:''}<button onclick="closeModal()">取消</button><button class="primary" onclick="v435SaveApiConfig(${arg(id)})">保存</button></div>`);
+  };
+  window.v45ApiCapabilityChanged=function(){const cap=document.getElementById('apiCfgCapability')?.value||'text',p=document.getElementById('mpProvider'),voice=document.getElementById('apiVoiceFields');if(p)p.innerHTML=providerOptions(cap,cap==='voice'?'openai':cap==='image'?'openai_image':'openai');if(voice)voice.style.display=cap==='voice'?'block':'none';modelProviderChanged()};
+  v435ApiCapabilityChanged=v45ApiCapabilityChanged;
+  v435SaveApiConfig=function(id=''){
+    const name=document.getElementById('apiCfgName')?.value.trim(),capability=document.getElementById('apiCfgCapability')?.value||'text';if(!name)return toast('请填写配置名称');
+    const cfg={id:id||'api_'+v44UUID(),name,capability,provider:document.getElementById('mpProvider')?.value||'openai',base:document.getElementById('mpBase')?.value.trim()||'',key:document.getElementById('mpKey')?.value||'',model:document.getElementById('mpModel')?.value.trim()||'',voice:document.getElementById('mpVoice')?.value.trim()||'alloy',speed:Math.min(2,Math.max(.5,Number(document.getElementById('mpSpeed')?.value)||1))};
+    cfg.signature=[cfg.capability,cfg.provider,cfg.base,cfg.key,cfg.model,cfg.voice].join('|');data.apiConfigs[cfg.id]=cfg;
+    for(const [kind,bound] of Object.entries(data.modelBindings||{}))if(bound===cfg.id)delete data.apiDisabledKinds[kind];
+    save();closeModal();renderModelProfiles();announce('API 配置',`已保存“${cfg.name}”`);
+  };
+  v435DeleteApiConfig=function(id){
+    const cfg=data.apiConfigs?.[id];if(!cfg)return;if(!confirm(`删除 API 配置“${cfg.name||id}”？使用它的功能将改为“不使用”，不会自动恢复。`))return;
+    delete data.apiConfigs[id];data.modelBindings=obj(data.modelBindings);data.apiDisabledKinds=obj(data.apiDisabledKinds);
+    for(const [kind,bound] of Object.entries(data.modelBindings))if(bound===id){delete data.modelBindings[kind];data.apiDisabledKinds[kind]=true;if(data.models?.[kind])data.models[kind]=emptyModel()}
+    save();closeModal();renderModelProfiles();announce('API 配置',`已删除“${cfg.name||id}”，相关功能已停用`);
+  };
+  v435BindFunction=function(kind){
+    v435EnsureApiLibrary();const capability=capabilityFor(kind),configs=Object.values(data.apiConfigs||{}).filter(c=>c.capability===capability),current=data.modelBindings?.[kind]||'';
+    modal(`<h2>绑定${esc(labels[kind]||kind)}</h2><div class="note">不需要的功能可以选择“不使用”。停用后不会自动调用，也不会因为旧配置而重新生成。</div><div class="api-binding-picker"><label><input type="radio" name="apiBinding" value="__none__" ${!current||data.apiDisabledKinds?.[kind]?'checked':''}><span><b>不使用此功能</b><small>关闭该功能的独立 API 调用</small></span></label>${configs.map(cfg=>`<label><input type="radio" name="apiBinding" value="${attr(cfg.id)}" ${cfg.id===current&&!data.apiDisabledKinds?.[kind]?'checked':''}><span><b>${esc(cfg.name)}</b><small>${esc(configSummary(cfg))}</small></span></label>`).join('')}</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="v435SaveBinding(${arg(kind)})">保存</button></div>`);
+  };
+  v435SaveBinding=function(kind){const id=document.querySelector('input[name="apiBinding"]:checked')?.value;if(!id)return toast('请选择一项');data.apiDisabledKinds=obj(data.apiDisabledKinds);if(id==='__none__'){delete data.modelBindings[kind];data.apiDisabledKinds[kind]=true;if(data.models?.[kind])data.models[kind]=emptyModel();}else{data.modelBindings[kind]=id;delete data.apiDisabledKinds[kind]}save();closeModal();renderModelProfiles();announce('功能绑定',`${labels[kind]||kind}${id==='__none__'?'已停用':'已绑定'}`)};
+  editModelProfile=function(kind){const id=data.modelBindings?.[kind];if(id&&!data.apiDisabledKinds?.[kind]&&data.apiConfigs?.[id])v435EditApiConfig(id);else v435BindFunction(kind)};
+  saveModelProfile=function(kind){v435SaveApiConfig(data.modelBindings?.[kind]||'')};
+
+  /* ---------- cache telemetry ---------- */
+  function recordCache(provider,raw,elapsed=0,streaming=false){
+    let hit=0,created=0,prompt=0,source=text(raw);const inspect=j=>{const u=j?.usage||j?.usageMetadata||{};hit+=Number(u?.prompt_tokens_details?.cached_tokens||u?.cached_tokens||u?.cache_read_input_tokens||u?.cachedContentTokenCount||u?.cache_read_tokens||0)||0;created+=Number(u?.cache_creation_input_tokens||u?.cache_creation_tokens||0)||0;prompt+=Number(u?.prompt_tokens||u?.promptTokenCount||0)||0};
+    if(/^data:\s*/m.test(source)){for(const line of source.split(/\r?\n/)){const p=line.replace(/^data:\s*/,'').trim();if(!p||p==='[DONE]')continue;try{inspect(JSON.parse(p))}catch{}}}else{try{inspect(JSON.parse(source))}catch{}}
+    const d={provider:text(provider,'openai'),hit,created,prompt,elapsed:Math.max(0,Math.round(elapsed)),streaming:streaming===true,at:now(),reported:Boolean(hit||created)};data.runtime.cacheDiagnostics=d;save();updateCacheLabel();return d;
+  }
+  const baseParse=typeof parseProviderResponse==='function'?parseProviderResponse:null;
+  if(baseParse)parseProviderResponse=function(provider,raw){recordCache(provider,raw,0,false);return baseParse(provider,raw)};
+  window.showCacheDiagnostics=function(){const d=data.runtime.cacheDiagnostics||{};if(!d.at)return modal('<h2>缓存诊断</h2><div class="note">还没有完成过模型请求。完成聊天请求后，这里会显示服务商返回的 usage/cache 字段。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>');const state=d.hit>0?`命中约 ${d.hit} 个缓存输入 tokens`:d.created>0?`本次建立约 ${d.created} 个缓存输入 tokens`:'服务商没有返回可识别的缓存命中字段';modal(`<h2>缓存诊断</h2><div class="about-meta"><div class="meta-row"><span>服务商协议</span><span>${esc(d.provider)}</span></div><div class="meta-row"><span>结果</span><span>${esc(state)}</span></div><div class="meta-row"><span>输入 Tokens</span><span>${esc(d.prompt||'未提供')}</span></div><div class="meta-row"><span>请求方式</span><span>${d.streaming?'流式':'完整响应'}</span></div><div class="meta-row"><span>时间</span><span>${esc(d.at?new Date(d.at).toLocaleString('zh-CN'):'')}</span></div></div><div class="note" style="padding:12px 16px">缓存是否命中由具体服务商和请求前缀长度决定。页面不会伪造“命中”；如果接口不返回 usage/cache 字段，会明确显示“未返回数据”，这不等于一定未命中。</div><div class="form-actions"><button class="primary" onclick="closeModal()">完成</button></div>`) };
+
+  /* ---------- streaming front-end response ---------- */
+  let streamContext=null;
+  function chunkText(provider,j){
+    if(provider==='anthropic')return text(j?.delta?.text||j?.content_block?.text||'');
+    if(provider==='gemini')return (j?.candidates||[]).flatMap(c=>c?.content?.parts||[]).map(p=>text(p?.text)).join('');
+    const c=j?.choices?.[0];return text(c?.delta?.content||c?.message?.content||j?.output_text||'');
+  }
+  function draftText(raw){return text(raw).replace(/<state>[\s\S]*?<\/state>/gi,'').replace(/<\/?(?:message|narration|thought|phone_query|phone_update|phone_check|voice|image|sticker)(?:\s+[^>]*)?>/gi,'').trim()||'正在组织回复…'}
+  function renderDraft(raw){
+    if(!streamContext)return;const box=document.getElementById('messages');if(!box)return;let el=document.getElementById('v45StreamDraft');if(!el){el=document.createElement('div');el.id='v45StreamDraft';el.className='msg stream-draft';box.appendChild(el)}const ctx=streamContext,entity=ctx.group?data.characters.find(c=>c.id===ctx.speakerId):directCharacterForChat(ctx.chatId);el.innerHTML=`${data.settings.chatAvatarMode==='none'?'':messageAvatar(entity,'AI')}<div class="message-column"><div class="bubble">${esc(draftText(raw))}<span class="stream-caret">▋</span></div></div>`;const scroller=box.parentElement;if(scroller)scroller.scrollTop=scroller.scrollHeight}
+  function removeDraft(){document.getElementById('v45StreamDraft')?.remove()}
+  async function fullRequest(req,signal){const r=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify({...req.body,stream:false}),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',signal});const t=await r.text();if(!r.ok)throw Error(`HTTP ${r.status} ${r.statusText}\n${t}`);return t}
+  async function streamRequest(kind,options){
+    const p=modelProfile(kind),req=buildProviderRequest({provider:p.provider,base:p.base,key:p.key,model:p.model,system:options.system,history:options.history,temperature:options.temperature,maxTokens:options.maxTokens,cacheKey:options.cacheKey,enableCache:data.settings.promptCache!==false}),provider=p.provider,start=Date.now();let url=req.url,body={...req.body};
+    if(provider==='gemini'){url=url.replace(':generateContent',':streamGenerateContent');url+=(url.includes('?')?'&':'?')+'alt=sse'}else{body.stream=true;if(provider==='openai')body.stream_options={include_usage:true};}
+    let response=await fetch(url,{method:'POST',headers:req.headers,body:JSON.stringify(body),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',signal:options.signal});
+    if(!response.ok){const detail=await response.text();if(response.status===400||response.status===404||response.status===422){const fallback=await fullRequest(req,options.signal);recordCache(provider,fallback,Date.now()-start,false);return baseParse?baseParse(provider,fallback):fallback}throw Error(`HTTP ${response.status} ${response.statusText}\n${detail}`)}
+    if(!response.body?.getReader){const full=await response.text();recordCache(provider,full,Date.now()-start,false);return baseParse?baseParse(provider,full):full}
+    const reader=response.body.getReader(),decoder=new TextDecoder(),protocol=[];let buffer='',output='';
+    const consume=(chunk,final=false)=>{buffer+=chunk;const lines=buffer.split(/\r?\n/);buffer=final?'':(lines.pop()||'');let event=[];for(const line of lines){if(line.startsWith('data:'))event.push(line.slice(5).trim());else if(!line.trim()&&event.length){const payload=event.join('\n');event=[];if(payload==='[DONE]')continue;try{const j=JSON.parse(payload);protocol.push(`data: ${payload}`);const piece=chunkText(provider,j);if(piece){output+=piece;renderDraft(output)}}catch{}}}if(final&&buffer.trim()){try{const j=JSON.parse(buffer.replace(/^data:\s*/,''));protocol.push(buffer);const piece=chunkText(provider,j);if(piece){output+=piece;renderDraft(output)}}catch{}}};
+    while(true){const {value,done}=await reader.read();if(done)break;consume(decoder.decode(value,{stream:true}))}consume(decoder.decode(),true);
+    const raw=protocol.join('\n')||output;recordCache(provider,raw,Date.now()-start,true);if(output.trim())return output;return baseParse?baseParse(provider,raw):raw;
+  }
+  const baseInvoke=invokeModel;
+  invokeModel=async function(kind,options={}){if(kind==='chat'&&streamContext&&data.settings.streamingEnabled!==false){setGenerationState('generating','正在流式接收回复…');return streamRequest(kind,options)}return baseInvoke(kind,options)};
+  const baseSend=sendMessage;
+  sendMessage=async function(payload=null){
+    if(busy)return baseSend(payload);
+    if(data.settings.streamingEnabled===false||!validAPI())return baseSend(payload);
+    const chatId=currentChat,group=groupForChat(chatId);streamContext={chatId,speakerId:group?(groupPendingSpeaker||group.memberIds[group.turnIndex%Math.max(1,group.memberIds.length)]):'',group};
+    try{return await baseSend(payload)}finally{removeDraft();streamContext=null;}
+  };
+  function saveStreamingSetting(){data.settings.streamingEnabled=document.getElementById('streamingEnabled')?.checked!==false;save();announce('聊天','流式回复已'+(data.settings.streamingEnabled?'开启':'关闭'))}
+  window.saveStreamingSetting=saveStreamingSetting;
+
+  /* ---------- drawing prompt layers ---------- */
+  function currentDrawingContext(){const ctx=v45CurrentEntity(currentChat);return{character:ctx.character,persona:ctx.persona}}
+  function composeImagePrompt(prompt,chatId=currentChat,characterOverride=null,personaOverride=null){const ctx=v45CurrentEntity(chatId),character=characterOverride||ctx.character,persona=personaOverride||ctx.persona,parts=[];if(text(data.settings.imagePromptGlobal).trim())parts.push(`【全局绘画规则】\n${text(data.settings.imagePromptGlobal).trim()}`);if(text(character?.imagePrompt).trim())parts.push(`【角色绘画规则：${character.name||'角色'}】\n${text(character.imagePrompt).trim()}`);if(text(persona?.imagePrompt).trim())parts.push(`【USER 面具绘画规则：${persona.name||'我'}】\n${text(persona.imagePrompt).trim()}`);if(text(prompt).trim())parts.push(`【本次画面】\n${text(prompt).trim()}`);return parts.join('\n\n')||text(prompt)}
+  const baseGenerateImage=generateImageFromProfile;
+  generateImageFromProfile=function(prompt){return baseGenerateImage(composeImagePrompt(prompt))};
+  window.editImagePromptLayers=function(){const ctx=currentDrawingContext();modal(`<h2>绘画提示词分层</h2><div class="note">生图时按“全局 → 当前角色 → 当前 USER 面具 → 本次画面”合并。这里的规则只影响生图，不会写入聊天历史。</div><div class="field"><label>全局绘画提示词</label><textarea id="v45GlobalImagePrompt" placeholder="全局画风、镜头、画质、色彩与禁用元素">${esc(data.settings.imagePromptGlobal||'')}</textarea></div><div class="about-meta"><div class="meta-row"><span>当前角色</span><span>${esc(ctx.character?.name||'未进入角色')}</span></div><div class="meta-row"><span>角色提示词</span><span>${ctx.character?.imagePrompt?'已设置':'未设置'}</span></div><div class="meta-row"><span>当前 USER 面具</span><span>${esc(ctx.persona?.name||'我')}</span></div><div class="meta-row"><span>面具提示词</span><span>${ctx.persona?.imagePrompt?'已设置':'未设置'}</span></div></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveImagePromptLayers()">保存全局规则</button></div>`)};
+  window.saveImagePromptLayers=function(){data.settings.imagePromptGlobal=document.getElementById('v45GlobalImagePrompt')?.value.trim()||'';save();closeModal();const el=document.getElementById('imagePromptLayersLabel');if(el)el.textContent=v45PromptLayerSummary();announce('绘画提示词','全局规则已保存')};
+  function v45PromptLayerSummary(){const count=[data.settings.imagePromptGlobal,...(data.characters||[]).map(c=>c.imagePrompt),...(data.personas||[]).map(p=>p.imagePrompt)].filter(x=>String(x||'').trim()).length;return count?`已设置 ${count} 层 ›`:'进入设置 ›'}
+  window.v45PromptLayerSummary=v45PromptLayerSummary;
+  const baseCharBinding=characterBindingPage;
+  characterBindingPage=function(d){return`${baseCharBinding(d)}<div class="field editor-wide"><label>角色绘画提示词</label><textarea id="char_imagePrompt" placeholder="外貌、固定服装、发型、气质、视觉符号与画风补充">${esc(d.imagePrompt||'')}</textarea><small>只在调用生图时合并，不会改变角色聊天设定。</small></div>`};
+  const baseCollectCharacter=collectCharacterEditorPage;
+  collectCharacterEditorPage=function(){baseCollectCharacter();if(characterEditorTab==='binding'&&characterEditorDraft){const el=document.getElementById('char_imagePrompt');if(el)characterEditorDraft.imagePrompt=el.value.trim()}};
+  const basePersonaIdentity=personaIdentityPage;
+  personaIdentityPage=function(d){return`${basePersonaIdentity(d)}<div class="field editor-wide"><label>USER 绘画提示词</label><textarea id="persona_imagePrompt" placeholder="这张面具的固定外貌、服装、气质和视觉元素">${esc(d.imagePrompt||'')}</textarea><small>只在生图时使用；不同面具可以拥有不同视觉身份。</small></div>`};
+  const baseCollectPersona=collectPersonaEditorPage;
+  collectPersonaEditorPage=function(){baseCollectPersona();if(personaEditorTab==='identity'&&personaEditorDraft){const el=document.getElementById('persona_imagePrompt');if(el)personaEditorDraft.imagePrompt=el.value.trim()}};
+const v45BaseOpenChat=typeof openChat==='function'?openChat:null;
+  if(v45BaseOpenChat)openChat=function(...args){const result=v45BaseOpenChat(...args);v45Harden();return result};
+const v45StableBaseShowImage=showImageGenerator;
+  showImageGenerator=function(){return v45StableBaseShowImage()};
+
+  /* ---------- virtual phone: manual and controlled automatic generation ---------- */
+  window.v45GeneratePhoneNow=async function(owner){const character=data.characters.find(c=>c.id===owner);if(!character)return toast('找不到角色');if(!validAPI())return toast('请先配置主聊天模型');toast(`正在生成${character.name}的虚拟手机内容…`);try{await v43GenerateCharacterPhoneSnapshot(owner,currentChat);announce('虚拟手机',`${character.name}的内容已生成`);if(typeof openSimPhone==='function')openSimPhone(owner)}catch(e){errorDetail(e,'虚拟手机生成失败')}};
+  const basePostCommit=typeof v43PostCommit==='function'?v43PostCommit:null;
+  v43PostCommit=function(chatId,indexes=[]){
+    queueAutoTranslations(chatId,indexes);if(currentChat===chatId)void autoReadMessages(chatId,indexes);
+    const character=directCharacterForChat(chatId);if(!character||data.settings.phoneAutoGenerate===false||!validAPI()||!indexes?.length)return;
+    const last=Number(data.runtime.phoneGeneratedAt[character.id])||0;if(Date.now()-last<120000)return;data.runtime.phoneGeneratedAt[character.id]=Date.now();save();setTimeout(()=>v43GenerateCharacterPhoneSnapshot(character.id,chatId).then(()=>{if(currentChat===chatId)toast(`${character.name}的虚拟手机已自动更新`)}).catch(()=>{}),900);
+  };
+  window.showChatPlusMenu=function(){
+    if(!currentChat)return;const group=groupForChat(currentChat),character=!group&&directCharacterForChat(currentChat);modal(`<div class="chat-plus-sheet"><div class="chat-plus-title"><small>CHAT TOOLS</small><h2>${group?'群聊工具':esc(character?.name||'聊天工具')}</h2><p>聊天历史仍按正常规则保留；虚拟手机只保存网站内原创剧情资料。</p></div><div class="chat-plus-grid"><button onclick="showStickerPicker()"><span>☺</span><b>表情包</b><small>分类、上传与 URL</small></button><button onclick="showImageGenerator()"><span>✦</span><b>AI 生图</b><small>合并三层绘画提示词</small></button>${group?'':`<button onclick="${currentChatMode==='offline'?`closeModal();openChat(${arg(character.id)},'online')`:`showOfflineEntryChoices(${arg(character.id)})`}"><span>◇</span><b>${currentChatMode==='offline'?'返回线上':'线下相遇'}</b><small>从这里明确切换入口</small></button><button onclick="openSimPhone(${arg(character.id)})"><span>▣</span><b>打开 TA 的手机</b><small>查看已有虚拟内容</small></button><button onclick="closeModal();v45GeneratePhoneNow(${arg(character.id)})"><span>✧</span><b>AI 生成 / 更新 TA 手机</b><small>也可以手动触发</small></button>`}<button onclick="openSimPhone('user')"><span>⌁</span><b>打开我的手机</b><small>当前 USER 面具的内容</small></button></div></div>`)};
+
+  /* ---------- settings and visible change log ---------- */
+  window.showChangeLog=function(){const rows=(data.runtime.changeLog||[]).slice(0,40);modal(`<h2>最近修改记录</h2>${rows.length?`<div class="change-log-list">${rows.map(x=>`<article><time>${esc(x.at?new Date(x.at).toLocaleString('zh-CN'):'')}</time><b>${esc(x.area)}</b><p>${esc(x.detail)}</p></article>`).join('')}</div>`:'<div class="note">还没有记录</div>'}<div class="form-actions"><button class="danger" onclick="if(confirm('清空修改播报记录？')){data.runtime.changeLog=[];save();closeModal();}">清空记录</button><button class="primary" onclick="closeModal()">完成</button></div>`)};
+  function loadV45Settings(){
+    const stream=document.getElementById('streamingEnabled');if(stream)stream.checked=data.settings.streamingEnabled!==false;updateCacheLabel();const imageLabel=document.getElementById('imagePromptLayersLabel');if(imageLabel)imageLabel.textContent=v45PromptLayerSummary();const phone=document.getElementById('phoneAutoGenerate');if(phone)phone.checked=data.settings.phoneAutoGenerate!==false;v45Harden();
+  }
+  const baseLoadSettings=loadSettings;loadSettings=function(){baseLoadSettings();loadV45Settings()};
+  const baseSaveSettings=saveSettings;saveSettings=async function(){const result=await baseSaveSettings();data.settings.streamingEnabled=document.getElementById('streamingEnabled')?.checked!==false;save();announce('设置','通用聊天设置已保存');return result};
+  const baseRandom=saveRandomEventSettings;saveRandomEventSettings=function(){baseRandom();announce('随机事件',data.settings.randomEventsEnabled?'已启用':'已关闭')};
+  window.savePhoneAutoSetting=function(){data.settings.phoneAutoGenerate=document.getElementById('phoneAutoGenerate')?.checked!==false;save();announce('虚拟手机',data.settings.phoneAutoGenerate?'自动整理已开启':'自动整理已关闭，可从聊天工具手动生成')};
+  const baseSaveCharacter=saveCharacterEditor;saveCharacterEditor=function(...a){const r=baseSaveCharacter(...a);announce('角色','角色资料已保存（含绘画提示词）');return r};
+  const baseSavePersona=savePersonaEditor;savePersonaEditor=function(...a){const r=baseSavePersona(...a);announce('USER 面具','面具资料已保存（含绘画提示词）');return r};
+  const baseAppearance=saveAppearanceSettings;saveAppearanceSettings=async function(...a){const r=await baseAppearance(...a);announce('外观','全屏或灵动岛设置已更新');return r};
+  v45Harden();loadV45Settings();renderModelProfiles();updateCacheLabel();
+})();
