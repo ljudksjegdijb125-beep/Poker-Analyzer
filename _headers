@@ -1,0 +1,31 @@
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/repair-sw.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.json
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/sw-v38.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+/sw-v42.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+/sw-v44.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+/assets/*
+  Cache-Control: public, max-age=0, must-revalidate

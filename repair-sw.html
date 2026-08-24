@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>扑克机 · 离线服务修复</title>
+<title>扑克机 · V44 离线服务修复</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0d0d0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}body{display:grid;place-items:center;padding:24px}.box{width:min(420px,100%);padding:22px;border-radius:18px;background:#19191c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 20px 50px #0008}.mark{width:43px;height:43px;border-radius:13px;background:#eee;color:#202023;display:grid;place-items:center;font-size:20px}h1{margin:15px 0 8px;font-size:19px}p{margin:0;color:#aaa;font-size:12px;line-height:1.7}.status{margin-top:15px;padding:12px;border-radius:12px;background:#101012;color:#d3d3d0;font-size:11px;line-height:1.7;white-space:pre-wrap}.ok{color:#a9c3ad}.bad{color:#dfa0a6}button{width:100%;height:44px;margin-top:14px;border:0;border-radius:12px;background:#eee;color:#171719;font-weight:650}small{display:block;margin-top:12px;color:#777;line-height:1.6}
 </style>
@@ -18,8 +18,8 @@ async function repair(){
   let unregistered=0,deleted=0;
   if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();for(const registration of registrations){if(await registration.unregister())unregistered++}}
   if('caches'in window){const keys=await caches.keys();for(const key of keys){if(key.startsWith('pokeji-')&&await caches.delete(key))deleted++}}
-  status.className='status ok';status.textContent=`修复完成\n已注销 ${unregistered} 个离线服务\n已清理 ${deleted} 个扑克机缓存\n聊天与设置未删除。\n\n正在重新打开 V43.7…`;
-  setTimeout(()=>location.replace('/index.html?repaired=43.7&t='+Date.now()),1200);
+  status.className='status ok';status.textContent=`修复完成\n已注销 ${unregistered} 个离线服务\n已清理 ${deleted} 个扑克机缓存\n聊天与设置未删除。\n\n正在重新打开 V44.0…`;
+  setTimeout(()=>location.replace('/index.html?repaired=44.0&t='+Date.now()),1200);
  }catch(error){status.className='status bad';status.textContent='修复失败：'+(error?.message||error);retry.hidden=false}
 }
 repair();

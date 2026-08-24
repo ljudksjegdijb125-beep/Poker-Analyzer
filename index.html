@@ -9,11 +9,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · Private AI Space · V42</title>
-<link rel="manifest" href="/manifest.webmanifest?v=42">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=42">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=42">
-<link rel="stylesheet" href="/assets/app.css?v=43.7">
+<title>扑克机 · Private AI Space · V44</title>
+<link rel="manifest" href="/manifest.webmanifest?v=44">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=44">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=44">
+<link rel="stylesheet" href="/assets/app.css?v=44.0">
 </head>
 <body>
 
@@ -163,7 +163,7 @@
 <div class="scroll data-hub">
 <div class="data-hero">
  <div class="data-hero-mark">▣</div>
- <div><small>LOCAL DATA · V42</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
+ <div><small>LOCAL DATA · V44</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
  <span>仅本机</span>
 </div>
 <div class="data-stats" aria-label="本机资料统计">
@@ -218,6 +218,7 @@
 <div class="setting" onclick="openPersonaManager('settings')"><span><b>USER 设定</b><small style="display:block">身份、人格、经历与互动边界</small></span><span class="muted">进入 ›</span></div>
 <div class="setting"><span><b>聊天头像</b><small style="display:block">双方头像或完全无头像</small></span><select id="chatAvatarMode" onchange="saveChatStyleSettings()"><option value="both">双方头像</option><option value="none">无头像</option></select></div>
 <div class="setting"><span><b>线上多气泡</b><small style="display:block">角色按说话节奏自行决定实际条数</small></span><input id="onlineMultiBubbleEnabled" type="checkbox" style="width:auto" onchange="saveMessageStyleSettings()"></div>
+<div class="setting"><span><b>角色主动编辑消息</b><small style="display:block">角色可偶尔修正自己已经发出的文字气泡，并显示“已编辑”</small></span><input id="characterSelfEditEnabled" type="checkbox" style="width:auto" onchange="saveCharacterSelfEditSetting()"></div>
 <div class="setting"><span><b>最多气泡数</b><small style="display:block">只是上限，不会强制发满</small></span><input id="onlineMaxBubbles" type="number" min="2" max="8" step="1" onchange="saveMessageStyleSettings()"></div>
 <div class="setting"><span><b>AI 内心话</b><small style="display:block">显示角色未说出口的虚构内心独白</small></span><input id="innerThoughtsEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>自动翻译 AI 消息</b><small style="display:block">使用独立翻译模型；相同原文优先读取本机缓存</small></span><input id="autoTranslateEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
@@ -275,22 +276,22 @@
 <div id="toast" class="toast"></div>
 </div></div>
 
-<script src="/assets/app.js?v=43.7"></script>
+<script src="/assets/app.js?v=44.0"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
     try{
-      const registration=await ensureV42ServiceWorker();
+      const registration=await ensureV44ServiceWorker();
       updateInstallStatus();
       await recoverBackgroundResults();
       setTimeout(()=>{
         const worker=registration?.active||navigator.serviceWorker.controller;
-        if(worker&&isV42WorkerUrl(worker.scriptURL))worker.postMessage({type:'PRECACHE_APP'});
+        if(worker&&isV44WorkerUrl(worker.scriptURL))worker.postMessage({type:'PRECACHE_APP'});
       },30000);
     }catch(error){errorDetail(error,'离线缓存注册失败')}
   });
   navigator.serviceWorker.addEventListener('message',event=>{
-    if(event.data?.type==='POKEJI_LEGACY_SW_RELEASED'){ensureV42ServiceWorker().then(()=>location.reload()).catch(error=>errorDetail(error,'旧离线服务迁移失败'));return}
+    if(event.data?.type==='POKEJI_LEGACY_SW_RELEASED'){ensureV44ServiceWorker().then(()=>location.reload()).catch(error=>errorDetail(error,'旧离线服务迁移失败'));return}
     if(event.data?.type==='POKEJI_NOTIFICATION_OPEN'){openChatFromChatId(String(event.data.chatId||''),String(event.data.mode||'online'),String(event.data.sceneMode||'direct'));return}
     if(event.data?.type==='PRECACHE_COMPLETE'){
       const failed=event.data.failed||[];

@@ -2,8 +2,8 @@
   "name": "扑克机",
   "short_name": "扑克机",
   "description": "本地优先、可安装的手机化 AI 角色聊天空间",
-  "id": "/pokeji-v42",
-  "start_url": "/index.html?v=42",
+  "id": "/pokeji-v44",
+  "start_url": "/index.html?v=44",
   "scope": "/",
   "display": "standalone",
   "lang": "zh-CN",
@@ -11,7 +11,7 @@
   "theme_color": "#0c0c0e",
   "orientation": "portrait",
   "icons": [
-    {"src":"/assets/icon-192.png?v=42","sizes":"192x192","type":"image/png","purpose":"any"},
-    {"src":"/assets/icon-512.png?v=42","sizes":"512x512","type":"image/png","purpose":"any"}
+    {"src":"/assets/icon-192.png?v=44","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/assets/icon-512.png?v=44","sizes":"512x512","type":"image/png","purpose":"any"}
   ]
 }
