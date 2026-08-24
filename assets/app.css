@@ -943,7 +943,7 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 
 
 /* =========================================================
-   POKEJI V43.1 · aligned chat groups / voice bars
+   POKEJI V43.2 · aligned chat groups / voice bars
    ========================================================= */
 #chat .messages{gap:10px;padding:16px 12px 20px}
 #chat .msg-group{display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:8px;align-items:start;width:auto;max-width:88%;align-self:flex-start;gap:0}
@@ -995,3 +995,22 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 #chat .phone-event{display:none!important}
 @media(max-width:360px){#chat .msg-group{max-width:92%}#chat .msg-group>.message-avatar{width:31px;height:31px;flex-basis:31px}#chat .msg-group.without-avatar{max-width:88%}}
 
+
+/* POKEJI V43.2 compact grouped bubbles + right-side read button */
+#chat .messages{gap:9px}
+#chat .msg-group .message-column{gap:2px}
+#chat .msg-group .message-item{gap:2px}
+#chat .msg-group .message-item+.message-item{margin-top:1px}
+#chat .msg-group.batch-message .message-item+.message-item{margin-top:1px}
+#chat .msg-group .bubble-line{display:flex;align-items:center;gap:5px;width:auto;max-width:100%}
+#chat .msg-group.me .bubble-line{flex-direction:row-reverse}
+#chat .msg-group .bubble{box-shadow:0 3px 9px rgba(0,0,0,.075)}
+#chat .msg-group.me .bubble{box-shadow:0 4px 11px rgba(0,0,0,.15)}
+#chat .msg-group .message-footer{min-height:11px;margin-top:0}
+#chat .msg-group .inline-read{width:24px;height:24px;flex:0 0 24px;border:0;border-radius:0;background:transparent;color:#555;display:grid;place-items:center;box-shadow:none}
+#chat .msg-group .inline-read svg{width:16px;height:16px;fill:currentColor;transform:none}
+#chat .msg-group .inline-read.is-playing{background:transparent;color:#111;animation:none;box-shadow:none}
+#chat .msg-group.me .inline-read{color:#666}
+#chat .msg-group .message-footer .message-read-button{display:none}
+#chat .msg-group .msg-time{line-height:1.2}
+#chat .msg-group.batch-message{margin-top:0;margin-bottom:0}

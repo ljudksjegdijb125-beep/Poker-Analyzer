@@ -1110,7 +1110,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V42_SW_URL='/sw-v42.js?build=43.1';
+const V42_SW_URL='/sw-v42.js?build=43.2';
 function isV42WorkerUrl(url){return /\/sw-v42\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v38\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1861,7 +1861,7 @@ startProactiveScheduler();
 
 
 /* =========================================================
-   POKEJI V43.1 · confirmed interaction patch
+   POKEJI V43.2 · confirmed interaction patch
    Appended override layer. V42 remains untouched.
    ========================================================= */
 
@@ -2060,7 +2060,7 @@ async function autoReadMessages(chatId,indexes=[]){if(data.settings.autoReadEnab
 
 
 
-/* V43.1 AI media-choice prompt override */
+/* V43.2 AI media-choice prompt override */
 function voiceWorldBookPrompt(){const text=String(data.settings.voiceWorldBook||'').trim();return text?`【语音世界书】\n${text}\n这些规则影响角色台词的节奏、情绪与发音。角色可以自行决定使用普通文字或 <voice>语音内容</voice>；不要输出 TTS 参数或技术说明。`:''}
 function v43MediaChoicePrompt(){return `【消息形式自主选择】\n角色必须按真实聊天节奏自行选择消息形式，不要机械固定一种：\n- 普通文字：<message>真正发送的文字</message>；可自然分成多条。\n- 语音消息：<voice>角色真正说出的语音内容</voice>；仅在语气、亲密度、情境适合时使用，前端会生成可播放语音条。\n- AI 图片：<image>需要交给生图模型的完整画面描述</image>；仅在角色确实会拍照、分享图片或当前内容需要视觉表达时使用。图片由运行时生图模型生成，不得引用固定资源包图片。\n- 外语可以直接发在 message/voice 中；自动翻译功能会在需要时显示译文。\n- 可以在必要时使用虚拟手机内部标签 phone_query/phone_update，但标签不展示给 USER。\n没有必要时只发自然文字，不能为了展示功能强行发语音或图片。`}
 function buildSystemPrompt(c,userMessage='',chatId=currentChat){
@@ -2082,7 +2082,7 @@ function saveImmersionSettings(){data.settings.innerThoughtsEnabled=document.get
 
 
 
-/* V43.1 runtime post-commit hooks */
+/* V43.2 runtime post-commit hooks */
 function v43PostCommit(chatId,indexes=[]){
   const direct=directCharacterForChat(chatId);if(direct&&Math.random()<.28&&!simulatedPhoneItems(direct.id,chatId).length&&validAPI())void v43GenerateCharacterPhoneSnapshot(direct.id,chatId).catch(()=>{});
   queueAutoTranslations(chatId,indexes);if(currentChat===chatId)void autoReadMessages(chatId,indexes);
@@ -2096,7 +2096,7 @@ const v43NotificationUnshift=data.notifications.unshift.bind(data.notifications)
 data.notifications.unshift=function(...items){const kept=items.filter(item=>!item||item.type!=='chat'||!/(回复了你|主动发来消息|后台完成回复|手机|反查)/.test(String(item.text||'')));return kept.length?v43NotificationUnshift(...kept):data.notifications.length};
 
 
-/* V43.1 targeted bug fixes */
+/* V43.2 targeted bug fixes */
 function translateStoredMessage(chatId,idx,{notify=false,force=false}={}){
  const message=(data.chats[chatId]||[])[idx],text=String(message?.text||'').trim();if(!message||!text||['sticker','image','phoneEvent'].includes(message.kind))return Promise.resolve(false);if(!validModel('translation'))return Promise.reject(Error('请先配置独立翻译模型'));
  const source=translationHash(text),taskKey=`${chatId}:${message.id||idx}:${source}`;if(translationTasks.has(taskKey))return Promise.resolve(false);if(!force&&message.translation&&message.translationSource===source)return Promise.resolve(true);const cached=data.translationCache?.[source];if(!force&&cached){message.translation=cached;message.translationSource=source;save();if(currentChat===chatId)renderMessages();return Promise.resolve(true)}
@@ -2122,7 +2122,7 @@ function loadSettings(){
 const v43Plus=document.getElementById('chatPlusBtn');if(v43Plus)v43Plus.title='表情包、线上线下与聊天相关虚拟手机';
 
 
-/* V43.1 final behavior corrections */
+/* V43.2 final behavior corrections */
 function v43WriteMode(chatId,mode,offlineStyle='direct'){
  if(!chatId||!['online','offline'].includes(mode))return;const style=offlineStyle==='story'?'story':'direct',store=v43ReadModeStore();store[String(chatId)]={mode,offlineStyle:style,updatedAt:Date.now()};try{localStorage.setItem(V43_MODE_STORE,JSON.stringify(store))}catch{}
  data.chatSettings??={};const raw=data.chatSettings[chatId]&&typeof data.chatSettings[chatId]==='object'?data.chatSettings[chatId]:{};data.chatSettings[chatId]={...raw,mode,offlineStyle:style,reversePhoneGranted:false};save();
@@ -2157,7 +2157,7 @@ function sendGeneratedImage(){if(!generatedImageDraft||!currentChat)return;const
 
 
 
-/* V43.1 layout hotfix: every AI text is readable */
+/* V43.2 layout hotfix: every AI text is readable */
 function v43MessageItemMarkup(m,i,isLast,chatId){
  let original='';
  if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
@@ -2170,16 +2170,32 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 }
 
 
-/* V43.1 Service Worker update diagnostics */
+/* V43.2 Service Worker update diagnostics */
 async function v43FetchWorkerScript(){
- const response=await fetch('/sw-v42.js?build=43.1&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
+ const response=await fetch('/sw-v42.js?build=43.2&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v42.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v42.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v43.1"))throw Error('线上 sw-v42.js 仍不是 V43.1。请重新覆盖 sw-v42.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v43.2"))throw Error('线上 sw-v42.js 仍不是 V43.2。请重新覆盖 sw-v42.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v42.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.1 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V43.1 更新…');
- try{await v43FetchWorkerScript();const registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('V43.1 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V43.1 更新检查完成')}
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.2 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V43.2 更新…');
+ try{await v43FetchWorkerScript();const registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('V43.2 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V43.2 更新检查完成')}
  catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V43\.1|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v42.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
+}
+
+
+/* V43.2 layout correction: small spacing, inline read button */
+function v43InlineReadButton(chatId,idx,message){
+ const key=messageAudioKey(chatId,idx,message),playing=activeAudioMessageKey===key;
+ return`<button class="message-read-button inline-read ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${idx})" aria-label="${playing?'正在朗读':'朗读这条消息'}" title="${playing?'正在朗读':'朗读这条消息'}">${v43SpeakerIcon()}</button>`;
+}
+function v43MessageItemMarkup(m,i,isLast,chatId){
+ let original='',hasInlineRead=false;
+ if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
+ else if(m.kind==='image'){const src=safeImageSrc(m.image);original=src?`<div class="image-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(src)}" alt="${attr(m.text||'AI 生成图片')}"><small>${esc(m.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" onclick="showMsgMenu(event,${i})">${esc(m.imageError||'AI 正在生成图片…')}</div>`}
+ else if(m.kind==='sticker')original=`<div class="sticker-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(safeImageSrc(m.image)||'')}" alt="${attr(m.text||'表情包')}"></div>`;
+ else{original=`<div class="bubble bubble-original" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span class="edited-mark">(已编辑)</span>':''}</div>`;hasInlineRead=m.role==='assistant'}
+ const translation=m.translation?`<div class="bubble-translation" onclick="showMsgMenu(event,${i})"><small>译文</small><span>${esc(m.translation)}</span></div>`:'',inlineRead=hasInlineRead?v43InlineReadButton(chatId,i,m):'',footer=isLast?`<div class="message-footer"><span class="msg-time">${esc(m.time||'')}</span></div>`:'';
+ return`<div class="message-item" data-idx="${i}"><div class="bubble-line ${hasInlineRead?'has-inline-read':''}">${original}${inlineRead}</div>${translation}${footer}</div>`;
 }
