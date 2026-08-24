@@ -1110,7 +1110,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V42_SW_URL='/sw-v42.js?build=43.4';
+const V42_SW_URL='/sw-v42.js?build=43.5';
 function isV42WorkerUrl(url){return /\/sw-v42\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v38\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1861,7 +1861,7 @@ startProactiveScheduler();
 
 
 /* =========================================================
-   POKEJI V43.4 · confirmed interaction patch
+   POKEJI V43.5 · confirmed interaction patch
    Appended override layer. V42 remains untouched.
    ========================================================= */
 
@@ -2060,7 +2060,7 @@ async function autoReadMessages(chatId,indexes=[]){if(data.settings.autoReadEnab
 
 
 
-/* V43.4 AI media-choice prompt override */
+/* V43.5 AI media-choice prompt override */
 function voiceWorldBookPrompt(){const text=String(data.settings.voiceWorldBook||'').trim();return text?`【语音世界书】\n${text}\n这些规则影响角色台词的节奏、情绪与发音。角色可以自行决定使用普通文字或 <voice>语音内容</voice>；不要输出 TTS 参数或技术说明。`:''}
 function v43MediaChoicePrompt(){return `【消息形式自主选择】\n角色必须按真实聊天节奏自行选择消息形式，不要机械固定一种：\n- 普通文字：<message>真正发送的文字</message>；可自然分成多条。\n- 语音消息：<voice>角色真正说出的语音内容</voice>；仅在语气、亲密度、情境适合时使用，前端会生成可播放语音条。\n- AI 图片：<image>需要交给生图模型的完整画面描述</image>；仅在角色确实会拍照、分享图片或当前内容需要视觉表达时使用。图片由运行时生图模型生成，不得引用固定资源包图片。\n- 外语可以直接发在 message/voice 中；自动翻译功能会在需要时显示译文。\n- 可以在必要时使用虚拟手机内部标签 phone_query/phone_update，但标签不展示给 USER。\n没有必要时只发自然文字，不能为了展示功能强行发语音或图片。`}
 function buildSystemPrompt(c,userMessage='',chatId=currentChat){
@@ -2082,7 +2082,7 @@ function saveImmersionSettings(){data.settings.innerThoughtsEnabled=document.get
 
 
 
-/* V43.4 runtime post-commit hooks */
+/* V43.5 runtime post-commit hooks */
 function v43PostCommit(chatId,indexes=[]){
   const direct=directCharacterForChat(chatId);if(direct&&Math.random()<.28&&!simulatedPhoneItems(direct.id,chatId).length&&validAPI())void v43GenerateCharacterPhoneSnapshot(direct.id,chatId).catch(()=>{});
   queueAutoTranslations(chatId,indexes);if(currentChat===chatId)void autoReadMessages(chatId,indexes);
@@ -2096,7 +2096,7 @@ const v43NotificationUnshift=data.notifications.unshift.bind(data.notifications)
 data.notifications.unshift=function(...items){const kept=items.filter(item=>!item||item.type!=='chat'||!/(回复了你|主动发来消息|后台完成回复|手机|反查)/.test(String(item.text||'')));return kept.length?v43NotificationUnshift(...kept):data.notifications.length};
 
 
-/* V43.4 targeted bug fixes */
+/* V43.5 targeted bug fixes */
 function translateStoredMessage(chatId,idx,{notify=false,force=false}={}){
  const message=(data.chats[chatId]||[])[idx],text=String(message?.text||'').trim();if(!message||!text||['sticker','image','phoneEvent'].includes(message.kind))return Promise.resolve(false);if(!validModel('translation'))return Promise.reject(Error('请先配置独立翻译模型'));
  const source=translationHash(text),taskKey=`${chatId}:${message.id||idx}:${source}`;if(translationTasks.has(taskKey))return Promise.resolve(false);if(!force&&message.translation&&message.translationSource===source)return Promise.resolve(true);const cached=data.translationCache?.[source];if(!force&&cached){message.translation=cached;message.translationSource=source;save();if(currentChat===chatId)renderMessages();return Promise.resolve(true)}
@@ -2122,7 +2122,7 @@ function loadSettings(){
 const v43Plus=document.getElementById('chatPlusBtn');if(v43Plus)v43Plus.title='表情包、线上线下与聊天相关虚拟手机';
 
 
-/* V43.4 final behavior corrections */
+/* V43.5 final behavior corrections */
 function v43WriteMode(chatId,mode,offlineStyle='direct'){
  if(!chatId||!['online','offline'].includes(mode))return;const style=offlineStyle==='story'?'story':'direct',store=v43ReadModeStore();store[String(chatId)]={mode,offlineStyle:style,updatedAt:Date.now()};try{localStorage.setItem(V43_MODE_STORE,JSON.stringify(store))}catch{}
  data.chatSettings??={};const raw=data.chatSettings[chatId]&&typeof data.chatSettings[chatId]==='object'?data.chatSettings[chatId]:{};data.chatSettings[chatId]={...raw,mode,offlineStyle:style,reversePhoneGranted:false};save();
@@ -2157,7 +2157,7 @@ function sendGeneratedImage(){if(!generatedImageDraft||!currentChat)return;const
 
 
 
-/* V43.4 layout hotfix: every AI text is readable */
+/* V43.5 layout hotfix: every AI text is readable */
 function v43MessageItemMarkup(m,i,isLast,chatId){
  let original='';
  if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
@@ -2170,22 +2170,22 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 }
 
 
-/* V43.4 Service Worker update diagnostics */
+/* V43.5 Service Worker update diagnostics */
 async function v43FetchWorkerScript(){
- const response=await fetch('/sw-v42.js?build=43.4&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
+ const response=await fetch('/sw-v42.js?build=43.5&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v42.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v42.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v43.4"))throw Error('线上 sw-v42.js 仍不是 V43.4。请重新覆盖 sw-v42.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v43.5"))throw Error('线上 sw-v42.js 仍不是 V43.5。请重新覆盖 sw-v42.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v42.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.4 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V43.4 更新…');
- try{await v43FetchWorkerScript();const registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('V43.4 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V43.4 更新检查完成')}
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.5 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V43.5 更新…');
+ try{await v43FetchWorkerScript();const registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('V43.5 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V43.5 更新检查完成')}
  catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V43\.1|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v42.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
 
 
-/* V43.4 layout correction: small spacing, inline read button */
+/* V43.5 layout correction: small spacing, inline read button */
 function v43InlineReadButton(chatId,idx,message){
  const key=messageAudioKey(chatId,idx,message),playing=activeAudioMessageKey===key;
  return`<button class="message-read-button inline-read ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${idx})" aria-label="${playing?'正在朗读':'朗读这条消息'}" title="${playing?'正在朗读':'朗读这条消息'}">${v43SpeakerIcon()}</button>`;
@@ -2201,7 +2201,7 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 }
 
 
-/* POKEJI V43.4 full phone desktop and app regions */
+/* POKEJI V43.5 full phone desktop and app regions */
 Object.assign(SIM_APP_CATALOG,{
  music:{name:'音乐',icon:'♫',accent:'#777b87',description:'最近播放与收藏',actions:['最近播放','收藏']},
  maps:{name:'地图',icon:'⌖',accent:'#738074',description:'地点与路线',actions:['地点','路线']},
@@ -2263,3 +2263,95 @@ function v43PhoneAppBody(owner,key){if(key==='messages')return v43PhoneMessagesP
 function v43OpenPhoneApp(owner,key){v43ActivePhoneOwner=owner;v43PhoneSetContent(`<div class="vphone vphone-app ${owner==='user'?'is-user':'is-character'}">${v43PhoneAppHeader(owner,key)}<main class="vphone-app-body">${v43PhoneAppBody(owner,key)}</main></div>`)}
 function openSimPhoneApp(owner,appKey){v43OpenPhoneApp(owner,appKey)}
 function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(currentChat),character=!group&&directCharacterForChat(currentChat);modal(`<div class="chat-plus-sheet"><div class="chat-plus-title"><small>MORE</small><h2>${group?'群聊工具':esc(character?.name||'聊天工具')}</h2></div><div class="chat-plus-grid"><button onclick="showStickerPicker()"><span>☺</span><b>表情包</b><small>表情与图片</small></button><button onclick="showImageGenerator()"><span>✦</span><b>AI 生图</b><small>生成并发送图片</small></button>${group?'':`<button onclick="${currentChatMode==='offline'?`closeModal();openChat('${attr(character.id)}','online')`:`showOfflineEntryChoices('${attr(character.id)}')`}"><span>◇</span><b>${currentChatMode==='offline'?'返回线上':'线下相遇'}</b><small>切换聊天场景</small></button><button onclick="openSimPhone('${attr(character.id)}')"><span>▣</span><b>TA 的手机</b><small>打开手机</small></button>`}<button onclick="openSimPhone('user')"><span>⌁</span><b>我的手机</b><small>打开手机</small></button></div></div>`)}
+
+
+/* =========================================================
+   POKEJI V43.5 · feed personas / API library / status / phone interactions
+   ========================================================= */
+
+/* ---------- reusable SVG icons ---------- */
+function v435Svg(name){const paths={
+ chat:'<path d="M5 6.5h14v9H9l-4 3v-12Z"/><path d="M8 10h8M8 13h5"/>',
+ moments:'<circle cx="12" cy="12" r="8"/><path d="M8 13c1.2 1.4 2.5 2.1 4 2.1s2.8-.7 4-2.1M9 9.5h.1M15 9.5h.1"/>',
+ gallery:'<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m6 17 4-4 3 3 2-2 3 3"/>',
+ notes:'<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 11h6M9 14h4"/>',
+ market:'<path d="M6.5 8h11l-1 11h-9l-1-11Z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/>',
+ wallet:'<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M3.5 10h17M15 14h3"/>',
+ browser:'<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2 2.2 3 4.8 3 8s-1 5.8-3 8M12 4c-2 2.2-3 4.8-3 8s1 5.8 3 8"/>',
+ schedule:'<rect x="4" y="6" width="16" height="14" rx="2"/><path d="M8 4v4M16 4v4M4 10h16M8 14h3M13 14h3M8 17h3"/>',
+ music:'<path d="M9 18V7l9-2v11"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="16" r="2"/>',
+ maps:'<path d="M12 21s6-5.6 6-11a6 6 0 1 0-12 0c0 5.4 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/>',
+ weather:'<path d="M7 17h10a3 3 0 0 0 .4-6A5 5 0 0 0 8 10a3.5 3.5 0 0 0-1 7Z"/>',
+ settings:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+ image:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="m6 17 4-4 3 3 3-4 2 5"/><circle cx="9" cy="9" r="1.3"/>',
+ mode:'<path d="M5 8h14M5 16h14"/><path d="m8 5-3 3 3 3M16 13l3 3-3 3"/>',
+ eye:'<path d="M3 12s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5Z"/><circle cx="12" cy="12" r="2.5"/>',
+ reverse:'<path d="M8 7H5v-3M5.5 7A8 8 0 0 1 19 9M16 17h3v3M18.5 17A8 8 0 0 1 5 15"/>',
+ sticker:'<circle cx="12" cy="12" r="8"/><path d="M8 14c1.2 1.2 2.5 1.8 4 1.8s2.8-.6 4-1.8M9 10h.1M15 10h.1"/>'};
+ return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${paths[name]||paths.settings}</svg>`
+}
+Object.assign(V43_PHONE_APPS,{messages:{name:'聊天',icon:v435Svg('chat')},moments:{name:'动态',icon:v435Svg('moments')},gallery:{name:'相册',icon:v435Svg('gallery')},notes:{name:'便笺',icon:v435Svg('notes')},market:{name:'淘宝',icon:v435Svg('market')},wallet:{name:'银行卡',icon:v435Svg('wallet')},browser:{name:'浏览器',icon:v435Svg('browser')},schedule:{name:'日程',icon:v435Svg('schedule')},music:{name:'音乐',icon:v435Svg('music')},maps:{name:'地图',icon:v435Svg('maps')},weather:{name:'天气',icon:v435Svg('weather')},settings:{name:'设置',icon:v435Svg('settings')}});
+for(const [key,app] of Object.entries(V43_PHONE_APPS))if(SIM_APP_CATALOG[key])SIM_APP_CATALOG[key].icon=app.icon;
+
+/* ---------- multiple API profiles and function bindings ---------- */
+const V435_FUNCTION_LABELS={chat:'主聊天',translation:'翻译',feed:'动态生成',random:'随机事件',voice:'声音',vision:'图片识别',image:'生图',summary:'记忆摘要'};
+function v435CapabilityForKind(kind){return kind==='voice'?'voice':kind==='image'?'image':'text'}
+function v435EnsureApiLibrary(){
+ data.apiConfigs=data.apiConfigs&&typeof data.apiConfigs==='object'&&!Array.isArray(data.apiConfigs)?data.apiConfigs:{};data.modelBindings=data.modelBindings&&typeof data.modelBindings==='object'?data.modelBindings:{};
+ for(const [kind,profile] of Object.entries(data.models||{})){if(data.modelBindings[kind]&&data.apiConfigs[data.modelBindings[kind]])continue;if(!profile||!(profile.base||profile.key||profile.model))continue;const capability=v435CapabilityForKind(kind),signature=[capability,profile.provider,profile.base,profile.key,profile.model,profile.voice].join('|');let id=Object.keys(data.apiConfigs).find(key=>data.apiConfigs[key].signature===signature);if(!id){id='api_'+crypto.randomUUID();data.apiConfigs[id]={id,name:`${V435_FUNCTION_LABELS[kind]||kind}配置`,capability,provider:profile.provider||'openai',base:profile.base||'',key:profile.key||'',model:profile.model||'',voice:profile.voice||'alloy',speed:Number(profile.speed)||1,signature}}data.modelBindings[kind]=id}
+}
+v435EnsureApiLibrary();save();
+const v435LegacyModelProfile=modelProfile;
+modelProfile=function(kind='chat'){v435EnsureApiLibrary();const id=data.modelBindings?.[kind],cfg=id&&data.apiConfigs?.[id];return cfg?{provider:cfg.provider||'openai',base:cfg.base||'',key:cfg.key||'',model:cfg.model||'',voice:cfg.voice||'alloy',speed:Number(cfg.speed)||1}:v435LegacyModelProfile(kind)};
+validModel=function(kind='chat'){const p=modelProfile(kind);return!!(p.base&&p.key&&p.model)};
+validAPI=function(){return validModel('chat')};
+function v435ProviderOptions(capability,selected='openai'){const map={text:[['openai','OpenAI 兼容'],['anthropic','Claude 原生'],['gemini','Gemini 原生']],voice:[['openai','OpenAI 兼容 TTS'],['fish','Fish Audio'],['minimax','MiniMax']],image:[['openai_image','OpenAI / GPT Image'],['gemini_image','Gemini 生图'],['xai_image','xAI Images'],['novelai','NovelAI']]};return(map[capability]||map.text).map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
+function v435ConfigSummary(cfg){return`${cfg.model||'未填写模型'} · ${cfg.base?cfg.base.replace(/^https?:\/\//,'').split('/')[0]:'未填写地址'}`}
+function renderModelProfiles(){v435EnsureApiLibrary();const e=document.getElementById('modelProfiles');if(!e)return;const configs=Object.values(data.apiConfigs);e.innerHTML=`<div class="api-library-head"><span><b>API 配置库</b><small>${configs.length} 套已保存配置</small></span><button onclick="v435EditApiConfig()">＋ 新增</button></div><div class="api-library-list">${configs.length?configs.map(cfg=>`<button onclick="v435EditApiConfig('${attr(cfg.id)}')"><span class="api-kind">${cfg.capability==='voice'?'V':cfg.capability==='image'?'I':'A'}</span><span><b>${esc(cfg.name)}</b><small>${esc(v435ConfigSummary(cfg))}</small></span><i>编辑 ›</i></button>`).join(''):'<div class="api-library-empty">还没有保存 API 配置</div>'}</div><div class="api-bind-title">功能绑定</div><div class="api-bindings">${Object.entries(V435_FUNCTION_LABELS).map(([kind,label])=>{const cfg=data.apiConfigs[data.modelBindings[kind]];return`<button onclick="v435BindFunction('${kind}')"><span><b>${label}</b><small>${esc(cfg?.model||'未绑定')}</small></span><i>${esc(cfg?.name||'选择配置')} ›</i></button>`}).join('')}</div>`}
+function v435EditApiConfig(id=''){const cfg=id&&data.apiConfigs[id]||{id:'',name:'',capability:'text',provider:'openai',base:'',key:'',model:'',voice:'alloy',speed:1};modal(`<h2>${id?'编辑 API 配置':'新增 API 配置'}</h2><div class="field"><label>配置名称</label><input id="apiCfgName" value="${attr(cfg.name)}" placeholder="例如：主线路、备用 Claude"></div><div class="field"><label>能力类型</label><select id="apiCfgCapability" onchange="v435ApiCapabilityChanged()"><option value="text" ${cfg.capability==='text'?'selected':''}>文本 / 识图</option><option value="voice" ${cfg.capability==='voice'?'selected':''}>声音</option><option value="image" ${cfg.capability==='image'?'selected':''}>生图</option></select></div><div class="field"><label>服务商</label><select id="mpProvider" onchange="modelProviderChanged()">${v435ProviderOptions(cfg.capability,cfg.provider)}</select></div><div class="field"><label>API Base URL</label><input id="mpBase" value="${attr(cfg.base)}" placeholder="https://..."></div><div class="field"><label>API Key</label><input id="mpKey" type="password" value="${attr(cfg.key)}"></div><div class="field"><label>模型</label><div class="model-input-row"><input id="mpModel" value="${attr(cfg.model)}"><button id="mpFetchBtn" onclick="fetchAvailableModels()">获取模型</button></div><div id="mpFetchedModels" class="model-fetch-result"></div></div><div id="apiVoiceFields" style="display:${cfg.capability==='voice'?'block':'none'}"><div class="field"><label>Voice ID</label><input id="mpVoice" value="${attr(cfg.voice||'alloy')}"></div><div class="field"><label>语速</label><input id="mpSpeed" type="number" min="0.5" max="2" step="0.05" value="${attr(cfg.speed||1)}"></div></div><div class="form-actions">${id?`<button class="danger" onclick="v435DeleteApiConfig('${attr(id)}')">删除</button>`:''}<button onclick="closeModal()">取消</button><button class="primary" onclick="v435SaveApiConfig('${attr(id)}')">保存</button></div>`)}
+function v435ApiCapabilityChanged(){const capability=document.getElementById('apiCfgCapability')?.value||'text',provider=document.getElementById('mpProvider'),voice=document.getElementById('apiVoiceFields');if(provider)provider.innerHTML=v435ProviderOptions(capability,capability==='voice'?'openai':capability==='image'?'openai_image':'openai');if(voice)voice.style.display=capability==='voice'?'block':'none';modelProviderChanged()}
+function v435SaveApiConfig(id=''){const name=document.getElementById('apiCfgName')?.value.trim(),capability=document.getElementById('apiCfgCapability')?.value||'text';if(!name)return toast('请填写配置名称');const cfg={id:id||'api_'+crypto.randomUUID(),name,capability,provider:document.getElementById('mpProvider')?.value||'openai',base:document.getElementById('mpBase')?.value.trim()||'',key:document.getElementById('mpKey')?.value.trim()||'',model:document.getElementById('mpModel')?.value.trim()||'',voice:document.getElementById('mpVoice')?.value.trim()||'alloy',speed:Math.min(2,Math.max(.5,Number(document.getElementById('mpSpeed')?.value)||1))};cfg.signature=[cfg.capability,cfg.provider,cfg.base,cfg.key,cfg.model,cfg.voice].join('|');data.apiConfigs[cfg.id]=cfg;save();closeModal();renderModelProfiles();toast('API 配置已保存')}
+function v435DeleteApiConfig(id){if(!confirm('删除这套 API 配置？使用它的功能会变成未绑定。'))return;delete data.apiConfigs[id];for(const kind of Object.keys(data.modelBindings||{}))if(data.modelBindings[kind]===id)delete data.modelBindings[kind];save();closeModal();renderModelProfiles()}
+function v435BindFunction(kind){v435EnsureApiLibrary();const capability=v435CapabilityForKind(kind),configs=Object.values(data.apiConfigs).filter(cfg=>cfg.capability===capability),current=data.modelBindings[kind]||'';modal(`<h2>绑定${V435_FUNCTION_LABELS[kind]}</h2>${configs.length?`<div class="api-binding-picker">${configs.map(cfg=>`<label><input type="radio" name="apiBinding" value="${attr(cfg.id)}" ${cfg.id===current?'checked':''}><span><b>${esc(cfg.name)}</b><small>${esc(v435ConfigSummary(cfg))}</small></span></label>`).join('')}</div>`:'<div class="note">没有兼容的 API 配置，请先新建。</div>'}<div class="form-actions"><button onclick="closeModal();v435EditApiConfig()">新增配置</button><button class="primary" onclick="v435SaveBinding('${kind}')">保存绑定</button></div>`)}
+function v435SaveBinding(kind){const id=document.querySelector('input[name="apiBinding"]:checked')?.value;if(!id)return toast('请选择配置');data.modelBindings[kind]=id;save();closeModal();renderModelProfiles();toast(`${V435_FUNCTION_LABELS[kind]}已绑定`)}
+editModelProfile=function(kind){const id=data.modelBindings?.[kind];if(id&&data.apiConfigs?.[id])v435EditApiConfig(id);else v435BindFunction(kind)};
+saveModelProfile=function(kind){v435SaveApiConfig(data.modelBindings?.[kind]||'')};
+
+/* ---------- character status: off / fixed / AI override ---------- */
+const v435BaseNormalizeCharacter=normalizeCharacter;
+normalizeCharacter=function(c={}){const value=v435BaseNormalizeCharacter(c),mode=['off','manual','ai'].includes(c.statusMode)?c.statusMode:'manual';return{...value,statusMode:mode,aiStatus:String(c.aiStatus||''),statusUpdatedAt:String(c.statusUpdatedAt||'')}};
+for(const character of data.characters){character.statusMode=['off','manual','ai'].includes(character.statusMode)?character.statusMode:'manual';character.aiStatus=String(character.aiStatus||'');character.statusUpdatedAt=String(character.statusUpdatedAt||'')}
+function v435CharacterStatus(c){if(!c||c.statusMode==='off')return'';return c.statusMode==='ai'?(c.aiStatus||c.status||''):String(c.status||'')}
+characterEditorHero=function(d){return`<div class="editor-hero"><div class="editor-avatar">${d.image?`<img src="${attr(d.image)}" alt="">`:'<span>♠</span>'}</div><div><small>${d.__new?'NEW CHARACTER':'CHARACTER PROFILE'}</small><h2>${esc(d.name||'未命名角色')}</h2><p>${esc(v435CharacterStatus(d)||'未显示状态')}</p></div><button onclick="pickCharacterImage()">更换头像</button></div>`};
+characterProfilePage=function(d){return`<div class="editor-section-title"><span>01</span><div><b>基础档案</b><small>用于列表、聊天标题与身份识别</small></div></div><div class="editor-grid"><div class="field"><label>角色名称 *</label><input id="char_name" value="${attr(d.name)}"></div><div class="field"><label>昵称 / 称呼</label><input id="char_nickname" value="${attr(d.nickname)}"></div><div class="field"><label>代词 / 称谓</label><input id="char_pronouns" value="${attr(d.pronouns)}"></div><div class="field"><label>状态模式</label><select id="char_statusMode"><option value="off" ${d.statusMode==='off'?'selected':''}>关闭</option><option value="manual" ${d.statusMode==='manual'?'selected':''}>固定手写</option><option value="ai" ${d.statusMode==='ai'?'selected':''}>AI 可覆盖</option></select></div><div class="field editor-wide"><label>手写状态短句</label><input id="char_status" value="${attr(d.status)}" placeholder="作为固定状态或 AI 初始状态"><small>手写值始终保留；AI 可覆盖模式下只改变当前显示。</small></div>${d.statusMode==='ai'&&d.aiStatus?`<div class="field editor-wide"><label>当前 AI 状态</label><div class="status-current-preview">${esc(d.aiStatus)}</div></div>`:''}<div class="field editor-wide"><label>标签</label><input id="char_tags" value="${attr(d.tags)}"></div><div class="field editor-wide"><label>头像 URL（可选）</label><input id="char_image_url" value="${attr(String(d.image||'').startsWith('data:')?'':d.image)}" placeholder="https://..."></div></div><div class="editor-inline-actions"><button onclick="pickCharacterImage()">上传本机图片</button><button onclick="clearCharacterImage()">移除头像</button></div>`};
+collectCharacterEditorPage=function(){const d=characterEditorDraft;if(!d)return;const take=(key,id)=>{const el=document.getElementById(id);if(el)d[key]=el.value.trim()};if(characterEditorTab==='profile'){['name','nickname','status','pronouns','tags'].forEach(k=>take(k,'char_'+k));const mode=document.getElementById('char_statusMode'),imageUrl=document.getElementById('char_image_url');if(mode)d.statusMode=mode.value;if(imageUrl){const value=imageUrl.value.trim();if(value)d.image=value;else if(!String(d.image||'').startsWith('data:'))d.image=''}}if(characterEditorTab==='personality')['bio','personality','background','appearance','speechStyle','relationship'].forEach(k=>take(k,'char_'+k));if(characterEditorTab==='dialogue')['scenario','firstMessage','exampleDialogue','systemPrompt','boundaries'].forEach(k=>take(k,'char_'+k));if(characterEditorTab==='binding'){const persona=document.getElementById('char_persona'),proactive=document.getElementById('char_proactive'),voiceId=document.getElementById('char_voiceId'),voiceSpeed=document.getElementById('char_voiceSpeed');if(persona)d.boundPersonaId=persona.value;if(proactive)d.proactiveEnabled=proactive.checked===true;if(voiceId)d.voiceId=voiceId.value.trim();if(voiceSpeed)d.voiceSpeed=Math.min(2,Math.max(.5,Number(voiceSpeed.value)||1))}};
+renderContacts=function(q=''){const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase())),characterCount=document.getElementById('characterCount'),personaCount=document.getElementById('personaCount');if(characterCount)characterCount.textContent=`${data.characters.length} 个角色`;if(personaCount)personaCount.textContent=`${data.personas.length} 张面具`;if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>${q?'没有匹配的角色':'还没有角色<br>从上方角色设置中心开始创建。'}</div>`;return}e.innerHTML=arr.map(c=>`<div class="row card character-list-row" onclick="openChat('${attr(c.id)}')">${avatar(c)}<div class="character-list-copy"><b>${esc(c.name)}</b><div class="muted">${esc(v435CharacterStatus(c)||c.bio||'')}</div></div><button class="icon-btn" onclick="event.stopPropagation();editCharacter('${attr(c.id)}')">⋯</button></div>`).join('')};
+function v435StatusPrompt(c){if(!c||c.statusMode!=='ai')return'不要输出 status 标签，也不要修改角色状态短句。';return`只有当角色当前近况确实变化时，才可额外输出 <status>不超过24字的当前状态短句</status>。这会覆盖当前显示状态，但手写初始值仍保留。无需更新时不要输出。`}
+const v435BuildSystem=buildSystemPrompt,v435BuildOffline=buildOfflineSystemPrompt,v435BuildGroup=buildGroupSystemPrompt;
+buildSystemPrompt=function(c,...args){return v435BuildSystem(c,...args)+`\n\n【状态短句】\n${v435StatusPrompt(c)}`};buildOfflineSystemPrompt=function(c,...args){return v435BuildOffline(c,...args)+`\n\n【状态短句】\n${v435StatusPrompt(c)}`};buildGroupSystemPrompt=function(g,c,...args){return v435BuildGroup(g,c,...args)+`\n\n【状态短句】\n${v435StatusPrompt(c)}`};
+const v435ParseSegments=parseAssistantSegments;
+parseAssistantSegments=function(raw,options={}){let source=String(raw||''),latest='';source=source.replace(/<status(?:\s+[^>]*)?>([\s\S]*?)<\/status>/gi,(_,text)=>{latest=String(text||'').trim();return''});if(latest){const speakerId=options.speakerId||directCharacterForChat(options.chatId||currentChat)?.id,character=data.characters.find(item=>item.id===speakerId);if(character?.statusMode==='ai'){character.aiStatus=latest.slice(0,80);character.statusUpdatedAt=new Date().toISOString();save();renderContacts();renderChats()}}return v435ParseSegments(source,options)};
+
+/* ---------- feed split by persona, self posts and character posts ---------- */
+function feedPersona(){const requested=String(data.settings?.activeFeedPersonaId||data.activePersonaId||'');return data.personas.find(item=>item.id===requested)||data.personas.find(item=>item.id===data.activePersonaId)||data.personas[0]||defaultPersona()}
+function setFeedPersona(id){if(!data.personas.some(item=>item.id===id))return;data.settings.activeFeedPersonaId=id;save();renderFeed()}
+function newPost(){postImageDrafts=[];const persona=feedPersona();modal(`<h2>我发动态</h2><div class="feed-compose-author">${feedProfileAvatar(persona)}<div><b>${esc(persona.name)}</b><small>发布到这张面具的动态</small></div></div><div class="field"><label>动态内容</label><textarea id="pt" placeholder="写下这一刻…"></textarea></div><div class="field"><label>位置（可选）</label><input id="pl" maxlength="60"></div><div class="field"><label>图片（最多9张）</label><input type="file" accept="image/*" multiple onchange="preparePostImages(event)"><div id="postImageDraftPreview" class="post-image-draft-preview"></div></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createPost()">发布</button></div>`)}
+function createPost(){const text=document.getElementById('pt')?.value.trim(),persona=feedPersona();if(!text)return toast('请输入内容');data.posts.unshift({id:'p_'+crypto.randomUUID(),char:'',authorType:'persona',authorId:persona.id,text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images:[...postImageDrafts],location:document.getElementById('pl')?.value.trim()||'',comments:[],generated:false,personaId:persona.id});postImageDrafts=[];save();closeModal();renderFeed();toast('动态已发布')}
+function v435FeedAuthor(post,persona){if(post.authorType==='persona'||!post.char&&post.authorId)return{kind:'persona',entity:data.personas.find(item=>item.id===(post.authorId||post.personaId))||persona};return{kind:'character',entity:data.characters.find(item=>item.id===post.char)}}
+function renderFeed(){const e=document.getElementById('feedList');if(!e)return;const persona=feedPersona(),cover=safeImageSrc(data.feedCovers?.[persona.id]),tabs=`<div class="feed-persona-tabs">${data.personas.map(item=>`<button class="${item.id===persona.id?'on':''}" onclick="setFeedPersona('${attr(item.id)}')">${esc(item.name)}</button>`).join('')}</div>`,hero=`${tabs}<section class="feed-profile"><button class="feed-cover" onclick="chooseFeedCover()">${cover?`<img src="${attr(cover)}" alt="">`:'<span>更换封面</span>'}</button><div class="feed-profile-copy"><b>${esc(persona.name||'我')}</b>${feedProfileAvatar(persona)}</div></section><div class="feed-primary-actions feed-two-actions"><button class="primary" onclick="newPost()">＋ 我发动态</button><button onclick="showAutoPostPicker()">✦ 角色发动态</button></div>`;
+ const posts=data.posts.filter(post=>post.personaId===persona.id).map(post=>{const author=v435FeedAuthor(post,persona),entity=author.entity;if(!entity)return'';const comments=Array.isArray(post.comments)?post.comments:[],avatarHtml=author.kind==='persona'?`<span class="avatar feed-self-avatar">${safeImageSrc(entity.image)?`<img src="${attr(safeImageSrc(entity.image))}" alt="">`:`<b>${esc(String(entity.name||'我').slice(0,1))}</b>`}</span>`:avatar(entity);return`<article class="feed-item"><div class="feed-author">${avatarHtml}<div><b>${esc(entity.name)}</b><small>${author.kind==='persona'?'我的动态':post.generated?'角色动态':''}</small></div><button class="feed-more" onclick="showPostMenu('${attr(post.id)}')">⋯</button></div><div class="feed-body"><div class="feed-text">${esc(post.text)}</div>${postImagesMarkup(post)}${post.location?`<div class="feed-location">⌖ ${esc(post.location)}</div>`:''}<div class="feed-meta"><time>${esc(post.time||'刚刚')}</time></div><div class="feed-actions"><button class="${post.likedByUser?'on':''}" onclick="like('${attr(post.id)}')">${post.likedByUser?'♥':'♡'} ${Math.max(0,Number(post.likes)||0)}</button><button onclick="commentPost('${attr(post.id)}')">○ ${comments.length}</button></div>${postCommentsMarkup(post)}</div></article>`}).join('');e.innerHTML=hero+(posts||'<div class="empty feed-empty"><div class="big">◌</div>还没有动态</div>')}
+
+/* ---------- check phone / reverse check, in-page character reply ---------- */
+let v435PhoneSession={mode:'browse',owner:'',chatId:'',characterId:'',replies:{}};
+function openCheckPhone(){const character=directCharacterForChat(currentChat);if(!character)return;v435PhoneSession={mode:'check',owner:character.id,chatId:currentChat,characterId:character.id,replies:{}};openSimPhone(character.id)}
+function openReversePhone(){const character=directCharacterForChat(currentChat);if(!character)return;v435PhoneSession={mode:'reverse',owner:'user',chatId:currentChat,characterId:character.id,replies:{}};openSimPhone('user')}
+const v435BaseClosePhone=closePhone;
+closePhone=function(){v435PhoneSession={mode:'browse',owner:'',chatId:'',characterId:'',replies:{}};v435BaseClosePhone()};
+const v435BaseOpenSimPhone=openSimPhone;
+openSimPhone=function(owner){if(!v435PhoneSession.owner||v435PhoneSession.owner!==owner)v435PhoneSession={mode:'browse',owner,chatId:currentChat,characterId:directCharacterForChat(currentChat)?.id||'',replies:{}};v435BaseOpenSimPhone(owner)};
+function v435PhoneReplyShell(){if(!['check','reverse'].includes(v435PhoneSession.mode))return'';return`<section class="vphone-page-reply"><div id="vphonePageReply"><span>…</span></div></section>`}
+function v435VisiblePhoneText(owner,key){const items=v43PhoneItems(owner,key).slice(0,20);if(key==='messages')return v43PhoneChatRows(owner).slice(0,12).map(item=>`${item.title}：${item.content}`).join('\n');return items.map(item=>`${item.title||item.action}：${item.content||''}`).join('\n')||'暂无内容'}
+async function v435GeneratePhonePageReply(owner,key){if(!['check','reverse'].includes(v435PhoneSession.mode)||!validAPI())return;const token=`${v435PhoneSession.mode}:${owner}:${key}`,target=document.getElementById('vphonePageReply');if(!target)return;const cached=v435PhoneSession.replies[token];if(cached){target.innerHTML=cached;return}const character=data.characters.find(item=>item.id===v435PhoneSession.characterId);if(!character){target.innerHTML='';return}const app=V43_PHONE_APPS[key],visible=v435VisiblePhoneText(owner,key),mode=v435PhoneSession.mode==='check'?`USER 正在看你的手机里的“${app.name}”。你知道 USER 正在看，并直接对 USER 说一句自然反应。`:`你正在看 USER 手机里的“${app.name}”，并根据你看到的内容直接对 USER 说一句自然反应。`;const controller=withTimeout(Number(data.settings.timeout)||60000);try{const raw=await invokeModel('chat',{system:`你是${character.name}。${mode}回复必须像人物当下会说的话，不解释功能，不说系统、工具、虚拟、反查或查询，不替 USER 行动。只输出一句或两句简短口语。`,history:[{role:'user',content:`角色：\n${characterContext(character)}\n当前页面内容：\n${visible}`}],temperature:.8,maxTokens:180,signal:controller.signal});const text=stripReplyTags(raw).slice(0,500);if(!text){target.innerHTML='';return}const avatarHtml=messageAvatar(character,character.name);const html=`${avatarHtml}<p>${esc(text)}</p>`;v435PhoneSession.replies[token]=html;data.phonePageReplies=data.phonePageReplies&&typeof data.phonePageReplies==='object'?data.phonePageReplies:{};data.phonePageReplies[`${currentChat}:${token}`]={text,time:new Date().toISOString()};save();if(document.getElementById('vphonePageReply'))document.getElementById('vphonePageReply').innerHTML=html}catch{if(document.getElementById('vphonePageReply'))document.getElementById('vphonePageReply').innerHTML=''}finally{releaseController(controller)}}
+v43OpenPhoneApp=function(owner,key){v43ActivePhoneOwner=owner;v43PhoneSetContent(`<div class="vphone vphone-app ${owner==='user'?'is-user':'is-character'}">${v43PhoneAppHeader(owner,key)}<main class="vphone-app-body">${v43PhoneAppBody(owner,key)}${v435PhoneReplyShell()}</main></div>`);setTimeout(()=>void v435GeneratePhonePageReply(owner,key),0)};
+openSimPhoneApp=function(owner,key){v43OpenPhoneApp(owner,key)};
+function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(currentChat),character=!group&&directCharacterForChat(currentChat);modal(`<div class="chat-plus-sheet"><div class="chat-plus-title"><small>MORE</small><h2>${group?'群聊工具':esc(character?.name||'聊天工具')}</h2></div><div class="chat-plus-grid"><button onclick="showStickerPicker()"><span class="tool-svg">${v435Svg('sticker')}</span><b>表情包</b><small>表情与图片</small></button><button onclick="showImageGenerator()"><span class="tool-svg">${v435Svg('image')}</span><b>AI 生图</b><small>生成并发送图片</small></button>${group?'':`<button onclick="${currentChatMode==='offline'?`closeModal();openChat('${attr(character.id)}','online')`:`showOfflineEntryChoices('${attr(character.id)}')`}"><span class="tool-svg">${v435Svg('mode')}</span><b>${currentChatMode==='offline'?'返回线上':'线下相遇'}</b><small>切换聊天场景</small></button><button onclick="openCheckPhone()"><span class="tool-svg">${v435Svg('eye')}</span><b>查手机</b><small>查看 TA 的手机</small></button><button onclick="openReversePhone()"><span class="tool-svg">${v435Svg('reverse')}</span><b>反查手机</b><small>让 TA 查看我的手机</small></button>`}<button onclick="openSimPhone('user')"><span class="tool-svg">${v435Svg('chat')}</span><b>我的手机</b><small>直接打开</small></button></div></div>`)}
