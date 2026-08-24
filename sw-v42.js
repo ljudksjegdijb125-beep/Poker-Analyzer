@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokeji-v43.6';
+const CACHE_NAME = 'pokeji-v43.7';
 const APP_ENTRY = '/index.html';
 const BACKGROUND_DB = 'pokeji-background-v42';
 const BACKGROUND_STORE = 'results';
@@ -7,8 +7,8 @@ const cancelledTasks = new Set();
 const APP_SHELL = [
   '/',
   APP_ENTRY,
-  '/assets/app.css?v=43.6',
-  '/assets/app.js?v=43.6',
+  '/assets/app.css?v=43.7',
+  '/assets/app.js?v=43.7',
   '/manifest.webmanifest?v=42',
   '/assets/icon-192.png?v=42',
   '/assets/icon-512.png?v=42',
