@@ -13,7 +13,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=42">
 <link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=42">
 <link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=42">
-<link rel="stylesheet" href="/assets/app.css?v=42.3">
+<link rel="stylesheet" href="/assets/app.css?v=43.1">
 </head>
 <body>
 
@@ -110,7 +110,7 @@
 
 <section id="chats" class="view app-view">
 <div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
-<div class="scroll"><div class="chat-list-intro"><small>MESSAGES</small><b>线上默认打开</b><span>输入框旁的 ＋ 可打开表情包、线下相遇与虚拟应用；线上线下共享当前面具记忆，不同面具完全独立。</span></div><div class="section chat-mode-search"><input id="chatSearch" class="search" placeholder="搜索角色" oninput="renderChats()"></div><div id="chatList"></div></div>
+<div class="scroll"><div class="chat-list-intro"><small>MESSAGES</small><b>记住每段会话的线上 / 线下状态</b><span>重新进入时延续上次模式；输入框旁的 ＋ 可切换入口并调取聊天相关虚拟内容。</span></div><div class="section chat-mode-search"><input id="chatSearch" class="search" placeholder="搜索角色" oninput="renderChats()"></div><div id="chatList"></div></div>
 </section>
 
 <section id="groups" class="view app-view">
@@ -222,7 +222,7 @@
 <div class="setting"><span><b>AI 内心话</b><small style="display:block">显示角色未说出口的虚构内心独白</small></span><input id="innerThoughtsEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>自动翻译 AI 消息</b><small style="display:block">使用独立翻译模型；相同原文优先读取本机缓存</small></span><input id="autoTranslateEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>识图理解表情包</b><small style="display:block">上传时用独立识图模型生成含义描述</small></span><input id="stickerVisionEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
-<div class="setting"><span><b>角色自动反查模拟手机</b><small style="display:block">只限本网站手动填写的虚拟内容</small></span><select id="reversePhoneMode" onchange="saveImmersionSettings()"><option value="off">关闭</option><option value="auto">由 API 按情境决定</option></select></div>
+<div class="setting"><span><b>AI 情境手机联动</b><small style="display:block">按聊天需要静默调取网站内虚拟内容，不读取现实手机、不发反查通知</small></span><span class="muted">自动</span></div>
 <div class="setting" onclick="openView('world')"><span><b>内置活人感世界书</b><small style="display:block">线上私信与线下相遇各一份</small></span><span class="muted">查看 ›</span></div>
 <div class="setting"><span>随机事件</span><input id="randomEventsEnabled" type="checkbox" style="width:auto" onchange="saveRandomEventSettings()"></div>
 <div class="setting"><span>触发概率</span><input id="randomEventChance" type="number" min="0" max="100" step="1" onchange="saveRandomEventSettings()"></div>
@@ -231,7 +231,7 @@
 <div class="setting"><span>最长间隔（分钟）</span><input id="proactiveMaxMinutes" type="number" min="1" max="1440" step="1" onchange="saveProactiveSettings()"></div>
 </div>
 <div class="group"><div class="group-title">朗读与声音</div>
-<div class="setting"><span><b>点听筒图标朗读</b><small style="display:block">每条 AI 文字旁都有可直接点击的听筒，无需长按</small></span><span class="muted">常驻</span></div>
+<div class="setting"><span><b>点扬声器图标朗读</b><small style="display:block">AI 文字旁常驻清晰的朗读入口；未配置声音模型时使用系统语音</small></span><span class="muted">常驻</span></div>
 <div class="setting"><span><b>自动朗读回复</b><small style="display:block">文字气泡保留，回复后自动播放声音</small></span><input id="autoReadEnabled" type="checkbox" style="width:auto" onchange="saveVoicePlaybackSettings()"></div>
 <div class="setting"><span><b>旁白也朗读</b><small style="display:block">关闭时只读角色对白</small></span><input id="autoReadNarration" type="checkbox" style="width:auto" onchange="saveVoicePlaybackSettings()"></div>
 <div class="setting" onclick="editVoiceWorldBook()"><span><b>语音世界书</b><small style="display:block">朗读节奏、停顿、情绪与发音偏好</small></span><span class="muted" id="voiceWorldBookLabel">未设置 ›</span></div>
@@ -268,14 +268,14 @@
 <div class="scroll"><div id="messages" class="messages"></div></div>
 <div id="speakerPicker" class="speaker-picker" style="display:none"></div>
 <div id="chatGenerationStatus" class="chat-generation-status" hidden></div>
-<div class="composer"><button id="chatPlusBtn" class="composer-tool composer-plus" onclick="showChatPlusMenu()" title="表情包、线下与模拟手机" aria-label="打开聊天工具">＋</button><button id="regenerateBtn" class="composer-tool" onclick="regenerateLast()" title="重新生成；报错后也可重试" aria-label="重新生成或重试上一条">↻</button><input id="messageInput" placeholder="输入消息…" oninput="updateComposerState()" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();sendMessage()}"><button class="send" onclick="sendMessage()">↑</button></div>
+<div class="composer"><button id="chatPlusBtn" class="composer-tool composer-plus" onclick="showChatPlusMenu()" title="表情包、线上线下与聊天相关虚拟手机" aria-label="打开聊天工具">＋</button><button id="regenerateBtn" class="composer-tool" onclick="regenerateLast()" title="重新生成；报错后也可重试" aria-label="重新生成或重试上一条">↻</button><input id="messageInput" placeholder="输入消息…" oninput="updateComposerState()" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();sendMessage()}"><button class="send" onclick="sendMessage()">↑</button></div>
 </section>
 
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="handle"></div><div id="modalContent"></div></div></div>
 <div id="toast" class="toast"></div>
 </div></div>
 
-<script src="/assets/app.js?v=42.3"></script>
+<script src="/assets/app.js?v=43.1"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{

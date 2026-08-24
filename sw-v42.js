@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokeji-v42.3';
+const CACHE_NAME = 'pokeji-v43.1';
 const APP_ENTRY = '/index.html';
 const BACKGROUND_DB = 'pokeji-background-v42';
 const BACKGROUND_STORE = 'results';
@@ -7,8 +7,8 @@ const cancelledTasks = new Set();
 const APP_SHELL = [
   '/',
   APP_ENTRY,
-  '/assets/app.css?v=42.3',
-  '/assets/app.js?v=42.3',
+  '/assets/app.css?v=43.1',
+  '/assets/app.js?v=43.1',
   '/manifest.webmanifest?v=42',
   '/assets/icon-192.png?v=42',
   '/assets/icon-512.png?v=42',
@@ -178,7 +178,7 @@ self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(key => key.startsWith('pokeji-v42') && key !== CACHE_NAME).map(key => caches.delete(key)));
+    await Promise.all(keys.filter(key => key.startsWith('pokeji-v') && key !== CACHE_NAME).map(key => caches.delete(key)));
     if (self.registration.navigationPreload) {
       try { await self.registration.navigationPreload.enable(); } catch {}
     }
