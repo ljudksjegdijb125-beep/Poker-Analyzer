@@ -943,7 +943,7 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 
 
 /* =========================================================
-   POKEJI V43.5 · aligned chat groups / voice bars
+   POKEJI V43.6 · aligned chat groups / voice bars
    ========================================================= */
 #chat .messages{gap:10px;padding:16px 12px 20px}
 #chat .msg-group{display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:8px;align-items:start;width:auto;max-width:88%;align-self:flex-start;gap:0}
@@ -996,7 +996,7 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 @media(max-width:360px){#chat .msg-group{max-width:92%}#chat .msg-group>.message-avatar{width:31px;height:31px;flex-basis:31px}#chat .msg-group.without-avatar{max-width:88%}}
 
 
-/* POKEJI V43.5 compact grouped bubbles + right-side read button */
+/* POKEJI V43.6 compact grouped bubbles + right-side read button */
 #chat .messages{gap:9px}
 #chat .msg-group .message-column{gap:2px}
 #chat .msg-group .message-item{gap:2px}
@@ -1015,13 +1015,13 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 #chat .msg-group .msg-time{line-height:1.2}
 #chat .msg-group.batch-message{margin-top:0;margin-bottom:0}
 
-/* POKEJI V43.5 balanced avatar and bubble spacing */
+/* POKEJI V43.6 balanced avatar and bubble spacing */
 #chat .msg-group{column-gap:10px}
 #chat .msg-group .message-column{gap:2px}
 #chat .msg-group .message-item+.message-item{margin-top:2px}
 #chat .msg-group.batch-message .message-item+.message-item{margin-top:2px}
 
-/* POKEJI V43.5 full phone desktop and apps */
+/* POKEJI V43.6 full phone desktop and apps */
 #modal.phone-fullscreen{background:#08080a;backdrop-filter:none}
 #modal.phone-fullscreen>.sheet{inset:0;left:0;right:0;bottom:0;width:100%;height:100%;max-height:none;padding:0;border:0;border-radius:0;background:#08080a;overflow:hidden;animation:none}
 #modal.phone-fullscreen .handle{display:none}
@@ -1056,9 +1056,13 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 @media(max-width:360px){.vphone-icons{column-gap:8px;row-gap:20px}.vphone-icon button{width:52px;height:52px}.vphone-home{padding-left:14px;padding-right:14px}}
 
 
-/* POKEJI V43.5 API library / status / feed / SVG tools / phone page replies */
+/* POKEJI V43.6 API library / status / feed / SVG tools / phone page replies */
 .tool-svg svg,.vphone-icon svg,.vphone-dock svg{width:24px;height:24px}.tool-svg{display:grid!important;place-items:center}.tool-svg svg{width:20px;height:20px}
 .api-library-head{min-height:58px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;background:#1c1c20;border-radius:15px 15px 0 0}.api-library-head b,.api-library-head small{display:block}.api-library-head b{font-size:11px}.api-library-head small{margin-top:4px;color:#888;font-size:8px}.api-library-head button{height:31px;padding:0 10px;border-radius:10px;background:#eee;color:#222;font-size:8px}.api-library-list{overflow:hidden;border-radius:0 0 15px 15px;background:#18181c}.api-library-list>button{width:100%;min-height:62px;padding:9px 11px;display:grid;grid-template-columns:40px 1fr auto;gap:9px;align-items:center;text-align:left;border-bottom:1px solid #ffffff0d}.api-library-list>button:last-child{border:0}.api-kind{width:40px;height:40px;border-radius:12px;background:#eee;color:#222;display:grid;place-items:center;font-size:12px}.api-library-list b,.api-library-list small{display:block}.api-library-list b{font-size:10px}.api-library-list small{margin-top:4px;color:#888;font-size:8px}.api-library-list i{font-style:normal;color:#777;font-size:8px}.api-library-empty{padding:25px;text-align:center;color:#777;font-size:9px}.api-bind-title{margin:16px 4px 8px;color:#aaa;font-size:9px}.api-bindings{overflow:hidden;border-radius:15px;background:#1b1b1f}.api-bindings button{width:100%;min-height:55px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;text-align:left;border-bottom:1px solid #ffffff0d}.api-bindings button:last-child{border:0}.api-bindings b,.api-bindings small{display:block}.api-bindings b{font-size:10px}.api-bindings small{margin-top:3px;color:#777;font-size:8px}.api-bindings i{font-style:normal;color:#999;font-size:8px}.api-binding-picker{margin:0 16px 12px;display:flex;flex-direction:column;gap:7px}.api-binding-picker label{min-height:57px;padding:9px 11px;border-radius:13px;background:#1d1d21;display:flex;align-items:center;gap:9px}.api-binding-picker input{width:auto}.api-binding-picker b,.api-binding-picker small{display:block}.api-binding-picker b{font-size:10px}.api-binding-picker small{margin-top:4px;color:#888;font-size:8px}.status-current-preview{padding:11px;border-radius:11px;background:#252529;color:#ddd;font-size:10px;line-height:1.55}
 .feed-persona-tabs{display:flex;gap:6px;overflow:auto;padding:10px 13px;border-bottom:1px solid #ffffff0d}.feed-persona-tabs button{flex:0 0 auto;height:32px;padding:0 11px;border-radius:10px;background:#202024;color:#999;font-size:8px}.feed-persona-tabs button.on{background:#eee;color:#222;font-weight:650}.feed-two-actions{grid-template-columns:1fr 1fr}.feed-compose-author{margin:0 16px 13px;padding:10px;border-radius:14px;background:#1d1d21;display:flex;align-items:center;gap:10px}.feed-compose-author .feed-profile-avatar{width:43px;height:43px;border:0}.feed-compose-author b,.feed-compose-author small{display:block}.feed-compose-author b{font-size:11px}.feed-compose-author small{margin-top:4px;color:#888;font-size:8px}.feed-self-avatar{overflow:hidden;background:#eee;color:#222;display:grid;place-items:center}.feed-self-avatar img{width:100%;height:100%;object-fit:cover}.feed-self-avatar b{font-size:11px}
 .vphone-page-reply{margin-top:17px;padding-top:12px;border-top:1px solid #ffffff0d}.vphone-page-reply>div{min-height:48px;padding:8px 10px;border-radius:14px;background:#222226;display:flex;gap:8px;align-items:flex-start}.vphone-page-reply .message-avatar{width:32px;height:32px;flex:0 0 32px;border-radius:11px}.vphone-page-reply p{margin:4px 0 0;color:#ddd;font-size:10px;line-height:1.55}.vphone-page-reply>div>span:only-child{color:#777;font-size:11px}
 
+
+/* POKEJI V43.6 clearer character studio and additive completion */
+.character-studio-hero{background:radial-gradient(circle at 90% 0,#ffffff12,transparent 40%),linear-gradient(145deg,#27272b,#151517);box-shadow:0 16px 34px rgba(0,0,0,.32),inset 0 0 0 1px #ffffff0d}.character-studio-hero>small{color:#999}.character-studio-hero h2{font-family:var(--ui-font);font-size:22px;font-weight:650;letter-spacing:0}.character-studio-hero p{color:#999;font-size:10px}.character-studio-actions{grid-template-columns:1fr 1fr;gap:9px}.character-studio-actions button{height:43px;border:0;background:#242428;color:#ddd;font-weight:550}.character-studio-actions .primary{grid-column:auto;background:#eeeeea;color:#202023;box-shadow:none}.character-studio-actions button:active{transform:scale(.97)}
+.character-completion-bar{margin:-4px 16px 14px;padding:11px 12px;border-radius:15px;background:#1d1d21;display:flex;justify-content:space-between;align-items:center}.character-completion-bar b,.character-completion-bar small{display:block}.character-completion-bar b{font-size:11px}.character-completion-bar small{margin-top:4px;color:#888;font-size:8px}.character-completion-bar button{height:34px;padding:0 11px;border:0;border-radius:10px;background:#eee;color:#222;font-size:9px;font-weight:650}.character-completion-model-card{margin:0 16px 14px;padding:12px;border-radius:15px;background:#1d1d21;display:flex;justify-content:space-between;align-items:center}.character-completion-model-card b,.character-completion-model-card small{display:block}.character-completion-model-card b{font-size:10px}.character-completion-model-card small{margin-top:4px;color:#888;font-size:8px}.character-completion-model-card button{height:32px;padding:0 10px;border-radius:10px;background:#29292d;color:#ddd;font-size:8px}.character-completion-list{margin:0 16px 13px;display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow:auto}.character-completion-list label{padding:11px;border-radius:14px;background:#1d1d21;display:flex;align-items:flex-start;gap:9px}.character-completion-list input{width:auto;margin-top:2px}.character-completion-list span{min-width:0}.character-completion-list b,.character-completion-list small,.character-completion-list em{display:block}.character-completion-list b{font-size:10px}.character-completion-list small{margin-top:5px;color:#777;font-size:8px;line-height:1.55}.character-completion-list em{margin-top:7px;color:#d4d4d1;font-size:9px;font-style:normal;line-height:1.6}

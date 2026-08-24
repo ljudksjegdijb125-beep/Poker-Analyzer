@@ -1110,7 +1110,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V42_SW_URL='/sw-v42.js?build=43.5';
+const V42_SW_URL='/sw-v42.js?build=43.6';
 function isV42WorkerUrl(url){return /\/sw-v42\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v38\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1861,7 +1861,7 @@ startProactiveScheduler();
 
 
 /* =========================================================
-   POKEJI V43.5 · confirmed interaction patch
+   POKEJI V43.6 · confirmed interaction patch
    Appended override layer. V42 remains untouched.
    ========================================================= */
 
@@ -2060,7 +2060,7 @@ async function autoReadMessages(chatId,indexes=[]){if(data.settings.autoReadEnab
 
 
 
-/* V43.5 AI media-choice prompt override */
+/* V43.6 AI media-choice prompt override */
 function voiceWorldBookPrompt(){const text=String(data.settings.voiceWorldBook||'').trim();return text?`【语音世界书】\n${text}\n这些规则影响角色台词的节奏、情绪与发音。角色可以自行决定使用普通文字或 <voice>语音内容</voice>；不要输出 TTS 参数或技术说明。`:''}
 function v43MediaChoicePrompt(){return `【消息形式自主选择】\n角色必须按真实聊天节奏自行选择消息形式，不要机械固定一种：\n- 普通文字：<message>真正发送的文字</message>；可自然分成多条。\n- 语音消息：<voice>角色真正说出的语音内容</voice>；仅在语气、亲密度、情境适合时使用，前端会生成可播放语音条。\n- AI 图片：<image>需要交给生图模型的完整画面描述</image>；仅在角色确实会拍照、分享图片或当前内容需要视觉表达时使用。图片由运行时生图模型生成，不得引用固定资源包图片。\n- 外语可以直接发在 message/voice 中；自动翻译功能会在需要时显示译文。\n- 可以在必要时使用虚拟手机内部标签 phone_query/phone_update，但标签不展示给 USER。\n没有必要时只发自然文字，不能为了展示功能强行发语音或图片。`}
 function buildSystemPrompt(c,userMessage='',chatId=currentChat){
@@ -2082,7 +2082,7 @@ function saveImmersionSettings(){data.settings.innerThoughtsEnabled=document.get
 
 
 
-/* V43.5 runtime post-commit hooks */
+/* V43.6 runtime post-commit hooks */
 function v43PostCommit(chatId,indexes=[]){
   const direct=directCharacterForChat(chatId);if(direct&&Math.random()<.28&&!simulatedPhoneItems(direct.id,chatId).length&&validAPI())void v43GenerateCharacterPhoneSnapshot(direct.id,chatId).catch(()=>{});
   queueAutoTranslations(chatId,indexes);if(currentChat===chatId)void autoReadMessages(chatId,indexes);
@@ -2096,7 +2096,7 @@ const v43NotificationUnshift=data.notifications.unshift.bind(data.notifications)
 data.notifications.unshift=function(...items){const kept=items.filter(item=>!item||item.type!=='chat'||!/(回复了你|主动发来消息|后台完成回复|手机|反查)/.test(String(item.text||'')));return kept.length?v43NotificationUnshift(...kept):data.notifications.length};
 
 
-/* V43.5 targeted bug fixes */
+/* V43.6 targeted bug fixes */
 function translateStoredMessage(chatId,idx,{notify=false,force=false}={}){
  const message=(data.chats[chatId]||[])[idx],text=String(message?.text||'').trim();if(!message||!text||['sticker','image','phoneEvent'].includes(message.kind))return Promise.resolve(false);if(!validModel('translation'))return Promise.reject(Error('请先配置独立翻译模型'));
  const source=translationHash(text),taskKey=`${chatId}:${message.id||idx}:${source}`;if(translationTasks.has(taskKey))return Promise.resolve(false);if(!force&&message.translation&&message.translationSource===source)return Promise.resolve(true);const cached=data.translationCache?.[source];if(!force&&cached){message.translation=cached;message.translationSource=source;save();if(currentChat===chatId)renderMessages();return Promise.resolve(true)}
@@ -2122,7 +2122,7 @@ function loadSettings(){
 const v43Plus=document.getElementById('chatPlusBtn');if(v43Plus)v43Plus.title='表情包、线上线下与聊天相关虚拟手机';
 
 
-/* V43.5 final behavior corrections */
+/* V43.6 final behavior corrections */
 function v43WriteMode(chatId,mode,offlineStyle='direct'){
  if(!chatId||!['online','offline'].includes(mode))return;const style=offlineStyle==='story'?'story':'direct',store=v43ReadModeStore();store[String(chatId)]={mode,offlineStyle:style,updatedAt:Date.now()};try{localStorage.setItem(V43_MODE_STORE,JSON.stringify(store))}catch{}
  data.chatSettings??={};const raw=data.chatSettings[chatId]&&typeof data.chatSettings[chatId]==='object'?data.chatSettings[chatId]:{};data.chatSettings[chatId]={...raw,mode,offlineStyle:style,reversePhoneGranted:false};save();
@@ -2157,7 +2157,7 @@ function sendGeneratedImage(){if(!generatedImageDraft||!currentChat)return;const
 
 
 
-/* V43.5 layout hotfix: every AI text is readable */
+/* V43.6 layout hotfix: every AI text is readable */
 function v43MessageItemMarkup(m,i,isLast,chatId){
  let original='';
  if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
@@ -2170,22 +2170,22 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 }
 
 
-/* V43.5 Service Worker update diagnostics */
+/* V43.6 Service Worker update diagnostics */
 async function v43FetchWorkerScript(){
- const response=await fetch('/sw-v42.js?build=43.5&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
+ const response=await fetch('/sw-v42.js?build=43.6&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v42.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v42.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v43.5"))throw Error('线上 sw-v42.js 仍不是 V43.5。请重新覆盖 sw-v42.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v43.6"))throw Error('线上 sw-v42.js 仍不是 V43.6。请重新覆盖 sw-v42.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v42.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.5 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V43.5 更新…');
- try{await v43FetchWorkerScript();const registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('V43.5 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V43.5 更新检查完成')}
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.6 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V43.6 更新…');
+ try{await v43FetchWorkerScript();const registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('V43.6 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V43.6 更新检查完成')}
  catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V43\.1|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v42.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
 
 
-/* V43.5 layout correction: small spacing, inline read button */
+/* V43.6 layout correction: small spacing, inline read button */
 function v43InlineReadButton(chatId,idx,message){
  const key=messageAudioKey(chatId,idx,message),playing=activeAudioMessageKey===key;
  return`<button class="message-read-button inline-read ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${idx})" aria-label="${playing?'正在朗读':'朗读这条消息'}" title="${playing?'正在朗读':'朗读这条消息'}">${v43SpeakerIcon()}</button>`;
@@ -2201,7 +2201,7 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 }
 
 
-/* POKEJI V43.5 full phone desktop and app regions */
+/* POKEJI V43.6 full phone desktop and app regions */
 Object.assign(SIM_APP_CATALOG,{
  music:{name:'音乐',icon:'♫',accent:'#777b87',description:'最近播放与收藏',actions:['最近播放','收藏']},
  maps:{name:'地图',icon:'⌖',accent:'#738074',description:'地点与路线',actions:['地点','路线']},
@@ -2266,7 +2266,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 
 
 /* =========================================================
-   POKEJI V43.5 · feed personas / API library / status / phone interactions
+   POKEJI V43.6 · feed personas / API library / status / phone interactions
    ========================================================= */
 
 /* ---------- reusable SVG icons ---------- */
@@ -2357,10 +2357,10 @@ openSimPhoneApp=function(owner,key){v43OpenPhoneApp(owner,key)};
 function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(currentChat),character=!group&&directCharacterForChat(currentChat);modal(`<div class="chat-plus-sheet"><div class="chat-plus-title"><small>MORE</small><h2>${group?'群聊工具':esc(character?.name||'聊天工具')}</h2></div><div class="chat-plus-grid"><button onclick="showStickerPicker()"><span class="tool-svg">${v435Svg('sticker')}</span><b>表情包</b><small>表情与图片</small></button><button onclick="showImageGenerator()"><span class="tool-svg">${v435Svg('image')}</span><b>AI 生图</b><small>生成并发送图片</small></button>${group?'':`<button onclick="${currentChatMode==='offline'?`closeModal();openChat('${attr(character.id)}','online')`:`showOfflineEntryChoices('${attr(character.id)}')`}"><span class="tool-svg">${v435Svg('mode')}</span><b>${currentChatMode==='offline'?'返回线上':'线下相遇'}</b><small>切换聊天场景</small></button><button onclick="openCheckPhone()"><span class="tool-svg">${v435Svg('eye')}</span><b>查手机</b><small>查看 TA 的手机</small></button><button onclick="openReversePhone()"><span class="tool-svg">${v435Svg('reverse')}</span><b>反查手机</b><small>让 TA 查看我的手机</small></button>`}<button onclick="openSimPhone('user')"><span class="tool-svg">${v435Svg('chat')}</span><b>我的手机</b><small>直接打开</small></button></div></div>`)}
 
 
-/* V43.5 forward-compatible Service Worker update check */
+/* V43.6 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V42_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'43.5')}
+function v435ExpectedBuild(){return String(V42_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'43.6')}
 async function v43FetchWorkerScript(){
  const expected=v435ExpectedBuild(),response=await fetch(`/sw-v42.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v42.js：HTTP ${response.status}`);
@@ -2372,7 +2372,33 @@ async function v43FetchWorkerScript(){
  return{online,expected};
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.5 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.6 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
  try{const versions=await v43FetchWorkerScript(),registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast(`更新检查完成 · Worker ${versions.online}`)}
  catch(error){const detail=String(error?.message||error);if(/Service Worker 版本|sw-v42\.js|ServiceWorker|Failed to update|unknown error|fetching the script|Content-Type|语法无效|无法识别版本/i.test(detail)){modal(`<h2>离线服务版本不一致</h2><div class="note">${esc(detail)}<br><br>当前页面可能仍由旧缓存控制。请先把同一版本的 index.html、assets/app.js、assets/app.css、sw-v42.js、repair-sw.html 一起部署，再打开修复页。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
+
+
+/* =========================================================
+   POKEJI V43.6 · clearer character studio / additive completion
+   ========================================================= */
+const V436_COMPLETION_FIELDS={bio:'身份概要',personality:'性格',background:'过往经历',appearance:'外貌与气质',speechStyle:'说话方式',relationship:'与用户关系',scenario:'当前情境',firstMessage:'首条消息',exampleDialogue:'对话示例',systemPrompt:'角色专属指令',boundaries:'边界与禁区'};
+V435_FUNCTION_LABELS.characterCompletion='角色补全';
+function v435CapabilityForKind(kind){return kind==='voice'?'voice':kind==='image'?'image':'text'}
+function v436CompletionProfile(){return modelProfile('characterCompletion')}
+function v436CompletionReady(){const profile=v436CompletionProfile();return!!(profile.base&&profile.key&&profile.model)}
+function v436OpenCompletionModel(){v435BindFunction('characterCompletion')}
+function v436SafeJsonObject(raw){const source=String(raw||'').trim(),fenced=source.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]||source,start=fenced.indexOf('{'),end=fenced.lastIndexOf('}');if(start<0||end<=start)throw Error('补全模型没有返回 JSON 对象');return JSON.parse(fenced.slice(start,end+1))}
+function v436NormalizePatch(raw,draft){const patch={};for(const key of Object.keys(V436_COMPLETION_FIELDS)){let value=String(raw?.[key]||'').trim();if(!value)continue;const current=String(draft?.[key]||'').trim();if(current&&(current.includes(value)||value.includes(current)&&value.length<current.length*1.15))continue;value=value.slice(0,key==='exampleDialogue'||key==='systemPrompt'?2400:1200);if(value)patch[key]=value}return patch}
+function v436CurrentCharacterForPrompt(draft){return Object.entries(V436_COMPLETION_FIELDS).map(([key,label])=>`【${label}】\n${String(draft[key]||'').trim()||'（空）'}`).join('\n\n')}
+async function runCharacterCompletion(){
+ collectCharacterEditorPage();const draft=characterEditorDraft;if(!draft?.name)return toast('请先填写角色名称');if(!v436CompletionReady()){modal(`<h2>角色补全模型未绑定</h2><div class="note">请先在 API 配置库保存一套文本模型，再把“角色补全”绑定到该配置。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="closeModal();openView('settings')">前往设置</button></div>`);return}
+ if(busy)return toast('已有生成任务正在进行');setBusy(true);toast('正在分析现有设定…');const controller=withTimeout(Number(data.settings.timeout)||60000);
+ try{const raw=await invokeModel('characterCompletion',{system:`你是角色设定补全编辑器。任务是在用户已经写好的角色基础上，提出“只追加、不覆盖”的补充。\n硬性规则：\n1. 不得重写、删除、总结、改名或纠正现有设定。\n2. 只能补足空白字段，或为已有字段提供不重复且能由现有内容合理推导的新增细节。\n3. 禁止随机添加重大创伤、疾病、超能力、犯罪、婚恋、亲属死亡等改变人物根基的设定。\n4. 不得修改名称、昵称、代词、标签、头像、状态短句、状态模式、Voice、面具绑定、主动来信。\n5. 信息不足时对应字段返回空字符串。\n6. 严格只输出 JSON 对象，键只能是：${Object.keys(V436_COMPLETION_FIELDS).join(', ')}。每个值只写建议追加的新内容。`,history:[{role:'user',content:`角色名称：${draft.name}\n\n${v436CurrentCharacterForPrompt(draft)}`}],temperature:.35,maxTokens:2400,signal:controller.signal});const patch=v436NormalizePatch(v436SafeJsonObject(raw),draft);if(!Object.keys(patch).length)return toast('现有设定已经较完整，没有可靠的新补充');showCharacterCompletionPreview(patch)}catch(error){if(error?.name==='AbortError')toast('角色补全已取消或超时');else errorDetail(error,'角色补全失败')}finally{releaseController(controller);setBusy(false)}
+}
+function showCharacterCompletionPreview(patch){const draft=characterEditorDraft;if(!draft)return;window.__characterCompletionPatch=patch;modal(`<h2>确认追加补全</h2><div class="note">只会把勾选内容追加到原字段末尾，不会替换已有文字。请逐项确认。</div><div class="character-completion-list">${Object.entries(patch).map(([key,value])=>`<label><input class="character-completion-check" type="checkbox" value="${key}" checked><span><b>${esc(V436_COMPLETION_FIELDS[key])}</b>${draft[key]?`<small>原有：${esc(String(draft[key]).slice(0,180))}${String(draft[key]).length>180?'…':''}</small>`:'<small>原字段为空</small>'}<em>追加：${esc(value)}</em></span></label>`).join('')}</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="applyCharacterCompletion()">追加到角色</button></div>`)}
+function applyCharacterCompletion(){const draft=characterEditorDraft,patch=window.__characterCompletionPatch||{};if(!draft)return;let count=0;for(const input of document.querySelectorAll('.character-completion-check:checked')){const key=input.value,value=String(patch[key]||'').trim();if(!V436_COMPLETION_FIELDS[key]||!value)continue;const current=String(draft[key]||'').trim();draft[key]=current?`${current}\n\n${value}`:value;count++}delete window.__characterCompletionPatch;closeModal();renderCharacterEditor();toast(count?`已追加 ${count} 项补充；请检查后保存`:'没有选择补充内容')}
+const v436BaseCharacterEditorHero=characterEditorHero;
+characterEditorHero=function(d){const base=v436BaseCharacterEditorHero(d);return`${base}<div class="character-completion-bar"><span><b>设定补全</b><small>在现有内容上补充，不覆盖原文</small></span><button onclick="runCharacterCompletion()">✦ 一键补全</button></div>`}
+const v436BaseCharacterBindingPage=characterBindingPage;
+characterBindingPage=function(d){return`${v436BaseCharacterBindingPage(d)}<div class="character-completion-model-card"><span><b>角色补全模型</b><small>${v436CompletionReady()?`${esc(v436CompletionProfile().model)} · 已绑定`:'尚未绑定文本模型'}</small></span><button onclick="v436OpenCompletionModel()">设置 ›</button></div>`}
+
