@@ -2355,3 +2355,24 @@ async function v435GeneratePhonePageReply(owner,key){if(!['check','reverse'].inc
 v43OpenPhoneApp=function(owner,key){v43ActivePhoneOwner=owner;v43PhoneSetContent(`<div class="vphone vphone-app ${owner==='user'?'is-user':'is-character'}">${v43PhoneAppHeader(owner,key)}<main class="vphone-app-body">${v43PhoneAppBody(owner,key)}${v435PhoneReplyShell()}</main></div>`);setTimeout(()=>void v435GeneratePhonePageReply(owner,key),0)};
 openSimPhoneApp=function(owner,key){v43OpenPhoneApp(owner,key)};
 function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(currentChat),character=!group&&directCharacterForChat(currentChat);modal(`<div class="chat-plus-sheet"><div class="chat-plus-title"><small>MORE</small><h2>${group?'群聊工具':esc(character?.name||'聊天工具')}</h2></div><div class="chat-plus-grid"><button onclick="showStickerPicker()"><span class="tool-svg">${v435Svg('sticker')}</span><b>表情包</b><small>表情与图片</small></button><button onclick="showImageGenerator()"><span class="tool-svg">${v435Svg('image')}</span><b>AI 生图</b><small>生成并发送图片</small></button>${group?'':`<button onclick="${currentChatMode==='offline'?`closeModal();openChat('${attr(character.id)}','online')`:`showOfflineEntryChoices('${attr(character.id)}')`}"><span class="tool-svg">${v435Svg('mode')}</span><b>${currentChatMode==='offline'?'返回线上':'线下相遇'}</b><small>切换聊天场景</small></button><button onclick="openCheckPhone()"><span class="tool-svg">${v435Svg('eye')}</span><b>查手机</b><small>查看 TA 的手机</small></button><button onclick="openReversePhone()"><span class="tool-svg">${v435Svg('reverse')}</span><b>反查手机</b><small>让 TA 查看我的手机</small></button>`}<button onclick="openSimPhone('user')"><span class="tool-svg">${v435Svg('chat')}</span><b>我的手机</b><small>直接打开</small></button></div></div>`)}
+
+
+/* V43.5 forward-compatible Service Worker update check */
+function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
+function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
+function v435ExpectedBuild(){return String(V42_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'43.5')}
+async function v43FetchWorkerScript(){
+ const expected=v435ExpectedBuild(),response=await fetch(`/sw-v42.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
+ if(!response.ok)throw Error(`线上缺少 sw-v42.js：HTTP ${response.status}`);
+ if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v42.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
+ const match=text.match(/CACHE_NAME\s*=\s*['"]pokeji-v(\d+(?:\.\d+)*)['"]/i),online=match?.[1]||'';
+ if(!online)throw Error('线上 sw-v42.js 无法识别版本，可能上传了错误文件。');
+ if(v435CompareVersions(online,expected)<0)throw Error(`线上 Service Worker 版本 ${online} 低于当前页面要求的 ${expected}。请成套覆盖部署文件。`);
+ try{new Function(text)}catch(error){throw Error(`线上 sw-v42.js 语法无效：${error.message}`)}
+ return{online,expected};
+}
+async function checkForUpdates(){
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V43.5 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
+ try{const versions=await v43FetchWorkerScript(),registration=await ensureV42ServiceWorker({forceUpdate:true});if(!registration)throw Error('离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast(`更新检查完成 · Worker ${versions.online}`)}
+ catch(error){const detail=String(error?.message||error);if(/Service Worker 版本|sw-v42\.js|ServiceWorker|Failed to update|unknown error|fetching the script|Content-Type|语法无效|无法识别版本/i.test(detail)){modal(`<h2>离线服务版本不一致</h2><div class="note">${esc(detail)}<br><br>当前页面可能仍由旧缓存控制。请先把同一版本的 index.html、assets/app.js、assets/app.css、sw-v42.js、repair-sw.html 一起部署，再打开修复页。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
+}
