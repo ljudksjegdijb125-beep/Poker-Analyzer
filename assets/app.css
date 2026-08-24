@@ -943,7 +943,7 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 
 
 /* =========================================================
-   POKEJI V43.2 · aligned chat groups / voice bars
+   POKEJI V43.3 · aligned chat groups / voice bars
    ========================================================= */
 #chat .messages{gap:10px;padding:16px 12px 20px}
 #chat .msg-group{display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:8px;align-items:start;width:auto;max-width:88%;align-self:flex-start;gap:0}
@@ -996,7 +996,7 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 @media(max-width:360px){#chat .msg-group{max-width:92%}#chat .msg-group>.message-avatar{width:31px;height:31px;flex-basis:31px}#chat .msg-group.without-avatar{max-width:88%}}
 
 
-/* POKEJI V43.2 compact grouped bubbles + right-side read button */
+/* POKEJI V43.3 compact grouped bubbles + right-side read button */
 #chat .messages{gap:9px}
 #chat .msg-group .message-column{gap:2px}
 #chat .msg-group .message-item{gap:2px}
@@ -1014,3 +1014,9 @@ body{background:radial-gradient(circle at 50% -8%,#37373a 0,transparent 36%),#0a
 #chat .msg-group .message-footer .message-read-button{display:none}
 #chat .msg-group .msg-time{line-height:1.2}
 #chat .msg-group.batch-message{margin-top:0;margin-bottom:0}
+
+/* POKEJI V43.3 balanced avatar and bubble spacing */
+#chat .msg-group{column-gap:10px}
+#chat .msg-group .message-column{gap:2px}
+#chat .msg-group .message-item+.message-item{margin-top:2px}
+#chat .msg-group.batch-message .message-item+.message-item{margin-top:2px}
