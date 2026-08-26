@@ -6,7 +6,7 @@
 (function(){
   if(window.__pokejiV45Loaded)return;
   window.__pokejiV45Loaded=true;
-  const V45='45.0';
+  const V45='45.2';
   const v45Text=(v,f='')=>String(v??f);
   const v45Obj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
   const v45Arg=v=>`decodeURIComponent('${encodeURIComponent(String(v??'')).replace(/'/g,'%27')}')`;
@@ -59,8 +59,8 @@
     if(chatInput){chatInput.type='text';chatInput.name='chat-message';chatInput.autocomplete='off';chatInput.autocapitalize='sentences';chatInput.autocorrect='off';chatInput.spellcheck=false;chatInput.setAttribute('inputmode','text');chatInput.setAttribute('data-form-type','other');chatInput.setAttribute('data-lpignore','true')}
     const key=document.getElementById('mpKey');
     if(key){
-      /* Keep the key visually masked without the semantic password type. */
-      key.type='text';key.name='service-token-value';key.autocomplete='off';key.autocorrect='off';key.spellcheck=false;key.setAttribute('data-form-type','other');key.setAttribute('data-lpignore','true');key.style.webkitTextSecurity='disc';key.style.textSecurity='disc';
+      /* API keys stay ordinary text inputs so Android autofill cannot treat chat as a password form. */
+      key.type='text';key.name='api-token';key.autocomplete='off';key.autocapitalize='none';key.autocorrect='off';key.spellcheck=false;key.removeAttribute('data-form-type');key.setAttribute('data-lpignore','true');key.setAttribute('data-1p-ignore','true');key.setAttribute('data-bwignore','true');
     }
   }
   window.v45HardenInputs=v45HardenInputs;
