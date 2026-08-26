@@ -19,7 +19,7 @@ async function repair(){
   if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();for(const registration of registrations){if(await registration.unregister())unregistered++}}
   if('caches'in window){const keys=await caches.keys();for(const key of keys){if(key.startsWith('pokeji-')&&await caches.delete(key))deleted++}}
   status.className='status ok';status.textContent=`修复完成\n已注销 ${unregistered} 个离线服务\n已清理 ${deleted} 个扑克机缓存\n聊天与设置未删除。\n\n正在重新打开 V45…`;
-  setTimeout(()=>location.replace('/index.html?repaired=45.2&t='+Date.now()),1200);
+  setTimeout(()=>location.replace('/index.html?repaired=45.3.1&t='+Date.now()),1200);
  }catch(error){status.className='status bad';status.textContent='修复失败：'+(error?.message||error);retry.hidden=false}
 }
 repair();

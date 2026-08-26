@@ -9,11 +9,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · Private AI Space · V45.2</title>
-<link rel="manifest" href="/manifest.webmanifest?v=45.2">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.2">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.2">
-<link rel="stylesheet" href="/assets/app.css?v=45.2">
+<title>扑克机 · Private AI Space · V45.3.1</title>
+<link rel="manifest" href="/manifest.webmanifest?v=45.3.1">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.3.1">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.3.1">
+<link rel="stylesheet" href="/assets/app.css?v=45.3.1">
 </head>
 <body>
 
@@ -168,7 +168,7 @@
 <div class="scroll data-hub">
 <div class="data-hero">
  <div class="data-hero-mark">▣</div>
- <div><small>LOCAL DATA · V45.2</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
+ <div><small>LOCAL DATA · V45.3.1</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
  <span>仅本机</span>
 </div>
 <div class="data-stats" aria-label="本机资料统计">
@@ -213,7 +213,7 @@
 <div class="setting"><span>Temperature</span><input id="temperature" type="number" min="0" max="2" step=".1"></div>
 <div class="setting"><span>最大输出 Tokens</span><input id="maxTokens" type="number" min="64" max="32000" step="64"></div>
 <div class="setting"><span>历史消息条数</span><input id="maxHistory" type="number" min="4" max="100" step="1"></div>
-<div class="setting"><span><b>回复触发方式</b><small style="display:block">控制连续输入时何时调用 AI</small></span><select id="replyTriggerMode" onchange="saveReplyTriggerSetting()"><option value="debounce">连发后自动回复</option><option value="manual">连发后手动回复</option><option value="instant">每条立即回复</option></select></div>
+<div class="setting"><span><b>回复触发方式</b><small style="display:block">立即回复、AI 判断表达完整后回复（会调用判断请求），或手动触发</small></span><select id="replyTriggerMode" onchange="saveReplyTriggerSetting()"><option value="instant">每条立即回复</option><option value="debounce">AI 判断后自动回复</option><option value="manual">连发后手动回复</option></select></div>
 <div class="setting"><span>摘要保留轮数</span><input id="summaryKeepTurns" type="number" min="2" max="100" step="1"></div>
 <div class="setting"><span>自动记忆摘要</span><input id="summaryAutoEnabled" type="checkbox" style="width:auto"></div>
 <div class="setting"><span>请求超时（秒）</span><input id="timeout" type="number" min="10" max="180" step="5"></div>
@@ -279,30 +279,40 @@
 </section>
 
 <section id="chat" class="view">
-<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div class="chat-head-copy"><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">AI 对话</div><div id="chatStatusLine" class="chat-status-line"></div></div><button class="icon-btn chat-fullscreen-btn" onclick="toggleChatFullscreen()" title="全屏聊天" aria-label="全屏聊天">⛶</button><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
+<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div class="chat-head-copy"><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">AI 对话</div><div id="chatStatusLine" class="chat-status-line"></div></div><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
 <div class="scroll"><div id="messages" class="messages"></div></div>
 <div id="speakerPicker" class="speaker-picker" style="display:none"></div>
 <div id="chatGenerationStatus" class="chat-generation-status" hidden></div>
-<div class="composer"><button id="chatPlusBtn" class="composer-tool composer-plus" onclick="showChatPlusMenu()" title="聊天工具" aria-label="打开聊天工具">＋</button><button id="regenerateBtn" class="composer-tool" onclick="regenerateLast()" title="重新生成；报错后也可重试" aria-label="重新生成或重试上一条">↻</button><input id="messageInput" type="text" name="chat-message" autocomplete="off" autocapitalize="sentences" autocorrect="off" spellcheck="false" inputmode="text" data-form-type="other" data-lpignore="true" placeholder="输入消息…" oninput="updateComposerState()" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();sendMessage()}"><button class="send" onclick="sendMessage()">↑</button></div>
+<div class="composer"><button id="chatPlusBtn" class="composer-tool composer-plus" onclick="showChatPlusMenu()" title="聊天工具" aria-label="打开聊天工具">＋</button><div id="messageInput" class="v453-safe-editor v453-single-line" contenteditable="plaintext-only" role="textbox" aria-multiline="false" aria-label="聊天消息" inputmode="text" enterkeyhint="send" autocapitalize="sentences" autocorrect="off" spellcheck="false" data-placeholder="输入消息…" oninput="updateComposerState()" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();sendMessage()}"></div><button class="send" onclick="sendMessage()">↑</button></div>
 </section>
 
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="handle"></div><div id="modalContent"></div></div></div>
 <div id="toast" class="toast"></div>
 </div></div>
 
-<script src="/assets/app.js?v=45.2"></script>
-<script src="/assets/v45-patch.js?v=45.2"></script>
-<script src="/assets/v45-final.js?v=45.2"></script>
-<script src="/assets/v45-ui-fix.js?v=45.2"></script>
-<script src="/assets/v45-phone-call.js?v=45.2"></script>
-<script src="/assets/v45-followup.js?v=45.2"></script>
-<script src="/assets/v45-stability.js?v=45.2"></script>
-<script src="/assets/v45.1-fix.js?v=45.2"></script>
+<script>
+(function(){
+ const editor=document.getElementById('messageInput');if(!editor)return;let disabled=false;
+ const text=()=>String(editor.textContent||'').replace(/[\r\n]+/g,'');
+ try{Object.defineProperty(editor,'value',{configurable:true,get:text,set:value=>{editor.textContent=String(value||'')}});Object.defineProperty(editor,'placeholder',{configurable:true,get:()=>editor.dataset.placeholder||'',set:value=>{editor.dataset.placeholder=String(value||'')}});Object.defineProperty(editor,'disabled',{configurable:true,get:()=>disabled,set:value=>{disabled=!!value;editor.setAttribute('contenteditable',disabled?'false':'plaintext-only');editor.setAttribute('aria-disabled',disabled?'true':'false')}});Object.defineProperty(editor,'type',{configurable:true,get:()=>'text',set:()=>{}});Object.defineProperty(editor,'name',{configurable:true,get:()=>'',set:()=>{}});Object.defineProperty(editor,'autocomplete',{configurable:true,get:()=>'off',set:()=>{}})}catch{}
+})();
+</script>
+<script src="/assets/app.js?v=45.3.1"></script>
+<script src="/assets/v45-patch.js?v=45.3.1"></script>
+<script src="/assets/v45-final.js?v=45.3.1"></script>
+<script src="/assets/v45-ui-fix.js?v=45.3.1"></script>
+<script src="/assets/v45-phone-call.js?v=45.3.1"></script>
+<script src="/assets/v45-followup.js?v=45.3.1"></script>
+<script src="/assets/v45-stability.js?v=45.3.1"></script>
+<script src="/assets/v45.1-fix.js?v=45.3.1"></script>
 <!-- Existing phone desktop remains authoritative; only app interiors load below. -->
-<script src="/assets/v45.1-memory-entries.js?v=45.2"></script>
-<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.2">
-<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.2">
-<script src="/assets/v45.2-app-interiors.js?v=45.2"></script>
+<script src="/assets/v45.1-memory-entries.js?v=45.3.1"></script>
+<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.3.1">
+<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.3.1">
+<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.3.1">
+<script src="/assets/v45.2-app-interiors.js?v=45.3.1"></script>
+<script src="/assets/pako-inflate.min.js?v=45.3.1"></script>
+<script src="/assets/v45.3-repair.js?v=45.3.1"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
