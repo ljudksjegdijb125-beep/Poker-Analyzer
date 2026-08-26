@@ -9,11 +9,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · Private AI Space · V45.3.2</title>
-<link rel="manifest" href="/manifest.webmanifest?v=45.3.2">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.3.2">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.3.2">
-<link rel="stylesheet" href="/assets/app.css?v=45.3.2">
+<title>扑克机 · Private AI Space · V45.4.0</title>
+<link rel="manifest" href="/manifest.webmanifest?v=45.4.0">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.4.0">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.4.0">
+<link rel="stylesheet" href="/assets/app.css?v=45.4.0">
 </head>
 <body>
 
@@ -168,7 +168,7 @@
 <div class="scroll data-hub">
 <div class="data-hero">
  <div class="data-hero-mark">▣</div>
- <div><small>LOCAL DATA · V45.3.2</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
+ <div><small>LOCAL DATA · V45.4.0</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
  <span>仅本机</span>
 </div>
 <div class="data-stats" aria-label="本机资料统计">
@@ -297,22 +297,25 @@
  try{Object.defineProperty(editor,'value',{configurable:true,get:text,set:value=>{editor.textContent=String(value||'')}});Object.defineProperty(editor,'placeholder',{configurable:true,get:()=>editor.dataset.placeholder||'',set:value=>{editor.dataset.placeholder=String(value||'')}});Object.defineProperty(editor,'disabled',{configurable:true,get:()=>disabled,set:value=>{disabled=!!value;editor.setAttribute('contenteditable',disabled?'false':'plaintext-only');editor.setAttribute('aria-disabled',disabled?'true':'false')}});Object.defineProperty(editor,'type',{configurable:true,get:()=>'text',set:()=>{}});Object.defineProperty(editor,'name',{configurable:true,get:()=>'',set:()=>{}});Object.defineProperty(editor,'autocomplete',{configurable:true,get:()=>'off',set:()=>{}})}catch{}
 })();
 </script>
-<script src="/assets/app.js?v=45.3.2"></script>
-<script src="/assets/v45-patch.js?v=45.3.2"></script>
-<script src="/assets/v45-final.js?v=45.3.2"></script>
-<script src="/assets/v45-ui-fix.js?v=45.3.2"></script>
-<script src="/assets/v45-phone-call.js?v=45.3.2"></script>
-<script src="/assets/v45-followup.js?v=45.3.2"></script>
-<script src="/assets/v45-stability.js?v=45.3.2"></script>
-<script src="/assets/v45.1-fix.js?v=45.3.2"></script>
+<script src="/assets/app.js?v=45.4.0"></script>
+<script src="/assets/v45-patch.js?v=45.4.0"></script>
+<script src="/assets/v45-final.js?v=45.4.0"></script>
+<script src="/assets/v45-ui-fix.js?v=45.4.0"></script>
+<script src="/assets/v45-phone-call.js?v=45.4.0"></script>
+<script src="/assets/v45-followup.js?v=45.4.0"></script>
+<script src="/assets/v45-stability.js?v=45.4.0"></script>
+<script src="/assets/v45.1-fix.js?v=45.4.0"></script>
 <!-- Existing phone desktop remains authoritative; only app interiors load below. -->
-<script src="/assets/v45.1-memory-entries.js?v=45.3.2"></script>
-<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.3.2">
-<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.3.2">
-<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.3.2">
-<script src="/assets/v45.2-app-interiors.js?v=45.3.2"></script>
-<script src="/assets/pako-inflate.min.js?v=45.3.2"></script>
-<script src="/assets/v45.3-repair.js?v=45.3.2"></script>
+<script src="/assets/v45.1-memory-entries.js?v=45.4.0"></script>
+<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.4.0">
+<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.4.0">
+<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.4.0">
+<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.4.0">
+<script src="/assets/v45.2-app-interiors.js?v=45.4.0"></script>
+<script src="/assets/pako-inflate.min.js?v=45.4.0"></script>
+<script src="/assets/v45.3-repair.js?v=45.4.0"></script>
+<!-- Formal routed pages: no preview navigator is loaded into the deploy package. -->
+<script src="/assets/v45.4-next-stage.js?v=45.4.0"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
