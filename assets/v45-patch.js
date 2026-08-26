@@ -6,7 +6,7 @@
 (function(){
   if(window.__pokejiV45Loaded)return;
   window.__pokejiV45Loaded=true;
-  const V45='45.2';
+  const V45='45.3.1';
   const v45Text=(v,f='')=>String(v??f);
   const v45Obj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
   const v45Arg=v=>`decodeURIComponent('${encodeURIComponent(String(v??'')).replace(/'/g,'%27')}')`;
