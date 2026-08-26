@@ -1,0 +1,201 @@
+/* =========================================================
+   POKEJI V45.4 · world time, routed phone takeover and side stories
+   Additive only: existing main desktop and both phone desktops stay intact.
+   ========================================================= */
+
+:root{
+  --v454-gold:#c9b57f;
+  --v454-gold-hi:#eee0b5;
+  --v454-ink:#0b0c0f;
+  --v454-panel:#15171c;
+  --v454-panel-2:#1b1e24;
+  --v454-paper:#eef0ed;
+  --v454-paper-2:#e1e4e1;
+  --v454-text:#f1eee7;
+  --v454-muted:#9297a0;
+  --v454-line:rgba(255,255,255,.075);
+  --v454-safe-bottom:max(12px,env(safe-area-inset-bottom));
+}
+
+/* Full-screen functional pages. Each route replaces the previous route. */
+.v454-stage{
+  position:absolute;z-index:620;inset:0;
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--v454-ink);color:var(--v454-text);
+}
+.v454-stage[hidden]{display:none!important}
+.v454-stage-head{
+  flex:0 0 76px;min-height:76px;padding:31px 12px 9px;
+  display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:end;
+  border-bottom:1px solid var(--v454-line);
+  background:rgba(9,10,13,.96);backdrop-filter:blur(18px);
+}
+.v454-stage-head>button{
+  width:36px;height:36px;border-radius:12px;
+  background:rgba(255,255,255,.035);color:#f0eee8;font-size:21px;
+}
+.v454-stage-head>button:last-child{color:var(--v454-gold);font-size:8px}
+.v454-stage-title{min-width:0;text-align:center}
+.v454-stage-title b,.v454-stage-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v454-stage-title b{font:400 18px/1.15 Georgia,"Songti SC",serif}
+.v454-stage-title small{margin-top:5px;color:#747a84;font-size:6px;letter-spacing:1.15px}
+.v454-stage-scroll{
+  flex:1 1 auto;min-height:0;overflow:auto;scrollbar-width:none;
+  padding:14px 14px calc(26px + var(--v454-safe-bottom));
+  -webkit-overflow-scrolling:touch;
+}
+.v454-stage-scroll::-webkit-scrollbar,.v454-chip-row::-webkit-scrollbar{display:none}
+.v454-stage-hero{
+  padding:17px;border:1px solid rgba(201,181,127,.2);border-radius:21px;
+  background:radial-gradient(circle at 92% 5%,rgba(201,181,127,.17),transparent 43%),linear-gradient(145deg,rgba(238,218,159,.08),rgba(238,218,159,.018));
+  box-shadow:0 17px 38px rgba(0,0,0,.24);
+}
+.v454-stage-hero>small{display:block;color:var(--v454-gold);font-size:7px;letter-spacing:1.8px}
+.v454-stage-hero h2{margin:7px 0 6px;font:400 23px/1.25 Georgia,"Songti SC",serif}
+.v454-stage-hero p{margin:0;color:#9a9ea6;font-size:9px;line-height:1.68}
+.v454-route-note{
+  margin-top:11px;padding:10px 12px;border-left:2px solid var(--v454-gold);
+  background:rgba(201,181,127,.045);color:#918873;font-size:8px;line-height:1.6;
+}
+.v454-section-title{display:flex;justify-content:space-between;align-items:center;margin:17px 3px 8px;color:var(--v454-gold);font-size:9px;letter-spacing:1px}
+.v454-section-title small{color:#737983;font-size:7px;letter-spacing:0}
+.v454-panel{padding:12px;border:1px solid var(--v454-line);border-radius:16px;background:var(--v454-panel)}
+.v454-panel+.v454-panel{margin-top:9px}
+.v454-panel h3{margin:0;font-size:10px}.v454-panel p{margin:6px 0 0;color:#8e949d;font-size:8px;line-height:1.6}
+.v454-actions{display:flex;gap:8px;margin-top:12px}
+.v454-actions button{flex:1;min-height:41px;border-radius:12px;background:#23262c;color:#d8d6d0;font-size:8px}
+.v454-actions button.primary{background:#eee9df;color:#282a2e;font-weight:700}
+.v454-actions button.danger{background:#3c2529;color:#dda8ac}
+.v454-actions button:disabled{opacity:.42}
+.v454-field{margin-top:11px}.v454-field>label,.v454-field>span{display:block;margin:0 2px 6px;color:#979ca5;font-size:8px}
+.v454-field input,.v454-field select,.v454-field textarea,.v454-safe-input{
+  width:100%;min-height:42px;padding:10px 11px;border:1px solid rgba(255,255,255,.1);border-radius:12px;
+  outline:none;background:#101217;color:#eceae5;font-size:10px;
+}
+.v454-field textarea{min-height:82px;resize:none;line-height:1.55}
+.v454-check-list{display:grid;gap:7px;max-height:215px;overflow:auto}
+.v454-check-list label{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--v454-line);border-radius:11px;background:#111318;color:#dcdad4;font-size:8px}
+.v454-check-list input{width:auto;accent-color:var(--v454-gold)}
+.v454-chip-row{display:flex;gap:6px;overflow:auto;scrollbar-width:none}
+.v454-chip-row button,.v454-chip{flex:0 0 auto;min-height:31px;padding:0 10px;border-radius:10px;background:#1c1f25;color:#8e949d;font-size:7px}
+.v454-chip-row button.on,.v454-chip.on{background:#eeeae0;color:#292b2f;font-weight:700}
+.v454-switch-row{min-height:57px;padding:10px 11px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.v454-switch-row:last-child{border-bottom:0}
+.v454-switch-copy b,.v454-switch-copy small{display:block}.v454-switch-copy b{font-size:9px}.v454-switch-copy small{margin-top:4px;color:#7e848d;font-size:7px;line-height:1.45}
+.v454-switch{position:relative;width:41px;height:23px;flex:0 0 41px;border-radius:15px;background:#353942}
+.v454-switch:after{content:"";position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;background:#ddd;transition:.2s}
+.v454-switch.on{background:#a89462}.v454-switch.on:after{left:21px;background:#fff}
+.v454-empty{padding:40px 18px;text-align:center;color:#777d86;font-size:9px;line-height:1.7;border:1px dashed rgba(255,255,255,.09);border-radius:16px}
+.v454-empty span{display:block;margin-bottom:9px;color:var(--v454-gold);font:28px Georgia,serif}
+
+/* Time pages */
+.v454-time-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:13px;padding:4px;border-radius:14px;background:#15171c}
+.v454-time-tabs button{min-height:49px;padding:6px;border-radius:11px;background:transparent;color:#858b94;font-size:8px;line-height:1.35}
+.v454-time-tabs button.on{background:#eeeae0;color:#292b2f;font-weight:700;box-shadow:0 5px 14px #0005}
+.v454-time-card{padding:18px;text-align:center;border-radius:18px;background:linear-gradient(145deg,#30333a,#15171c);box-shadow:0 16px 36px rgba(0,0,0,.27)}
+.v454-time-card small,.v454-time-card b,.v454-time-card span{display:block}
+.v454-time-card small{color:#a3a7ae;font-size:7px;letter-spacing:1px}
+.v454-time-card b{margin-top:9px;font:400 20px/1.38 Georgia,"Songti SC",serif}
+.v454-time-card span{margin-top:7px;color:var(--v454-gold);font-size:7px;line-height:1.5}
+.v454-flow-list{padding:0}.v454-flow-list .v454-switch-row{cursor:pointer}
+.v454-world-binding{margin-top:10px;padding:10px 11px;border-radius:13px;background:rgba(130,158,174,.09);color:#9fb1bd;font-size:8px;line-height:1.55}
+.v454-proposal-impact{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.v454-proposal-impact div{padding:10px;border-radius:12px;background:#181a20}.v454-proposal-impact b,.v454-proposal-impact small{display:block}.v454-proposal-impact b{font-size:8px}.v454-proposal-impact small{margin-top:4px;color:#838992;font-size:7px;line-height:1.45}
+.v454-proposal-impact div.current{border:1px solid rgba(201,181,127,.3);background:rgba(201,181,127,.07)}
+
+/* Reverse-phone entry and authorization */
+.v454-entry-grid{display:grid;gap:9px;margin-top:11px}
+.v454-entry-card{width:100%;min-height:94px;padding:13px;border:1px solid var(--v454-line);border-radius:17px;background:#17191f;color:#efede7;display:grid;grid-template-columns:42px minmax(0,1fr) 18px;gap:10px;align-items:center;text-align:left}
+.v454-entry-card>span:first-child{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(201,181,127,.1);color:var(--v454-gold-hi);font:18px Georgia,serif}
+.v454-entry-card b,.v454-entry-card small{display:block}.v454-entry-card b{font-size:11px}.v454-entry-card small{margin-top:5px;color:#8e949d;font-size:8px;line-height:1.5}.v454-entry-card i{color:#666d76;font-style:normal}
+.v454-connection-state{margin-top:10px;padding:11px;border-radius:13px;background:rgba(134,177,154,.08);color:#a7c1b3;font-size:8px;line-height:1.55}
+.v454-auth-hero{text-align:center;padding:6px 10px 12px}.v454-auth-seal{width:58px;height:58px;margin:0 auto 11px;border-radius:20px;display:grid;place-items:center;border:1px solid rgba(201,181,127,.25);background:rgba(201,181,127,.08);color:var(--v454-gold-hi);font:25px Georgia,serif}
+.v454-auth-hero h2{margin:0;font:400 21px Georgia,"Songti SC",serif}.v454-auth-hero p{margin:7px 0 0;color:#888e97;font-size:8px;line-height:1.55}
+.v454-permission{margin-top:8px;padding:11px;border:1px solid var(--v454-line);border-radius:14px;background:#15171c;display:flex;gap:9px;align-items:flex-start}
+.v454-permission input{margin-top:2px;accent-color:var(--v454-gold)}.v454-permission b,.v454-permission small{display:block}.v454-permission b{font-size:9px}.v454-permission small{margin-top:4px;color:#838a93;font-size:7px;line-height:1.45}
+.v454-permission:has(input:checked){border-color:rgba(201,181,127,.34);background:rgba(201,181,127,.07)}
+
+/* Phone operation identity bar, injected only in takeover modes. */
+.v454-phone-identity{margin:0 0 10px;padding:9px 10px;border-radius:14px;background:#22252a;color:#efede7;box-shadow:0 7px 18px rgba(0,0,0,.12)}
+.v454-phone-identity header{display:flex;justify-content:space-between;align-items:center}.v454-phone-identity header b{font-size:8px}.v454-phone-identity header span{padding:3px 6px;border-radius:8px;background:rgba(201,181,127,.16);color:#ddca93;font-size:6px}
+.v454-phone-identity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:7px}
+.v454-phone-identity-grid small,.v454-phone-identity-grid strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.v454-phone-identity-grid small{color:#777d86;font-size:5px}.v454-phone-identity-grid strong{margin-top:2px;font-size:6px;font-weight:650}
+.v454-phone-reaction{margin:0 0 9px;padding:10px 11px;border-radius:13px;background:#d5e1d8;color:#4e6055;display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center}
+.v454-phone-reaction>span{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:#292a2e;color:#f5f3ed;font:9px Georgia,serif}.v454-phone-reaction b,.v454-phone-reaction small{display:block}.v454-phone-reaction b{font-size:8px}.v454-phone-reaction small{margin-top:3px;font-size:7px;line-height:1.45}
+.v454-my-phone-label{position:absolute;z-index:14;left:15px;top:34px;padding:6px 9px;border-radius:10px;background:#11121685;color:#eee;font-size:7px;backdrop-filter:blur(12px)}
+
+/* Routed Messages app: list and detail never coexist. */
+.vphone.v454-messages-shell{overflow:hidden;background:#e7e8e5;color:#24252a}
+.v454-phone-page{position:absolute;inset:0;display:flex;flex-direction:column;background:#e7e8e5;color:#24252a}
+.v454-phone-head{flex:0 0 76px;padding:29px 10px 8px;display:grid;grid-template-columns:36px minmax(0,1fr) 54px;align-items:center;background:rgba(13,14,16,.98);border-bottom:1px solid rgba(255,255,255,.1);color:#f3f1eb}
+.v454-phone-head button{height:34px;border-radius:11px;background:#222429;color:#f0eee8;font-size:20px}.v454-phone-head h2{margin:0;text-align:center;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.v454-phone-head button:last-child{font-size:7px;color:#d5c385}
+.v454-phone-body{position:relative;flex:1;min-height:0;overflow:auto;padding:12px 12px calc(22px + var(--v454-safe-bottom));background:linear-gradient(135deg,#eef0ed,#e1e4e1 55%,#ece9e1);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.v454-phone-body::-webkit-scrollbar{display:none}
+.v454-phone-search{height:38px;padding:0 11px;border:1px solid rgba(35,36,40,.08);border-radius:13px;background:rgba(255,255,255,.75);color:#85868a;display:flex;align-items:center;font-size:9px}
+.v454-phone-list{margin-top:10px;overflow:hidden;border:1px solid rgba(35,36,40,.07);border-radius:15px;background:rgba(255,255,255,.72);box-shadow:0 8px 20px rgba(0,0,0,.055)}
+.v454-phone-list>button,.v454-phone-list>article{width:100%;min-height:72px;padding:9px 10px;display:grid;grid-template-columns:43px minmax(0,1fr) auto;gap:9px;align-items:center;border:0;border-bottom:1px solid rgba(35,36,40,.08);background:transparent;color:#28292d;text-align:left}
+.v454-phone-list>*:last-child{border-bottom:0}.v454-phone-avatar{width:43px;height:43px;border-radius:13px;display:grid;place-items:center;overflow:hidden;background:#2b2d31;color:#f3f1ea;font:11px Georgia,serif}.v454-phone-avatar img{width:100%;height:100%;object-fit:cover}
+.v454-phone-list b,.v454-phone-list small{display:block}.v454-phone-list b{font-size:10px}.v454-phone-list small{margin-top:5px;color:#7c7d81;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v454-phone-list time{align-self:start;color:#999;font-size:6px}
+.v454-list-meta{display:flex;align-items:center;gap:5px}.v454-list-badge{display:inline-flex;padding:2px 5px;border-radius:7px;font-size:5px;background:#e6e0d4;color:#676056}.v454-list-badge.unread{background:#282b30;color:#fff}.v454-list-badge.typing{background:#dce8df;color:#5f7968}
+.v454-thread-wrap{position:absolute;inset:0;overflow:auto;padding:12px 12px 78px;scrollbar-width:none}.v454-thread-wrap::-webkit-scrollbar{display:none}
+.v454-time-divider{margin:13px 0;text-align:center;color:#878b8d;font-size:6px}.v454-time-divider span{padding:4px 8px;border-radius:8px;background:#d8dbd7}
+.v454-thread-msg{display:flex;margin:8px 0;gap:6px;align-items:flex-end}.v454-thread-msg.out{justify-content:flex-end}.v454-thread-msg>span{width:28px;height:28px;flex:0 0 28px;border-radius:9px;display:grid;place-items:center;background:#2e3135;color:#fff;font:7px Georgia,serif}
+.v454-thread-bubble{position:relative;max-width:78%;padding:8px 9px;border-radius:12px 12px 12px 3px;background:#fff;color:#333;font-size:8px;line-height:1.52;box-shadow:0 4px 12px #0001}.v454-thread-msg.out .v454-thread-bubble{border-radius:12px 12px 3px 12px;background:#30343a;color:#f6f4ee}
+.v454-thread-bubble>button{position:absolute;right:-7px;top:-8px;width:23px;height:23px;border-radius:8px;background:#d9ddd9;color:#5a6063;font-size:12px;box-shadow:0 3px 8px #0002}.v454-thread-msg.out .v454-thread-bubble>button{background:#202329;color:#eee}
+.v454-thread-quote{margin-bottom:6px;padding:5px 7px;border-left:2px solid #9a8a61;border-radius:5px;background:#00000010;color:#7d7d78;font-size:6px}.v454-thread-msg.out .v454-thread-quote{color:#c7c5bf}
+.v454-msg-flags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}.v454-msg-flags span,.v454-msg-flags button{padding:2px 4px;border:0;border-radius:5px;background:#0000000c;color:#83827c;font-size:5px}.v454-msg-flags .diff{background:#eee2bf;color:#74633d}
+.v454-thread-composer{position:absolute;z-index:18;left:0;right:0;bottom:0;min-height:67px;padding:8px 9px calc(10px + var(--v454-safe-bottom));display:grid;grid-template-columns:48px minmax(0,1fr) 44px;gap:7px;background:rgba(244,245,241,.97);border-top:1px solid #d8dad7;backdrop-filter:blur(14px)}
+.v454-thread-composer button{height:39px;border-radius:12px;background:#dfe2de;color:#52595d;font-size:7px}.v454-thread-composer button:last-child{background:#30363a;color:#fff}.v454-thread-composer .v454-safe-input{min-height:39px;height:39px;padding:10px;background:#fff;color:#353a3d;border-color:#e1e3e0;font-size:9px;overflow:auto}
+.v454-typing{margin:8px 0;color:#7a8085;font-size:7px}.v454-typing:after{content:"…";animation:v454Dots 1s infinite}
+@keyframes v454Dots{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* Phone management, diff, trash and contacts */
+.v454-phone-tools{display:grid;gap:8px}.v454-phone-tool{width:100%;min-height:64px;padding:10px 11px;border-radius:14px;background:#fff;display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:9px;align-items:center;color:#30363a;text-align:left}
+.v454-phone-tool>span:first-child{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#e1e5e1;color:#5c6468}.v454-phone-tool b,.v454-phone-tool small{display:block}.v454-phone-tool b{font-size:9px}.v454-phone-tool small{margin-top:4px;color:#858c8f;font-size:7px;line-height:1.4}.v454-phone-tool i{font-style:normal;color:#92989a}
+.v454-light-panel{padding:12px;border-radius:14px;background:#fff;color:#30363a}.v454-light-panel+.v454-light-panel{margin-top:9px}.v454-light-panel h3{margin:0;font-size:9px}.v454-light-panel p{margin:6px 0 0;color:#7c8386;font-size:7px;line-height:1.55}
+.v454-light-actions{display:flex;gap:7px;margin-top:10px}.v454-light-actions button{flex:1;min-height:38px;border-radius:10px;background:#dde1dd;color:#596064;font-size:7px}.v454-light-actions button.dark{background:#30363a;color:#fff}.v454-light-actions button.red{background:#ead7d7;color:#8b5055}
+.v454-radio-card{margin-top:8px;padding:10px;border:1px solid #e4e6e3;border-radius:12px;background:#fff;display:flex;gap:9px;align-items:flex-start;color:#30363a}.v454-radio-card input{margin-top:2px;accent-color:#33383d}.v454-radio-card b,.v454-radio-card small{display:block}.v454-radio-card b{font-size:8px}.v454-radio-card small{margin-top:4px;color:#858c8f;font-size:7px;line-height:1.45}
+.v454-select-list{overflow:hidden;border-radius:14px;background:#fff}.v454-select-row{min-height:66px;padding:9px 10px;display:grid;grid-template-columns:25px minmax(0,1fr) auto;gap:8px;align-items:center;border-bottom:1px solid #e5e7e4;color:#30363a}.v454-select-row:last-child{border-bottom:0}.v454-select-row input{width:16px;height:16px;accent-color:#3a3d41}.v454-select-row b,.v454-select-row small{display:block}.v454-select-row b{font-size:8px}.v454-select-row small{margin-top:4px;color:#888e91;font-size:6px}.v454-select-row time{color:#9a9e9f;font-size:6px}
+.v454-compare{display:grid;grid-template-columns:1fr 1fr;gap:7px}.v454-compare article{min-height:135px;padding:10px;border-radius:13px;background:#fff;color:#30363a}.v454-compare article.changed{border:1px solid #d6be80;background:#fffaf0}.v454-compare b,.v454-compare small{display:block}.v454-compare b{font-size:8px}.v454-compare small{margin-top:7px;color:#777e81;font-size:7px;line-height:1.55;white-space:pre-wrap}
+.v454-phone-switch{position:relative;width:39px;height:22px;border-radius:14px;background:#c9cdca}.v454-phone-switch:after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 2px 5px #0002}.v454-phone-switch.on{background:#596662}.v454-phone-switch.on:after{left:20px}
+
+/* Sheets stay inside the active phone page, never replace or stack with the app route. */
+.v454-phone-overlay{position:absolute;z-index:90;inset:0;display:flex;align-items:flex-end;padding:18px 10px calc(12px + var(--v454-safe-bottom));background:rgba(7,8,10,.58);backdrop-filter:blur(8px)}
+.v454-phone-sheet{width:100%;max-height:82%;overflow:auto;padding:14px;border-radius:20px;background:#f4f5f2;color:#292c30;box-shadow:0 22px 58px rgba(0,0,0,.38);scrollbar-width:none}.v454-phone-sheet::-webkit-scrollbar{display:none}
+.v454-phone-sheet>header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}.v454-phone-sheet>header small,.v454-phone-sheet>header h2{display:block;margin:0}.v454-phone-sheet>header small{color:#9b8a5f;font-size:6px;letter-spacing:1.2px}.v454-phone-sheet>header h2{margin-top:4px;font:400 17px Georgia,"Songti SC",serif}.v454-phone-sheet>header>button{width:32px;height:32px;border-radius:10px;background:#e3e5e1;color:#5b6064;font-size:15px}
+.v454-phone-overlay-note{margin:0 0 10px;padding:9px 10px;border-left:2px solid #ad9862;background:#ebe7dc;color:#73746e;font-size:7px;line-height:1.55}
+.v454-phone-overlay-list{display:grid;gap:7px}.v454-phone-overlay-list>button{min-height:57px;padding:10px 11px;border-radius:13px;background:#fff;color:#303338;text-align:left}.v454-phone-overlay-list>button.danger{background:#f2e2e2;color:#86545a}.v454-phone-overlay-list b,.v454-phone-overlay-list small{display:block}.v454-phone-overlay-list b{font-size:9px}.v454-phone-overlay-list small{margin-top:4px;color:#85898b;font-size:7px;line-height:1.4}
+.v454-phone-overlay-field{display:block;margin-top:9px}.v454-phone-overlay-field>span{display:block;margin:0 2px 5px;color:#777d80;font-size:7px}.v454-phone-overlay-field input,.v454-phone-overlay-field textarea{width:100%;min-height:40px;padding:9px 10px;border:1px solid #dfe2de;border-radius:11px;background:#fff;color:#303338;font-size:9px;outline:none}.v454-phone-overlay-field textarea{min-height:80px;resize:none;line-height:1.5}
+.v454-phone-sheet>footer{display:flex;gap:7px;margin-top:11px}.v454-phone-sheet>footer button{flex:1;min-height:39px;border-radius:11px;background:#e0e3df;color:#5a6063;font-size:7px}.v454-phone-sheet>footer button.primary{background:#30343a;color:#fff}
+
+/* Side-story application is an independent normal app view. */
+#sideStories.v454-side-story-view{background:#090a0d}
+#sideStories>.header{background:rgba(8,9,12,.94)}
+.v454-story-hub{padding:14px 14px calc(28px + var(--v454-safe-bottom));color:#f1efe9}
+.v454-story-hero{padding:18px;border:1px solid rgba(201,181,127,.19);border-radius:22px;background:radial-gradient(circle at 92% 2%,rgba(201,181,127,.17),transparent 43%),linear-gradient(145deg,#16181d,#0e0f12)}
+.v454-story-hero small{color:#c9b57f;font-size:7px;letter-spacing:1.8px}.v454-story-hero h2{margin:7px 0 5px;font:400 23px Georgia,"Songti SC",serif}.v454-story-hero p{margin:0;color:#8b9199;font-size:8px;line-height:1.6}
+.v454-story-card{margin-top:11px;overflow:hidden;border-radius:18px;background:#15171c;box-shadow:0 13px 32px rgba(0,0,0,.25)}
+.v454-story-cover{height:128px;padding:14px;display:flex;flex-direction:column;justify-content:flex-end;background:radial-gradient(circle at 75% 20%,rgba(220,208,176,.22),transparent 30%),linear-gradient(145deg,#5a6069,#23262c 58%,#16181d)}
+.v454-story-card:nth-child(2n) .v454-story-cover{background:radial-gradient(circle at 23% 17%,rgba(190,161,131,.26),transparent 31%),linear-gradient(145deg,#75655e,#332b2b 58%,#181719)}
+.v454-story-cover.has-image{background-size:cover;background-position:center}.v454-story-cover small{color:#d8d3c8;font-size:6px;letter-spacing:1.1px}.v454-story-cover b{margin-top:5px;font:400 17px Georgia,"Songti SC",serif}.v454-story-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.v454-story-tags span{padding:3px 6px;border-radius:7px;background:#0006;color:#ddd9d0;font-size:5px}
+.v454-story-card footer{padding:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center}.v454-story-card footer p{margin:0;color:#858b94;font-size:7px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.v454-story-card footer button{height:34px;padding:0 11px;border-radius:11px;background:#ebe7dc;color:#292b2e;font-size:7px}
+.v454-story-filter{display:flex;gap:6px;overflow:auto;margin:13px 0 2px;scrollbar-width:none}.v454-story-filter button{flex:0 0 auto;height:31px;padding:0 10px;border-radius:10px;background:#171a20;color:#777e87;font-size:7px}.v454-story-filter button.on{background:#ebe7dc;color:#292b2e}
+.v454-story-toolbar{display:flex;gap:8px;margin-top:12px}.v454-story-toolbar button{flex:1;min-height:40px;border-radius:12px;background:#202329;color:#aeb3bb;font-size:8px}.v454-story-toolbar button.primary{background:#eeeae0;color:#292b2f;font-weight:700}
+.v454-wizard-progress{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:12px}.v454-wizard-progress i{height:3px;border-radius:4px;background:#2b2e34}.v454-wizard-progress i.on{background:var(--v454-gold)}
+.v454-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.v454-choice{min-height:92px;padding:11px;border:1px solid var(--v454-line);border-radius:14px;background:#15171c;color:#eee;text-align:left}.v454-choice.on{border-color:rgba(201,181,127,.38);background:rgba(201,181,127,.08)}.v454-choice b,.v454-choice small{display:block}.v454-choice b{font-size:9px}.v454-choice small{margin-top:6px;color:#858b94;font-size:7px;line-height:1.45}
+.v454-story-detail-head{padding:15px;border:1px solid var(--v454-line);border-radius:18px;background:linear-gradient(145deg,#1e2128,#111318)}.v454-story-detail-head small{color:#c9b57f;font-size:6px;letter-spacing:1.2px}.v454-story-detail-head h2{margin:6px 0 5px;font:400 22px Georgia,"Songti SC",serif}.v454-story-detail-head p{margin:0;color:#8c929a;font-size:8px;line-height:1.6}
+.v454-story-stream{margin-top:10px;display:grid;gap:8px}.v454-story-entry{padding:11px 12px;border:1px solid var(--v454-line);border-radius:15px;background:#15171c}.v454-story-entry header{display:flex;justify-content:space-between;gap:8px}.v454-story-entry header b{font-size:9px}.v454-story-entry header small{color:#6f7680;font-size:6px}.v454-story-entry p{margin:7px 0 0;color:#d8d6d0;font-size:9px;line-height:1.65;white-space:pre-wrap}.v454-story-entry.user{background:#1d2026}.v454-story-entry.chapter h3{margin:0;font:400 16px Georgia,"Songti SC",serif}
+.v454-story-composer{position:sticky;bottom:-1px;margin-top:10px;padding:10px;border:1px solid var(--v454-line);border-radius:16px;background:rgba(12,13,17,.96);backdrop-filter:blur(16px)}.v454-story-composer textarea{width:100%;min-height:76px;padding:10px;border:1px solid var(--v454-line);border-radius:12px;background:#17191f;color:#eee;font-size:9px;line-height:1.55;resize:none;outline:none}.v454-story-composer footer{display:flex;gap:7px;margin-top:8px}.v454-story-composer button{flex:1;min-height:38px;border-radius:11px;background:#24272d;color:#aaaeb6;font-size:7px}.v454-story-composer button.primary{background:#eeeae0;color:#292b2f;font-weight:700}
+.v454-story-outline{margin-top:10px;padding:10px;border-radius:13px;background:#111318;color:#8e949d;font-size:8px;line-height:1.6;white-space:pre-wrap}
+.v454-canon-impact{display:grid;gap:7px;margin-top:10px}.v454-canon-impact article{padding:10px;border-radius:12px;background:#181a20}.v454-canon-impact b,.v454-canon-impact small{display:block}.v454-canon-impact b{font-size:8px}.v454-canon-impact small{margin-top:4px;color:#838992;font-size:7px;line-height:1.45}
+.v454-canon-confirm{margin-top:12px;padding:11px;border:1px solid rgba(199,116,124,.3);border-radius:14px;background:rgba(124,52,60,.12);color:#d7a9ad;font-size:8px;line-height:1.55}.v454-canon-confirm label{display:flex;gap:8px;align-items:flex-start}.v454-canon-confirm input{margin-top:2px;accent-color:#c8b47d}
+
+/* Keep dynamic text controls out of password/payment autofill heuristics. */
+.v454-stage [contenteditable="plaintext-only"],.v454-phone-page [contenteditable="plaintext-only"]{white-space:pre-wrap;overflow-wrap:anywhere}
+
+@media(max-width:360px){
+  .v454-phone-identity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v454-compare,.v454-choice-grid{grid-template-columns:1fr}
+  .v454-stage-scroll{padding-left:11px;padding-right:11px}
+  .v454-time-tabs button{font-size:7px}
+}

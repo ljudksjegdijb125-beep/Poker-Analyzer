@@ -78,7 +78,7 @@ body{min-height:var(--v453-app-height);overflow:hidden}
   .v453-android-tabs button{min-width:82px;padding:0 11px}
 }
 
-/* V45.3.2 memory migration appears only when legacy data exists. */
+/* V45.4.0 memory migration appears only when legacy data exists. */
 .v453-memory-migration{width:100%;min-height:58px;margin-top:10px;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px dashed rgba(200,181,128,.25);border-radius:14px;background:rgba(200,181,128,.055);color:#d2c49e;text-align:left}.v453-memory-migration b,.v453-memory-migration small{display:block}.v453-memory-migration b{font-size:9px}.v453-memory-migration small{margin-top:4px;color:#8e8775;font-size:7px}.v453-memory-migration i{font-style:normal;color:#756d5b}
 
 /* Square creator profile. */
