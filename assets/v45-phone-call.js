@@ -63,18 +63,9 @@
     data.chats[currentChat].push(message);save();if(typeof renderMessages==='function')renderMessages();return message;
   }
   function phonePageName(key){return V43_PHONE_APPS[key]?.name||SIM_APP_CATALOG[key]?.name||key}
-  function recordPhonePage(owner,key){
-    const session=phoneSession();if(!['check','reverse'].includes(session.mode)||!currentChat)return;
-    const mark=`${currentChat}|${session.mode}|${owner}|${key}`;if(data.runtime.phoneViewMarks[mark])return;data.runtime.phoneViewMarks[mark]=Date.now();
-    const character=currentPhoneCharacter(),name=character?.name||'角色',app=phonePageName(key);
-    if(session.mode==='check')appendPhoneRecord(`我查看了 ${name} 的${app}页面。`,'user',{type:'phone-view',direction:'outgoing'});
-    else appendPhoneRecord(`${name}查看了我的${app}页面。`,'assistant',{type:'phone-view',direction:'incoming'});
-  }
-  function recordPhoneEntry(mode){
-    if(!currentChat)return;const character=currentPhoneCharacter(),name=character?.name||'角色';
-    if(mode==='check')appendPhoneRecord(`我打开了 ${name} 的手机。`,'user',{type:'phone-open',direction:'outgoing'});
-    if(mode==='reverse')appendPhoneRecord(`我打开了自己的手机，并让 ${name} 查看。`,'user',{type:'phone-open',direction:'outgoing'});
-  }
+  /* V45.4.1: ordinary phone entry and page viewing stay hidden and create no chat bubbles. */
+  function recordPhonePage(){return null}
+  function recordPhoneEntry(){return null}
   const baseCheck=typeof openCheckPhone==='function'?openCheckPhone:null;
   if(baseCheck)openCheckPhone=function(){const result=baseCheck();recordPhoneEntry('check');return result};
   const baseReverse=typeof openReversePhone==='function'?openReversePhone:null;

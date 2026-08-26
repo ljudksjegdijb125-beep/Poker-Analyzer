@@ -20,21 +20,10 @@
     data.chats[currentChat].push({id:'msg_'+v44UUID(),role:role==='assistant'?'assistant':'user',kind:'message',phoneEvent:true,phoneEventType:type,phoneDirection:direction,text:S(message),time:time(),mode:groupForChat(currentChat)?'group':currentChatMode,sceneMode:currentOfflineStyle});
     save();renderMessages();
   }
-  function addLinkedRecord(owner,key){
-    const session=getPhoneSession();if(!currentChat||!['check','reverse'].includes(session.mode))return;
-    const character=phoneCharacter(),characterId=character?.id||'',target=owner==='user'?characterId:'user',mark=`${currentChat}|${session.mode}|${owner}|${key}`;
-    const exists=data.phoneLinks.some(x=>x.mark===mark);if(!exists){data.phoneLinks.unshift({id:'plink_'+v44UUID(),mark,chatId:currentChat,personaId:activePersonaFor(currentChat)?.id||'',owner,target,app:key,mode:session.mode,time:time(),text:session.mode==='check'?`我查看了${character?.name||'角色'}的${V43_PHONE_APPS[key]?.name||key}。`:`${character?.name||'角色'}查看了我的${V43_PHONE_APPS[key]?.name||key}。`});data.phoneLinks=data.phoneLinks.slice(0,300);save()}
-    if(!data.runtime.phoneViewMarks[mark]){data.runtime.phoneViewMarks[mark]=Date.now();addChatPhoneRecord(data.phoneLinks.find(x=>x.mark===mark).text,session.mode==='check'?'user':'assistant','phone-view',session.mode==='check'?'outgoing':'incoming')}
-  }
-  function linkedRows(owner,key){
-    const session=getPhoneSession(),persona=activePersonaFor(currentChat)?.id||'';
-    return data.phoneLinks.filter(x=>x.chatId===currentChat&&x.personaId===persona&&(x.owner===owner||x.target===owner)&&(x.app===key||!key)).slice(0,30);
-  }
-  function injectLinkedRows(owner,key){
-    const body=document.querySelector('.vphone-app-body');if(!body)return;
-    body.querySelector('.v452-linked-records')?.remove();const rows=linkedRows(owner,key);if(!rows.length)return;
-    const section=document.createElement('section');section.className='v452-linked-records';section.innerHTML=`<div class="v452-linked-title">已连接到本会话</div>${rows.map(row=>`<button class="v452-linked-row" onclick="closePhone()"><span>${row.mode==='check'?'▣':'◈'}</span><div><b>${esc(row.text)}</b><small>${esc(row.time||'')}</small></div><i>↗</i></button>`).join('')}`;body.appendChild(section);
-  }
+  /* V45.4.1: opening or viewing a phone page is not a visible record. */
+  function addLinkedRecord(){return null}
+  function linkedRows(){return[]}
+  function injectLinkedRows(){document.querySelectorAll('.v452-linked-records').forEach(element=>element.remove())}
   const baseOpenApp=typeof v43OpenPhoneApp==='function'?v43OpenPhoneApp:null;
   if(baseOpenApp){
     v43OpenPhoneApp=function(owner,key){const result=baseOpenApp(owner,key);setTimeout(()=>{addLinkedRecord(owner,key);injectLinkedRows(owner,key)},30);return result};
