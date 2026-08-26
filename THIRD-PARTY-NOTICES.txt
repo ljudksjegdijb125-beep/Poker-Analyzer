@@ -1,0 +1,10 @@
+Third-Party Notices
+===================
+
+pako 2.1.0 (inflate browser build)
+Source: https://github.com/nodeca/pako
+File: assets/pako-inflate.min.js
+Copyright 2014-2017 Vitaly Puzrin, Andrei Tuputcyn; zlib portions copyright 1995-2013 Jean-loup Gailly and Mark Adler.
+License: MIT (Expat) and zlib. The distributed file retains its upstream license banner.
+
+Used locally only to decompress standard, unencrypted EPUB ZIP entries. It is not used to bypass DRM or encryption.
