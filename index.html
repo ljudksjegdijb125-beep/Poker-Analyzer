@@ -9,11 +9,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · Private AI Space · V45</title>
-<link rel="manifest" href="/manifest.webmanifest?v=45.0">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.0">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.0">
-<link rel="stylesheet" href="/assets/app.css?v=45.0">
+<title>扑克机 · Private AI Space · V45.2</title>
+<link rel="manifest" href="/manifest.webmanifest?v=45.2">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.2">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.2">
+<link rel="stylesheet" href="/assets/app.css?v=45.2">
 </head>
 <body>
 
@@ -168,7 +168,7 @@
 <div class="scroll data-hub">
 <div class="data-hero">
  <div class="data-hero-mark">▣</div>
- <div><small>LOCAL DATA · V44</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
+ <div><small>LOCAL DATA · V45.2</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
  <span>仅本机</span>
 </div>
 <div class="data-stats" aria-label="本机资料统计">
@@ -213,6 +213,7 @@
 <div class="setting"><span>Temperature</span><input id="temperature" type="number" min="0" max="2" step=".1"></div>
 <div class="setting"><span>最大输出 Tokens</span><input id="maxTokens" type="number" min="64" max="32000" step="64"></div>
 <div class="setting"><span>历史消息条数</span><input id="maxHistory" type="number" min="4" max="100" step="1"></div>
+<div class="setting"><span><b>回复触发方式</b><small style="display:block">控制连续输入时何时调用 AI</small></span><select id="replyTriggerMode" onchange="saveReplyTriggerSetting()"><option value="debounce">连发后自动回复</option><option value="manual">连发后手动回复</option><option value="instant">每条立即回复</option></select></div>
 <div class="setting"><span>摘要保留轮数</span><input id="summaryKeepTurns" type="number" min="2" max="100" step="1"></div>
 <div class="setting"><span>自动记忆摘要</span><input id="summaryAutoEnabled" type="checkbox" style="width:auto"></div>
 <div class="setting"><span>请求超时（秒）</span><input id="timeout" type="number" min="10" max="180" step="5"></div>
@@ -233,8 +234,10 @@
 <div class="setting"><span><b>AI 内心话</b><small style="display:block">显示角色未说出口的虚构内心独白</small></span><input id="innerThoughtsEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>自动翻译 AI 消息</b><small style="display:block">使用独立翻译模型；相同原文优先读取本机缓存</small></span><input id="autoTranslateEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>识图理解表情包</b><small style="display:block">上传时用独立识图模型生成含义描述</small></span><input id="stickerVisionEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
-<div class="setting"><span><b>AI 情境手机联动</b><small style="display:block">按聊天需要整理网站内虚拟内容，不读取现实手机</small></span><input id="phoneAutoGenerate" type="checkbox" style="width:auto" onchange="savePhoneAutoSetting()"></div>
+<div class="setting"><span><b>AI 情境手机联动</b><small style="display:block">按聊天需要整理网站内虚拟内容，不读取现实手机；关闭后仍可手动查手机</small></span><input id="phoneAutoGenerate" type="checkbox" style="width:auto" onchange="savePhoneAutoSetting()"></div>
+<div class="setting"><span><b>查手机 / 反查实时回复</b><small style="display:block">打开应用页后直接生成当前页面回应，不写入普通聊天气泡</small></span><input id="phoneRealtimeReplyEnabled" type="checkbox" style="width:auto" onchange="savePhoneRealtimeSetting()"></div>
 <div class="setting" onclick="openView('world')"><span><b>内置活人感世界书</b><small style="display:block">线上私信与线下相遇各一份</small></span><span class="muted">查看 ›</span></div>
+<div class="setting" onclick="openCompletionWorldbookSettings()"><span><b>补全带入世界书</b><small style="display:block">角色和 USER 补全都可独立开启或关闭</small></span><span class="muted" id="v451CompletionWorldbookLabel">按范围带入 ›</span></div>
 <div class="setting"><span>随机事件</span><input id="randomEventsEnabled" type="checkbox" style="width:auto" onchange="saveRandomEventSettings()"></div>
 <div class="setting"><span>触发概率</span><input id="randomEventChance" type="number" min="0" max="100" step="1" onchange="saveRandomEventSettings()"></div>
 <div class="setting"><span><b>活人感主动来信</b><small style="display:block">仅对角色中单独允许的人生效</small></span><input id="proactiveEnabled" type="checkbox" style="width:auto" onchange="saveProactiveSettings()"></div>
@@ -287,13 +290,19 @@
 <div id="toast" class="toast"></div>
 </div></div>
 
-<script src="/assets/app.js?v=45.0"></script>
-<script src="/assets/v45-patch.js?v=45.0"></script>
-<script src="/assets/v45-final.js?v=45.0"></script>
-<script src="/assets/v45-ui-fix.js?v=45.0"></script>
-<script src="/assets/v45-phone-call.js?v=45.0"></script>
-<script src="/assets/v45-followup.js?v=45.0"></script>
-<script src="/assets/v45-stability.js?v=45.0"></script>
+<script src="/assets/app.js?v=45.2"></script>
+<script src="/assets/v45-patch.js?v=45.2"></script>
+<script src="/assets/v45-final.js?v=45.2"></script>
+<script src="/assets/v45-ui-fix.js?v=45.2"></script>
+<script src="/assets/v45-phone-call.js?v=45.2"></script>
+<script src="/assets/v45-followup.js?v=45.2"></script>
+<script src="/assets/v45-stability.js?v=45.2"></script>
+<script src="/assets/v45.1-fix.js?v=45.2"></script>
+<!-- Existing phone desktop remains authoritative; only app interiors load below. -->
+<script src="/assets/v45.1-memory-entries.js?v=45.2"></script>
+<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.2">
+<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.2">
+<script src="/assets/v45.2-app-interiors.js?v=45.2"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{

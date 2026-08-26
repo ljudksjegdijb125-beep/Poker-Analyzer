@@ -1,5 +1,5 @@
 /* POKEJI legacy Service Worker migration bridge. */
-const POKEJI_V44_TARGET = '/index.html?sw-migrate=45.0';
+const POKEJI_V44_TARGET = '/index.html?sw-migrate=45.2';
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil((async()=>{
   try{await self.clients.claim()}catch{}
