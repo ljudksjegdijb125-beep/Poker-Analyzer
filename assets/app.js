@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.4.1';
+const VERSION='45.5.0';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -132,13 +132,14 @@ let activeMessageAudio=null;
 let activeAudioMessageKey='';
 
 function emptyModel(){return{provider:'openai',base:'',key:'',model:'',voice:'alloy',speed:1}}
-function defaultPersona(){return{id:'persona_default',name:'我',nickname:'',pronouns:'',age:'',identity:'',description:'',personality:'',background:'',appearance:'',likes:'',dislikes:'',speechStyle:'',relationship:'',boundaries:'',goals:'',notes:'',image:''}}
-function normalizeCharacter(c={}){c=c&&typeof c==='object'?c:{};return{id:String(c.id||('c_'+v44UUID())),name:String(c.name||''),nickname:String(c.nickname||''),status:String(c.status||''),pronouns:String(c.pronouns||''),tags:String(c.tags||''),bio:String(c.bio||''),personality:String(c.personality||''),background:String(c.background||''),appearance:String(c.appearance||''),speechStyle:String(c.speechStyle||''),relationship:String(c.relationship||''),scenario:String(c.scenario||''),firstMessage:String(c.firstMessage||''),exampleDialogue:String(c.exampleDialogue||''),systemPrompt:String(c.systemPrompt||''),boundaries:String(c.boundaries||''),image:String(c.image||''),voiceId:String(c.voiceId||''),voiceSpeed:Math.min(2,Math.max(.5,Number(c.voiceSpeed)||1)),proactiveEnabled:c.proactiveEnabled===true}}
-function normalizePersona(p={}){p=p&&typeof p==='object'?p:{};return{id:String(p.id||('persona_'+v44UUID())),name:String(p.name||'我'),nickname:String(p.nickname||''),pronouns:String(p.pronouns||''),age:String(p.age||''),identity:String(p.identity||''),description:String(p.description||''),personality:String(p.personality||''),background:String(p.background||''),appearance:String(p.appearance||''),likes:String(p.likes||''),dislikes:String(p.dislikes||''),speechStyle:String(p.speechStyle||''),relationship:String(p.relationship||''),boundaries:String(p.boundaries||''),goals:String(p.goals||''),notes:String(p.notes||''),image:String(p.image||'')}}
+function defaultPersona(){return{id:'persona_default',name:'我',nickname:'',pronouns:'',age:'',identity:'',description:'',personality:'',background:'',appearance:'',likes:'',dislikes:'',speechStyle:'',relationship:'',boundaries:'',goals:'',notes:'',image:'',imagePrompt:''}}
+function normalizeCharacter(c={}){c=c&&typeof c==='object'?c:{};return{id:String(c.id||('c_'+v44UUID())),name:String(c.name||''),nickname:String(c.nickname||''),status:String(c.status||''),pronouns:String(c.pronouns||''),tags:String(c.tags||''),bio:String(c.bio||''),personality:String(c.personality||''),background:String(c.background||''),appearance:String(c.appearance||''),speechStyle:String(c.speechStyle||''),relationship:String(c.relationship||''),scenario:String(c.scenario||''),firstMessage:String(c.firstMessage||''),exampleDialogue:String(c.exampleDialogue||''),systemPrompt:String(c.systemPrompt||''),boundaries:String(c.boundaries||''),image:String(c.image||''),imagePrompt:String(c.imagePrompt||''),voiceId:String(c.voiceId||''),voiceSpeed:Math.min(2,Math.max(.5,Number(c.voiceSpeed)||1)),proactiveEnabled:c.proactiveEnabled===true}}
+function normalizePersona(p={}){p=p&&typeof p==='object'?p:{};return{id:String(p.id||('persona_'+v44UUID())),name:String(p.name||'我'),nickname:String(p.nickname||''),pronouns:String(p.pronouns||''),age:String(p.age||''),identity:String(p.identity||''),description:String(p.description||''),personality:String(p.personality||''),background:String(p.background||''),appearance:String(p.appearance||''),likes:String(p.likes||''),dislikes:String(p.dislikes||''),speechStyle:String(p.speechStyle||''),relationship:String(p.relationship||''),boundaries:String(p.boundaries||''),goals:String(p.goals||''),notes:String(p.notes||''),image:String(p.image||''),imagePrompt:String(p.imagePrompt||'')}}
 function defaultDynamicIsland(){return{compactText:'POKEJI',title:'扑克机',subtitle:'私人空间',symbol:'♠',accent:'#e8e8e4',size:'standard'}}
 function builtInWorldBooks(){return[
  {id:'builtin_online_lifelike_v42',name:'线上活人感',desc:['当前入口是私人线上消息。','只输出角色真正会发送的聊天内容；禁止旁白、动作括号、舞台说明、系统注释和界面描述。','结合角色说话方式、关系阶段与当前上下文，自然决定回复节奏；避免每轮都提问、重复性格标签、复述用户原话或过度解释。','启用多气泡时，由角色依据本轮表达需要决定实际气泡数，不按句号机械拆分。'].join('\n'),scope:'global',mode:'online',activation:'persistent',targetIds:[],trigger:'',enabled:true,builtIn:true},
- {id:'builtin_offline_lifelike_v42',name:'线下活人感',desc:['当前入口是面对面相遇，保持人物位置、动作、视线、物件与环境的连续性。','只能描写角色自身和必要环境反馈，绝不能替 USER 说话、行动、思考、感受或作决定。','直接进入模式使用一个连贯长回复；剧情模式将中性旁白与角色对白分开。','避免重复性格标签、无意义复述和每轮强制提问。'].join('\n'),scope:'global',mode:'offline',activation:'persistent',targetIds:[],trigger:'',enabled:true,builtIn:true}
+ {id:'builtin_offline_lifelike_v42',name:'线下活人感',desc:['当前入口是面对面相遇，保持人物位置、动作、视线、物件与环境的连续性。','只能描写角色自身和必要环境反馈，绝不能替 USER 说话、行动、思考、感受或作决定。','直接进入模式使用一个连贯长回复；剧情模式将中性旁白与角色对白分开。','避免重复性格标签、无意义复述和每轮强制提问。'].join('\n'),scope:'global',mode:'offline',activation:'persistent',targetIds:[],trigger:'',enabled:true,builtIn:true},
+ {id:'builtin_offline_degrease_v455',name:'线下去油腻',desc:['线下表达保持克制、具体和符合人物身份，不使用悬浮的霸总腔、占有宣言、刻意撩拨、说教式宠溺或自我陶醉的修辞。','亲密、关心、强势、傲娇或暧昧必须由角色既有性格、关系阶段和现场行为自然体现，不得用夸张套话替代真实互动。','尊重 USER 的边界与主体性，不把凝视、逼近、控制、冒犯或替 USER 作决定包装成浪漫。','优先保持动作因果、空间连续、物件反馈和自然对白；删去无作用的华丽堆砌与重复情绪强调。'].join('\n'),scope:'global',mode:'offline',activation:'persistent',targetIds:[],trigger:'',enabled:true,builtIn:true}
 ]}
 function blank(){return{
  settings:{apiProvider:'openai',apiBase:'',apiKey:'',apiModel:'',temperature:.8,maxHistory:40,summaryKeepTurns:12,summaryAutoEnabled:true,timeout:60000,maxTokens:2048,promptCache:true,backgroundRelayEnabled:true,backgroundNotificationEnabled:false,screenWakeLockEnabled:true,proactiveEnabled:false,proactiveMinMinutes:60,proactiveMaxMinutes:180,chatAvatarMode:'both',onlineMultiBubbleEnabled:true,onlineMaxBubbles:4,innerThoughtsEnabled:true,autoTranslateEnabled:false,stickerVisionEnabled:false,reversePhoneMode:'off',autoReadEnabled:false,autoReadNarration:false,voiceWorldBook:'',fullscreenEnabled:false,randomEventsEnabled:false,randomEventChance:15,dynamicIslandEnabled:true,dynamicIsland:defaultDynamicIsland(),appIcon:'',homeAvatar:'',homeAppIcons:{},homeLayoutRevision:2,customFont:{source:'',label:''},themes:[],activeTheme:''},
@@ -768,7 +769,7 @@ function characterPersonalityPage(d){return `<div class="editor-section-title"><
 function characterDialoguePage(d){return `<div class="editor-section-title"><span>03</span><div><b>对话行为</b><small>开场、示例和角色专属规则</small></div></div><div class="editor-grid"><div class="field editor-wide"><label>当前情境</label><textarea id="char_scenario" placeholder="对话开始时所在的地点、时间与关系状态">${esc(d.scenario)}</textarea></div><div class="field editor-wide"><label>首条消息</label><textarea id="char_firstMessage" placeholder="新建角色后显示的第一条角色消息">${esc(d.firstMessage)}</textarea></div><div class="field editor-wide"><label>对话示例</label><textarea class="editor-tall" id="char_exampleDialogue" placeholder="用户：…&#10;角色：…">${esc(d.exampleDialogue)}</textarea></div><div class="field editor-wide"><label>角色专属指令</label><textarea class="editor-tall" id="char_systemPrompt" placeholder="只影响这个角色的行为规则">${esc(d.systemPrompt)}</textarea></div><div class="field editor-wide"><label>边界与禁区</label><textarea id="char_boundaries" placeholder="不应代替用户做决定，以及其他边界">${esc(d.boundaries)}</textarea></div></div>`}
 function characterBindingPage(d){
  const isNew=d.__new,appearanceChatId=!isNew&&characterEditorReturn==='chat'&&directCharacterId(currentChat)===d.id?currentChat:(!isNew?directChatId(d.id,d.boundPersonaId||selectedPersonaIdForEntity(d.id)):'');const settings=isNew?{background:''}:getChatSettings(appearanceChatId);
- return `<div class="editor-section-title"><span>04</span><div><b>会话绑定</b><small>选择独立 USER 身份、声音、主动来信与当前面具外观</small></div></div><div class="editor-grid"><div class="field editor-wide"><label>此角色使用的独立用户面具</label><select id="char_persona"><option value="">跟随默认面具</option>${data.personas.map(p=>`<option value="${attr(p.id)}" ${d.boundPersonaId===p.id?'selected':''}>${esc(p.name)}${data.activePersonaId===p.id?' · 默认':''}</option>`).join('')}</select><small>切换面具只会打开该面具自己的聊天记录与摘要，不会复制或互通。</small></div><div class="field"><label>角色 Voice ID（可选）</label><input id="char_voiceId" value="${attr(d.voiceId||'')}" placeholder="留空跟随声音模型"></div><div class="field"><label>角色语速</label><input id="char_voiceSpeed" type="number" min="0.5" max="2" step="0.05" value="${attr(d.voiceSpeed||1)}"></div><label class="editor-toggle editor-wide"><span><b>允许活人感主动来信</b><small>只在“线上消息”中按随机频率主动发消息</small></span><input id="char_proactive" type="checkbox" ${d.proactiveEnabled?'checked':''}></label></div><div class="binding-cards"><button onclick="openPersonaManager('characterEditor')"><span>◈</span><b>管理用户面具</b><small>${data.personas.length} 张独立面具</small></button><button ${isNew?'disabled':''} onclick="chooseCharacterChatBackground()"><span>▧</span><b>当前面具背景</b><small>${isNew?'保存角色后可设置':(settings.background?'已设置图片':'使用默认背景')}</small></button><button ${isNew?'disabled':''} onclick="openSimPhone('${attr(d.id)}')"><span>▣</span><b>角色虚拟应用</b><small>${isNew?'保存角色后可设置':`${simulatedPhoneItems(d.id).length} 条虚拟互动`}</small></button><button onclick="exportCharacterCard('${d.id}')"><span>⇩</span><b>导出角色卡</b><small>完整资料与角色绑定世界书</small></button></div>${isNew?'':`<div class="editor-danger-zone"><b>当前面具会话</b><button onclick="clearCharacterConversations('${d.id}')">清空线上与线下</button><button class="danger" onclick="deleteCharacter('${d.id}')">删除角色</button></div>`}`
+ return `<div class="editor-section-title"><span>04</span><div><b>会话绑定</b><small>选择独立 USER 身份、声音、主动说话与当前面具外观</small></div></div><div class="editor-grid"><div class="field editor-wide"><label>此角色使用的独立用户面具</label><select id="char_persona"><option value="">跟随默认面具</option>${data.personas.map(p=>`<option value="${attr(p.id)}" ${d.boundPersonaId===p.id?'selected':''}>${esc(p.name)}${data.activePersonaId===p.id?' · 默认':''}</option>`).join('')}</select><small>切换面具只会打开该面具自己的聊天记录与摘要，不会复制或互通。</small></div><div class="field"><label>角色 Voice ID（可选）</label><input id="char_voiceId" value="${attr(d.voiceId||'')}" placeholder="留空跟随声音模型"></div><div class="field"><label>角色语速</label><input id="char_voiceSpeed" type="number" min="0.5" max="2" step="0.05" value="${attr(d.voiceSpeed||1)}"></div><label class="editor-toggle editor-wide"><span><b>允许活人感主动说话</b><small>只在“线上消息”中按随机频率主动发消息</small></span><input id="char_proactive" type="checkbox" ${d.proactiveEnabled?'checked':''}></label></div><div class="binding-cards"><button onclick="openPersonaManager('characterEditor')"><span>◈</span><b>管理用户面具</b><small>${data.personas.length} 张独立面具</small></button><button ${isNew?'disabled':''} onclick="chooseCharacterChatBackground()"><span>▧</span><b>当前面具背景</b><small>${isNew?'保存角色后可设置':(settings.background?'已设置图片':'使用默认背景')}</small></button><button ${isNew?'disabled':''} onclick="openSimPhone('${attr(d.id)}')"><span>▣</span><b>角色虚拟应用</b><small>${isNew?'保存角色后可设置':`${simulatedPhoneItems(d.id).length} 条虚拟互动`}</small></button><button onclick="exportCharacterCard('${d.id}')"><span>⇩</span><b>导出角色卡</b><small>完整资料与角色绑定世界书</small></button></div>${isNew?'':`<div class="editor-danger-zone"><b>当前面具会话</b><button onclick="clearCharacterConversations('${d.id}')">清空线上与线下</button><button class="danger" onclick="deleteCharacter('${d.id}')">删除角色</button></div>`}`
 }
 function renderCharacterEditor(){
  const d=characterEditorDraft,body=document.getElementById('characterEditorBody'),title=document.getElementById('characterEditorTitle');if(!d||!body)return;
@@ -914,7 +915,7 @@ function renderMessages(){
   }
   const speaker=(g&&m.role==='assistant')?data.characters.find(c=>c.id===m.speaker):directCharacter;
   const speakerName=(g&&m.role==='assistant')?(speaker?.name||''):'';
-  const label=speakerName||(m.proactive?'主动来信':'');
+  const label=speakerName||(m.proactive?'主动说话':'');
   const isBubbleItem=item=>item&&!['thought','phoneEvent','narration'].includes(item.kind);
   const isFirstInBatch=!m.batchId||!arr.slice(0,i).some(item=>item.batchId===m.batchId&&isBubbleItem(item));
   const isLastInBatch=!m.batchId||!arr.slice(i+1).some(item=>item.batchId===m.batchId&&isBubbleItem(item));
@@ -1136,7 +1137,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V44_SW_URL='/sw-v44.js?build=45.4.1';
+const V44_SW_URL='/sw-v44.js?build=45.5.0';
 function isV44WorkerUrl(url){return /\/sw-v44\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v(?:38|42|43)\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1441,19 +1442,19 @@ async function generateProactiveMessage(character){
  try{
   let system=buildSystemPrompt(character,'',chatId);
   const summary=data.chatSummaries?.[chatId]?.text;if(summary)system+=`\n\n【自动记忆摘要】\n${summary}`;
-  system+=`\n\n【主动来信任务】\n现在是角色主动联系 USER 的时机。结合最近对话、人物关系与当前情境，自然发出一条新的线上消息。只输出角色实际发送的消息；不要提及任务、计时器、频率、系统或应用。不要代替 USER 回复。`;
+  system+=`\n\n【主动说话任务｜内部状态，不可显示】\n现在到了角色按自己的生活节奏主动开口的时点。先理解最近对话停在何处、现实或世界时间经过多久、双方关系与角色此刻可能在做什么，再决定一句或数条真正会发出的线上消息。内容必须像角色主动想说，而不是提醒、签到、客服问候或催促 USER 回复；不得复述上一轮、机械提问、凭空推进重大剧情，也不得提及任务、计时器、频率、系统或应用。只输出角色真正发送的内容，不替 USER 回答。`;
   const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(message=>({role:message.role==='assistant'?'assistant':'user',content:(message.kind==='narration'?'[旁白] ':'')+message.text}));
   history.push({role:'user',content:'【内部触发】请现在以角色身份主动发来一条自然的线上消息。'});
   backgroundTaskId='proactive_'+v44UUID();
   const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:`pokeji_chat_${activePersonaFor(chatId).id}_online_${character.id}`,signal:controller.signal,background:true,backgroundTaskId,backgroundMeta:{operation:'proactive',chatId,speakerId:character.id,groupId:'',mode:'online',sceneMode:'direct',notificationName:character.name,showNotification:shouldUseBackgroundNotification(),startedAt:new Date().toISOString()}});
   const indexes=commitAssistantReply(chatId,rawReply,{mode:'online',sceneMode:'direct',speakerId:character.id,backgroundTaskId,proactive:true});
-  data.notifications.unshift({text:`${character.name}主动发来消息`,time:'刚刚',type:'chat'});
+  data.notifications.unshift({text:`${character.name}主动说话了`,time:'刚刚',type:'chat'});
   scheduleNextProactive(character.id,true);save();if(currentChat===chatId)renderMessages();renderChats();renderNotifications();queueAutoTranslations(chatId,indexes);if(currentChat===chatId)void autoReadMessages(chatId,indexes);
   await acknowledgeBackgroundResult(backgroundTaskId);
  }catch(error){
   if(backgroundTaskId){if(error?.name==='AbortError')await cancelBackgroundTask(backgroundTaskId);else await acknowledgeBackgroundResult(backgroundTaskId)}
-  if(error?.name==='AbortError')toast('已停止主动来信生成');
-  else data.notifications.unshift({text:`${character.name}的主动来信未完成：${redactSensitive(error?.message||String(error)).slice(0,100)}`,time:'刚刚',type:'chat'});
+  if(error?.name==='AbortError')toast('已停止主动说话生成');
+  else data.notifications.unshift({text:`${character.name}的主动说话未完成：${redactSensitive(error?.message||String(error)).slice(0,100)}`,time:'刚刚',type:'chat'});
   scheduleNextProactive(character.id,true);save();renderNotifications();
  }finally{
   if(activeBackgroundTaskId===backgroundTaskId)activeBackgroundTaskId='';
@@ -1513,7 +1514,7 @@ async function sendMessage(payload=null){
    console.warn(redactSensitive(`随机事件已跳过：${eventError?.message||eventError}`));
   }
   const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>{
-   const modeLabel=!group&&m.mode==='offline'?`[线下记录${m.sceneMode==='story'?'·剧情':''}] `:(!group&&m.mode==='online'?'[线上记录] ':'');
+   const modeLabel=!group&&m.mode==='offline'?`[此前处于面对面场景${m.sceneMode==='story'?'，含现场旁白':''}] `:(!group&&m.mode==='online'?'[此前通过私信交流] ':'');
    if(m.role==='user')return{role:'user',content:modeLabel+(m.kind==='sticker'?`[USER 表情包：${m.text}]`:m.kind==='image'?`[USER 发送图片；画面描述：${m.text}]`:m.kind==='phoneEvent'?`[网站模拟手机授权] ${m.text}`:m.text)};
    if(group){const spk=data.characters.find(x=>x.id===m.speaker);return{role:'assistant',content:`[${spk?spk.name:'角色'}] ${m.text}`}}
    return{role:'assistant',content:modeLabel+(m.kind==='narration'?'[旁白] ':m.kind==='thought'?'[角色未说出口的内心话] ':m.kind==='sticker'?'[角色表情包] ':m.kind==='phoneEvent'?'[角色查看模拟手机] ':'')+m.text};
@@ -1541,7 +1542,7 @@ async function regenerateLast(){
  if(busy||!currentChat)return;const arr=data.chats[currentChat]||[],last=arr.at(-1);
  if(!last)return toast('还没有可重试的消息');
  const removeLastBatch=()=>{const latest=arr.at(-1);if(!latest||latest.role!=='assistant')return;const batchId=latest.batchId;if(!batchId){arr.pop();return}while(arr.at(-1)?.batchId===batchId)arr.pop()};
- if(last.role==='assistant'&&last.proactive){const character=directCharacterForChat(currentChat);if(!character?.proactiveEnabled)return toast('请先在角色绑定中允许主动来信');removeLastBatch();save();renderMessages();await generateProactiveMessage(character);return}
+ if(last.role==='assistant'&&last.proactive){const character=directCharacterForChat(currentChat);if(!character?.proactiveEnabled)return toast('请先在角色绑定中允许主动说话');removeLastBatch();save();renderMessages();await generateProactiveMessage(character);return}
  if(last.role==='assistant')removeLastBatch();
  const lastUser=[...arr].reverse().find(message=>message.role==='user');if(!lastUser)return toast('缺少可重试的用户消息');
  const input=document.getElementById('messageInput');if(input&&!['sticker','image'].includes(lastUser.kind))input.value=lastUser.text;
@@ -1577,16 +1578,16 @@ async function generateCharacterPost(){
  if(!character)return toast('请选择角色');
  const persona=feedPersona(),chatId=directChatId(character.id,persona.id);
  const recent=(data.chats[chatId]||[]).slice(-12).map(message=>`${message.role==='user'?persona.name:character.name}：${message.text}`).join('\n');
- const context=buildEngineContext(character,hint,chatId,'online'),controller=withTimeout(Number(data.settings.timeout)||60000);
+ const context=buildEngineContext(character,hint,chatId,'online'),timeContext=typeof v438TimeContext==='function'?v438TimeContext(chatId):`当前现实时间：${new Date().toLocaleString('zh-CN')}`,controller=withTimeout(Number(data.settings.timeout)||60000);
  closeModal();setBusy(true);toast('角色正在构思动态…');
  try{
   const raw=await invokeModel('feed',{
-   system:'你只负责以指定角色身份生成一条自然的朋友圈动态。内容应像角色此刻真会公开发布的近况，不得解释任务，不得代替 USER 行动，不得虚构现实设备数据。严格只输出 JSON 对象：{"text":"动态正文","location":"可为空的位置","imagePrompt":"可为空的配图画面描述"}。正文保持自然、简洁，并与角色关系和近期对话连续。',
-   history:[{role:'user',content:`当前时间：${new Date().toLocaleString('zh-CN')}\n角色：\n${characterContext(character)}\nUSER 面具：\n${personaContext(persona)}\n世界：\n${context.world}\n状态：${context.state}\n近期对话：\n${recent||'暂无'}\n用户线索：${hint||'无，由角色自行决定近况'}`}],
+   system:'你正在以指定角色本人身份发布一条“动态”，不是回复 USER，也不是续写聊天剧情。角色明确知道内容会出现在自己的动态页。先从角色性格、审美、生活节奏、关系状态、当前时间与近期上下文中判断此刻值得分享的侧面，再写成角色真正愿意公开或向联系人展示的有趣内容。近期剧情只用于保证连续性，不得复述对话、汇报主线、把动态写成剧情摘要或专门对 USER 的答复；不要用通用鸡汤、空泛感慨或功能说明。严格只输出 JSON 对象：{"text":"动态正文","location":"可为空的位置","imagePrompt":"可为空的配图画面描述"}。',
+   history:[{role:'user',content:`【当前会话时间】\n${timeContext}\n\n【角色资料】\n${characterContext(character)}\n\n【USER 面具】\n${personaContext(persona)}\n\n【命中的世界与状态】\n${context.world}\n${context.state}\n\n【近期上下文｜只作背景，不得改写成动态摘要】\n${recent||'暂无'}\n\n【USER 给出的可选方向】\n${hint||'无，由角色按自身性格与当下状态决定'}`}],
    temperature:.9,maxTokens:700,cacheKey:`pokeji_v42_feed_${persona.id}_${character.id}`,signal:controller.signal
   });
   const generated=parseGeneratedPost(raw);if(!generated.text)throw Error('动态模型没有返回正文');
-  const images=[];if(withImage&&validModel('image')&&generated.imagePrompt){toast('正在生成动态配图…');images.push(await generateImageFromProfile(generated.imagePrompt))}
+  const images=[];if(withImage&&validModel('image')&&generated.imagePrompt){toast('正在生成动态配图…');images.push(await generateImageFromProfile(generated.imagePrompt,{chatId,character,persona,source:'character-post'}))}
   data.posts.unshift({id:'p_'+v44UUID(),char:character.id,text:generated.text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images,location:generated.location,comments:[],generated:true,personaId:persona.id});
   data.notifications.unshift({text:`${character.name}发布了一条动态`,time:'刚刚',type:'feed'});
   save();renderFeed();renderNotifications();toast('角色动态已发布');
@@ -1617,7 +1618,7 @@ function clearNotifications(){data.notifications=[];save();renderNotifications()
 
 /* ---------- world & memory ---------- */
 function worldTargetPicker(scope='global',selected=[]){return `<div class="field world-targets" id="worldCharacterTargets" style="display:${scope==='character'?'block':'none'}"><label>绑定角色（可多选）</label><div class="target-checks">${data.characters.length?data.characters.map(c=>`<label><input class="world-character-target" type="checkbox" value="${attr(c.id)}" ${selected.includes(c.id)?'checked':''}>${esc(c.name)}</label>`).join(''):'<small>还没有角色</small>'}</div></div><div class="field world-targets" id="worldGroupTargets" style="display:${scope==='group'?'block':'none'}"><label>绑定分组（可多选）</label><div class="target-checks">${data.groups.length?data.groups.map(g=>`<label><input class="world-group-target" type="checkbox" value="${attr(g.id)}" ${selected.includes(g.id)?'checked':''}>${esc(g.name)}</label>`).join(''):'<small>还没有群聊分组</small>'}</div></div>`}
-function worldEditorFields(w={scope:'global',mode:'all',activation:'persistent',targetIds:[],enabled:true}){const locked=w.builtIn===true,disabled=locked?'disabled':'';return `${locked?'<div class="note" style="margin:0 16px 12px">这是 V45.4.1 内置活人感世界书。内容可以调整，也可随时恢复；入口、范围与常驻方式保持固定。</div>':''}<div class="field"><label>名称</label><input id="wn" value="${attr(w.name||'')}" ${locked?'readonly':''}></div><div class="field"><label>适用入口</label><select id="wm" ${disabled}><option value="all" ${!['online','offline'].includes(w.mode)?'selected':''}>全部入口</option><option value="online" ${w.mode==='online'?'selected':''}>仅线上</option><option value="offline" ${w.mode==='offline'?'selected':''}>仅线下</option></select></div><div class="field"><label>作用范围</label><select id="ws" onchange="updateWorldEditorVisibility()" ${disabled}><option value="global" ${w.scope==='global'?'selected':''}>全局 · 所有适用会话</option><option value="character" ${w.scope==='character'?'selected':''}>角色绑定 · 指定角色</option><option value="group" ${w.scope==='group'?'selected':''}>分组绑定 · 指定群聊</option></select></div>${worldTargetPicker(w.scope,w.targetIds||[])}<div class="field"><label>激活方式</label><select id="wa" onchange="updateWorldEditorVisibility()" ${disabled}><option value="persistent" ${w.activation!=='trigger'?'selected':''}>常驻 · 对应范围内每轮生效</option><option value="trigger" ${w.activation==='trigger'?'selected':''}>普通 · 命中条件时才生效</option></select></div><div class="field" id="worldTriggerField" style="display:${w.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}" placeholder="关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="支持 {{state}} {{message}} {{character}} {{user}}">${esc(w.desc||'')}</textarea></div>`}
+function worldEditorFields(w={scope:'global',mode:'all',activation:'persistent',targetIds:[],enabled:true}){const locked=w.builtIn===true,disabled=locked?'disabled':'';return `${locked?'<div class="note" style="margin:0 16px 12px">这是 V45.5.0 内置活人感世界书。内容可以调整，也可随时恢复；入口、范围与常驻方式保持固定。</div>':''}<div class="field"><label>名称</label><input id="wn" value="${attr(w.name||'')}" ${locked?'readonly':''}></div><div class="field"><label>适用入口</label><select id="wm" ${disabled}><option value="all" ${!['online','offline'].includes(w.mode)?'selected':''}>全部入口</option><option value="online" ${w.mode==='online'?'selected':''}>仅线上</option><option value="offline" ${w.mode==='offline'?'selected':''}>仅线下</option></select></div><div class="field"><label>作用范围</label><select id="ws" onchange="updateWorldEditorVisibility()" ${disabled}><option value="global" ${w.scope==='global'?'selected':''}>全局 · 所有适用会话</option><option value="character" ${w.scope==='character'?'selected':''}>角色绑定 · 指定角色</option><option value="group" ${w.scope==='group'?'selected':''}>分组绑定 · 指定群聊</option></select></div>${worldTargetPicker(w.scope,w.targetIds||[])}<div class="field"><label>激活方式</label><select id="wa" onchange="updateWorldEditorVisibility()" ${disabled}><option value="persistent" ${w.activation!=='trigger'?'selected':''}>常驻 · 对应范围内每轮生效</option><option value="trigger" ${w.activation==='trigger'?'selected':''}>普通 · 命中条件时才生效</option></select></div><div class="field" id="worldTriggerField" style="display:${w.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}" placeholder="关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="支持 {{state}} {{message}} {{character}} {{user}}">${esc(w.desc||'')}</textarea></div>`}
 function updateWorldEditorVisibility(){const scope=document.getElementById('ws')?.value,activation=document.getElementById('wa')?.value;const chars=document.getElementById('worldCharacterTargets'),groups=document.getElementById('worldGroupTargets'),trigger=document.getElementById('worldTriggerField');if(chars)chars.style.display=scope==='character'?'block':'none';if(groups)groups.style.display=scope==='group'?'block':'none';if(trigger)trigger.style.display=activation==='trigger'?'block':'none'}
 function collectWorldEditor(){const scope=document.getElementById('ws').value,mode=document.getElementById('wm')?.value||'all',activation=document.getElementById('wa').value,targetSelector=scope==='character'?'.world-character-target:checked':scope==='group'?'.world-group-target:checked':'';return{name:document.getElementById('wn').value.trim(),scope,mode,activation,targetIds:targetSelector?[...document.querySelectorAll(targetSelector)].map(el=>el.value):[],trigger:document.getElementById('wt')?.value.trim()||'',desc:document.getElementById('wd').value}}
 function validateWorldEntry(w){if(!w.name){toast('请填写名称');return false}if(w.scope!=='global'&&!w.targetIds.length){toast(w.scope==='character'?'请选择绑定角色':'请选择绑定分组');return false}if(w.activation==='trigger'&&!w.trigger){toast('普通条目需要填写触发条件');return false}return true}
@@ -1784,7 +1785,7 @@ async function saveRuntimeSettings(){
  save();void syncScreenWakeLock();loadSettings();toast('后台运行设置已保存');
 }
 function showBackgroundCapability(){
- modal(`<h2>后台运行能力</h2><div class="note">开启“后台请求接力”后，聊天与主动来信的最终 API 请求会交给 Service Worker，并由 waitUntil 尽力完成。即使页面被系统回收，已完成的结果也会在下次打开时恢复到原会话。<br><br>“生成常驻通知”会在请求期间显示通知，并在完成或失败后更新；它能提高可见性，但浏览器和 Android 仍可终止进程。静音音频不是可靠的后台保活，因此没有使用。需要绝对长期常驻时，仍必须做带 Android 前台服务的原生应用。<br><br>主动来信的定时器在应用仍存活时运行；若系统彻底关闭应用，会在下次打开时检查逾期任务，而不是伪装成精确后台定时。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`);
+ modal(`<h2>后台运行能力</h2><div class="note">开启“后台请求接力”后，聊天与主动说话的最终 API 请求会交给 Service Worker，并由 waitUntil 尽力完成。即使页面被系统回收，已完成的结果也会在下次打开时恢复到原会话。<br><br>“生成常驻通知”会在请求期间显示通知，并在完成或失败后更新；它能提高可见性，但浏览器和 Android 仍可终止进程。静音音频不是可靠的后台保活，因此没有使用。需要绝对长期常驻时，仍必须做带 Android 前台服务的原生应用。<br><br>主动说话的定时器在应用仍存活时运行；若系统彻底关闭应用，会在下次打开时检查逾期任务，而不是伪装成精确后台定时。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`);
 }
 function downloadJSON(obj,name){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function renderDataCenter(){
@@ -1812,7 +1813,7 @@ function saveProactiveSettings(){
  if(min>max)[min,max]=[max,min];
  data.settings.proactiveEnabled=enabled;data.settings.proactiveMinMinutes=min;data.settings.proactiveMaxMinutes=max;
  if(enabled)primeProactiveSchedules(true);else data.proactiveSchedule={};
- save();startProactiveScheduler();loadSettings();toast(enabled?'主动来信频率已启用':'主动来信已关闭');
+ save();startProactiveScheduler();loadSettings();toast(enabled?'主动说话频率已启用':'主动说话已关闭');
 }
 function saveChatStyleSettings(){data.settings.chatAvatarMode=document.getElementById('chatAvatarMode')?.value==='none'?'none':'both';save();if(currentChat)renderMessages();toast(data.settings.chatAvatarMode==='none'?'聊天已切换为无头像':'聊天已显示双方头像')}
 function saveMessageStyleSettings(){data.settings.onlineMultiBubbleEnabled=document.getElementById('onlineMultiBubbleEnabled')?.checked!==false;data.settings.onlineMaxBubbles=Math.min(8,Math.max(2,Number(document.getElementById('onlineMaxBubbles')?.value)||4));save();loadSettings();toast(data.settings.onlineMultiBubbleEnabled?'线上多气泡已开启':'线上已改为单气泡')}
@@ -1820,7 +1821,7 @@ function saveImmersionSettings(){data.settings.innerThoughtsEnabled=document.get
 function saveVoicePlaybackSettings(){data.settings.autoReadEnabled=document.getElementById('autoReadEnabled')?.checked===true;data.settings.autoReadNarration=document.getElementById('autoReadNarration')?.checked===true;save();if(currentChat)renderMessages();toast(data.settings.autoReadEnabled?'自动朗读已开启':'自动朗读已关闭；仍可点听筒图标')}
 function editVoiceWorldBook(){modal(`<h2>语音世界书</h2><div class="note">这里描述角色台词的朗读节奏、停顿、情绪与发音偏好。它会进入聊天模型的上下文来影响可朗读文本；真正的音色、Voice ID 与语速仍由独立声音模型决定。</div><div class="field"><label>全局语音规则</label><textarea id="voiceWorldBookText" style="min-height:190px" placeholder="例如：克制时停顿稍长；笑意只在亲密场景出现；外语人名按……发音">${esc(data.settings.voiceWorldBook||'')}</textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveVoiceWorldBook()">保存</button></div>`)}
 function saveVoiceWorldBook(){data.settings.voiceWorldBook=document.getElementById('voiceWorldBookText')?.value.trim()||'';save();closeModal();loadSettings();toast('语音世界书已保存')}
-function showMcpSafetyInfo(){modal(`<h2>本地 MCP 暂未开放</h2><div class="note">公网部署的网站连接 localhost 并不是零风险：网页可能探测或请求本机服务，浏览器还会受本地网络权限与 CORS 限制；一旦允许模型执行工具，也可能被提示注入诱导调用。你的条件是“没有安全风险才加入”，因此 V45.4.1 没有放入可执行 MCP 工具的入口。后续若加入，只会采用默认关闭、仅 127.0.0.1、工具白名单、每次调用确认且不保存密钥的安全模式。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`)}
+function showMcpSafetyInfo(){modal(`<h2>本地 MCP 暂未开放</h2><div class="note">公网部署的网站连接 localhost 并不是零风险：网页可能探测或请求本机服务，浏览器还会受本地网络权限与 CORS 限制；一旦允许模型执行工具，也可能被提示注入诱导调用。你的条件是“没有安全风险才加入”，因此 V45.5.0 没有放入可执行 MCP 工具的入口。后续若加入，只会采用默认关闭、仅 127.0.0.1、工具白名单、每次调用确认且不保存密钥的安全模式。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`)}
 function editDynamicIsland(){
  const cfg=cleanIslandConfig();
  modal(`<h2>自定义灵动岛</h2><div class="field"><label><input id="diEnabled" type="checkbox" style="width:auto" ${data.settings.dynamicIslandEnabled!==false?'checked':''}> 显示灵动岛</label></div><div class="field"><label>收起文字</label><input id="diCompact" maxlength="18" value="${attr(cfg.compactText)}"></div><div class="field"><label>展开标题</label><input id="diTitle" maxlength="24" value="${attr(cfg.title)}"></div><div class="field"><label>展开副标题</label><input id="diSubtitle" maxlength="36" value="${attr(cfg.subtitle)}"></div><div class="field"><label>符号</label><input id="diSymbol" maxlength="6" value="${attr(cfg.symbol)}"></div><div class="field"><label>强调色</label><input id="diAccent" type="color" value="${attr(cfg.accent)}"></div><div class="field"><label>尺寸</label><select id="diSize"><option value="compact" ${cfg.size==='compact'?'selected':''}>紧凑</option><option value="standard" ${cfg.size==='standard'?'selected':''}>标准</option><option value="wide" ${cfg.size==='wide'?'selected':''}>宽</option></select></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveDynamicIsland()">保存</button></div>`);
@@ -1846,17 +1847,17 @@ async function saveAppearanceSettings(){
  if(!isInstalledMode()&&data.settings.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch(e){errorDetail(e,'无法进入全屏')}}else if(!data.settings.fullscreenEnabled&&document.fullscreenElement){try{await document.exitFullscreen()}catch(e){errorDetail(e,'无法退出全屏')}}
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.4.1 资源包更新');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.5.0 资源包更新');
  if(!('serviceWorker' in navigator))return toast('当前浏览器不支持离线更新');
  toast('正在检查更新…');
  try{
   const registration=await ensureV44ServiceWorker({forceUpdate:true});
-  if(!registration)throw Error('V45.4.1 离线服务未能注册');
+  if(!registration)throw Error('V45.5.0 离线服务未能注册');
   if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}
-  toast('V45.4.1 更新检查完成');
+  toast('V45.5.0 更新检查完成');
  }catch(error){errorDetail(error,'检查更新失败')}
 }
-function resetData(){if(!confirm('确定清空 V45.4.1 的本机数据吗？历史版本的独立存储不会被删除。'))return;try{localStorage.setItem(STORE,JSON.stringify(blank()));localStorage.removeItem(`${STORE}_migration`);location.reload()}catch(error){errorDetail(error,'清空 V45.4.1 本机数据失败')}}
+function resetData(){if(!confirm('确定清空 V45.5.0 的本机数据吗？历史版本的独立存储不会被删除。'))return;try{localStorage.setItem(STORE,JSON.stringify(blank()));localStorage.removeItem(`${STORE}_migration`);location.reload()}catch(error){errorDetail(error,'清空 V45.5.0 本机数据失败')}}
 function chatInfo(){const g=groupForChat(currentChat);if(g)return editGroup(g.id);const c=directCharacterForChat(currentChat);if(!c)return;editCharacter(c.id,'profile','chat')}
 
 /* ---------- about ---------- */
@@ -1869,7 +1870,7 @@ function about(){
       <div class="about-divider"></div>
       <div class="about-desc">
         <p>API 驱动的虚拟手机式 AI 空间。</p>
-        <p>没有内置角色或聊天。V45.4.1 只内置两份可查看、可停用、可恢复的线上/线下活人感世界书；其余角色、独立面具聊天、动态、世界、记忆、预设、表情包与虚拟应用均属于本机数据。</p>
+        <p>没有内置角色或聊天。V45.5.0 内置线上活人感、线下活人感与线下去油腻三份可查看、可停用、可恢复的世界书；其余角色、独立面具聊天、动态、世界、记忆、预设、表情包与虚拟应用均属于本机数据。</p>
       </div>
       <div class="about-meta">
         <div class="meta-row"><span>数据格式版本</span><span>V${VERSION}</span></div>
@@ -2039,7 +2040,7 @@ function renderMessages(){
     if(m.kind==='thought'){html.push(`<div class="thought-entry" data-idx="${i}" onclick="showMsgMenu(event,${i})" oncontextmenu="return showMsgMenu(event,${i})"><span>内心话</span><p>${esc(m.text)}</p>${m.translation?`<div class="thought-translation"><small>译文</small>${esc(m.translation)}</div>`:''}</div>`);i++;continue}
     if(m.kind==='narration'){const nt=m.translation?`<div class="narration-translation"><small>译文</small><span>${esc(m.translation)}</span></div>`:'';html.push(`<div class="narration-entry" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})"><div class="narration-text" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span class="edited-mark">(已编辑)</span>':''}</div>${nt}</div>`);i++;continue}
     const key=v43GroupKey(m),group=[{m,i}];let j=i+1;while(j<arr.length&&v43Renderable(arr[j])&&v43GroupKey(arr[j])===key){group.push({m:arr[j],i:j});j++}
-    const first=group[0].m,last=group[group.length-1].m,speaker=(g&&first.role==='assistant')?data.characters.find(c=>c.id===first.speaker):directCharacter,entity=first.role==='user'?persona:speaker,label=(g&&first.role==='assistant'?speaker?.name:'')||(first.proactive?'主动来信':'');
+    const first=group[0].m,last=group[group.length-1].m,speaker=(g&&first.role==='assistant')?data.characters.find(c=>c.id===first.speaker):directCharacter,entity=first.role==='user'?persona:speaker,label=(g&&first.role==='assistant'?speaker?.name:'')||(first.proactive?'主动说话':'');
     const avatarHtml=showAvatars?messageAvatar(entity,first.role==='user'?'我':'AI'):'';
     const items=group.map((entry,index)=>v43MessageItemMarkup(entry.m,entry.i,index===group.length-1,currentChat)).join('');
     html.push(`<div class="msg-group ${first.role==='user'?'me':''} ${showAvatars?'with-avatar':'without-avatar'} ${first.mode==='offline'?'offline-message':''} ${group.length>1?'batch-message':''}" data-batch="${attr(first.batchId||first.id)}" oncontextmenu="return showMsgMenu(event,${group[group.length-1].i})">${avatarHtml}<div class="message-column">${label?`<div class="msg-speaker">${esc(label)}</div>`:''}${items}</div></div>`);i=j;
@@ -2142,7 +2143,7 @@ function translateStoredMessage(chatId,idx,{notify=false,force=false}={}){
 function regenerateLast(){
  if(busy||!currentChat)return;const arr=data.chats[currentChat]||[],last=arr.at(-1);if(!last)return toast('还没有可重试的消息');
  const removeLastBatch=()=>{const latest=arr.at(-1);if(!latest||latest.role!=='assistant')return;const batchId=latest.batchId;if(!batchId){arr.pop();return}while(arr.at(-1)?.batchId===batchId)arr.pop()};
- if(last.role==='assistant'&&last.proactive){const character=directCharacterForChat(currentChat);if(!character?.proactiveEnabled)return toast('请先在角色绑定中允许主动来信');removeLastBatch();save();renderMessages();void generateProactiveMessage(character);return}
+ if(last.role==='assistant'&&last.proactive){const character=directCharacterForChat(currentChat);if(!character?.proactiveEnabled)return toast('请先在角色绑定中允许主动说话');removeLastBatch();save();renderMessages();void generateProactiveMessage(character);return}
  if(last.role==='assistant')removeLastBatch();const lastUser=[...arr].reverse().find(message=>message.role==='user');if(!lastUser)return toast('缺少可重试的用户消息');
  const input=document.getElementById('messageInput');if(input&&!['sticker','image'].includes(lastUser.kind))input.value=lastUser.text;
  if(!isGroupChatId(currentChat)&&['online','offline'].includes(lastUser.mode)){currentChatMode=lastUser.mode;currentOfflineStyle=lastUser.sceneMode==='story'?'story':'direct';v43WriteMode(currentChat,currentChatMode,currentOfflineStyle)}
@@ -2208,15 +2209,15 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 
 /* Service Worker update diagnostics */
 async function v43FetchWorkerScript(){
- const response=await fetch('/sw-v44.js?build=45.4.1&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
+ const response=await fetch('/sw-v44.js?build=45.5.0&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v45.4.1"))throw Error('线上 sw-v44.js 仍不是 V45.4.1。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v45.5.0"))throw Error('线上 sw-v44.js 仍不是 V45.5.0。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.4.1 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V45.4.1 更新…');
- try{await v43FetchWorkerScript();const registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('V45.4.1 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V45.4.1 更新检查完成')}
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.5.0 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V45.5.0 更新…');
+ try{await v43FetchWorkerScript();const registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('V45.5.0 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V45.5.0 更新检查完成')}
  catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V45\.2|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v44.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
 
@@ -2396,7 +2397,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 /* V44.1 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.4.1')}
+function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.5.0')}
 async function v43FetchWorkerScript(){
  const expected=v435ExpectedBuild(),response=await fetch(`/sw-v44.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
@@ -2408,7 +2409,7 @@ async function v43FetchWorkerScript(){
  return{online,expected};
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.4.1 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.5.0 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
  try{const versions=await v43FetchWorkerScript(),registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast(`更新检查完成 · Worker ${versions.online}`)}
  catch(error){const detail=String(error?.message||error);if(/Service Worker 版本|sw-v44\.js|ServiceWorker|Failed to update|unknown error|fetching the script|Content-Type|语法无效|无法识别版本/i.test(detail)){modal(`<h2>离线服务版本不一致</h2><div class="note">${esc(detail)}<br><br>当前页面可能仍由旧缓存控制。请先把同一版本的 index.html、assets/app.js、assets/app.css、sw-v44.js、repair-sw.html 一起部署，再打开修复页。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
@@ -2429,7 +2430,7 @@ function v436CurrentCharacterForPrompt(draft){return Object.entries(V436_COMPLET
 async function runCharacterCompletion(){
  collectCharacterEditorPage();const draft=characterEditorDraft;if(!draft?.name)return toast('请先填写角色名称');if(!v436CompletionReady()){modal(`<h2>角色补全模型未绑定</h2><div class="note">请先在 API 配置库保存一套文本模型，再把“角色补全”绑定到该配置。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="closeModal();openView('settings')">前往设置</button></div>`);return}
  if(busy)return toast('已有生成任务正在进行');setBusy(true);toast('正在分析现有设定…');const controller=withTimeout(Number(data.settings.timeout)||60000);
- try{const raw=await invokeModel('characterCompletion',{system:`你是角色设定补全编辑器。任务是在用户已经写好的角色基础上，提出“只追加、不覆盖”的补充。\n硬性规则：\n1. 不得重写、删除、总结、改名或纠正现有设定。\n2. 只能补足空白字段，或为已有字段提供不重复且能由现有内容合理推导的新增细节。\n3. 禁止随机添加重大创伤、疾病、超能力、犯罪、婚恋、亲属死亡等改变人物根基的设定。\n4. 不得修改名称、昵称、代词、标签、头像、状态短句、状态模式、Voice、面具绑定、主动来信。\n5. 信息不足时对应字段返回空字符串。\n6. 严格只输出 JSON 对象，键只能是：${Object.keys(V436_COMPLETION_FIELDS).join(', ')}。每个值只写建议追加的新内容。`,history:[{role:'user',content:`角色名称：${draft.name}\n\n${v436CurrentCharacterForPrompt(draft)}`}],temperature:.35,maxTokens:2400,signal:controller.signal});const patch=v436NormalizePatch(v436SafeJsonObject(raw),draft);if(!Object.keys(patch).length)return toast('现有设定已经较完整，没有可靠的新补充');showCharacterCompletionPreview(patch)}catch(error){if(error?.name==='AbortError')toast('角色补全已取消或超时');else errorDetail(error,'角色补全失败')}finally{releaseController(controller);setBusy(false)}
+ try{const raw=await invokeModel('characterCompletion',{system:`你是角色设定补全编辑器。任务是在用户已经写好的角色基础上，提出“只追加、不覆盖”的补充。\n硬性规则：\n1. 不得重写、删除、总结、改名或纠正现有设定。\n2. 只能补足空白字段，或为已有字段提供不重复且能由现有内容合理推导的新增细节。\n3. 禁止随机添加重大创伤、疾病、超能力、犯罪、婚恋、亲属死亡等改变人物根基的设定。\n4. 不得修改名称、昵称、代词、标签、头像、状态短句、状态模式、Voice、面具绑定、主动说话。\n5. 信息不足时对应字段返回空字符串。\n6. 严格只输出 JSON 对象，键只能是：${Object.keys(V436_COMPLETION_FIELDS).join(', ')}。每个值只写建议追加的新内容。`,history:[{role:'user',content:`角色名称：${draft.name}\n\n${v436CurrentCharacterForPrompt(draft)}`}],temperature:.35,maxTokens:2400,signal:controller.signal});const patch=v436NormalizePatch(v436SafeJsonObject(raw),draft);if(!Object.keys(patch).length)return toast('现有设定已经较完整，没有可靠的新补充');showCharacterCompletionPreview(patch)}catch(error){if(error?.name==='AbortError')toast('角色补全已取消或超时');else errorDetail(error,'角色补全失败')}finally{releaseController(controller);setBusy(false)}
 }
 function showCharacterCompletionPreview(patch){const draft=characterEditorDraft;if(!draft)return;window.__characterCompletionPatch=patch;modal(`<h2>确认追加补全</h2><div class="note">只会把勾选内容追加到原字段末尾，不会替换已有文字。请逐项确认。</div><div class="character-completion-list">${Object.entries(patch).map(([key,value])=>`<label><input class="character-completion-check" type="checkbox" value="${key}" checked><span><b>${esc(V436_COMPLETION_FIELDS[key])}</b>${draft[key]?`<small>原有：${esc(String(draft[key]).slice(0,180))}${String(draft[key]).length>180?'…':''}</small>`:'<small>原字段为空</small>'}<em>追加：${esc(value)}</em></span></label>`).join('')}</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="applyCharacterCompletion()">追加到角色</button></div>`)}
 function applyCharacterCompletion(){const draft=characterEditorDraft,patch=window.__characterCompletionPatch||{};if(!draft)return;let count=0;for(const input of document.querySelectorAll('.character-completion-check:checked')){const key=input.value,value=String(patch[key]||'').trim();if(!V436_COMPLETION_FIELDS[key]||!value)continue;const current=String(draft[key]||'').trim();draft[key]=current?`${current}\n\n${value}`:value;count++}delete window.__characterCompletionPatch;closeModal();renderCharacterEditor();toast(count?`已追加 ${count} 项补充；请检查后保存`:'没有选择补充内容')}
@@ -2591,7 +2592,7 @@ function renderMessages(){
   if(message.kind==='thought'){html.push(`<div class="thought-entry" ${data} ${events} onclick="v4310MenuFromNode(event,this)"><span>内心话</span><p>${esc(message.text)}</p>${message.translation?`<div class="thought-translation"><small>译文</small>${esc(message.translation)}</div>`:''}</div>`);index++;continue}
   if(message.kind==='narration'){html.push(`<div class="narration-entry" ${data} ${events}><div class="narration-text" onclick="v4310MenuFromNode(event,this)">${esc(message.text)}${v439EditedMark(message)}</div>${message.translation?`<div class="narration-translation" onclick="v4310MenuFromNode(event,this)"><small>译文</small><span>${esc(message.translation)}</span></div>`:''}</div>`);index++;continue}
   const key=v43GroupKey(message),batch=[{m:message,i:index}];let next=index+1;while(next<messages.length&&v43Renderable(messages[next])&&v43GroupKey(messages[next])===key){batch.push({m:messages[next],i:next});next++}
-  const first=batch[0].m,speaker=groupChat&&first.role==='assistant'?data.characters.find(character=>character.id===first.speaker):directCharacter,entity=first.role==='user'?persona:speaker,label=(groupChat&&first.role==='assistant'?speaker?.name:'')||(first.proactive?'主动来信':''),avatarHtml=showAvatars?messageAvatar(entity,first.role==='user'?'我':'AI'):'',items=batch.map((entry,position)=>v43MessageItemMarkup(entry.m,entry.i,position===batch.length-1,currentChat)).join('');
+  const first=batch[0].m,speaker=groupChat&&first.role==='assistant'?data.characters.find(character=>character.id===first.speaker):directCharacter,entity=first.role==='user'?persona:speaker,label=(groupChat&&first.role==='assistant'?speaker?.name:'')||(first.proactive?'主动说话':''),avatarHtml=showAvatars?messageAvatar(entity,first.role==='user'?'我':'AI'):'',items=batch.map((entry,position)=>v43MessageItemMarkup(entry.m,entry.i,position===batch.length-1,currentChat)).join('');
   html.push(`<div class="msg-group ${first.role==='user'?'me':''} ${showAvatars?'with-avatar':'without-avatar'} ${first.mode==='offline'?'offline-message':''} ${batch.length>1?'batch-message':''}" data-batch="${attr(first.batchId||first.id)}">${avatarHtml}<div class="message-column">${label?`<div class="msg-speaker">${esc(label)}</div>`:''}${items}</div></div>`);index=next;
  }
  container.innerHTML=html.join('');const scroller=container.parentElement;if(scroller)scroller.scrollTop=scroller.scrollHeight;
@@ -2809,7 +2810,7 @@ function showMessageEditHistory(ref=msgMenuTarget){const resolved=v4310ResolveMe
       for(const profile of Object.values(copy.models||{}))if(profile&&typeof profile==='object')delete profile.key;
       for(const profile of Object.values(copy.apiConfigs||{}))if(profile&&typeof profile==='object'){delete profile.key;delete profile.apiKey;delete profile.token;delete profile.accessToken;delete profile.signature}
       if(copy.settings&&typeof copy.settings==='object'){delete copy.settings.apiKey;delete copy.settings.apiKeyToken}
-      downloadJSON({format:'pokeji-data',version:'45.4.1',exportedAt:new Date().toISOString(),data:copy},`pokeji-data-${Date.now()}.json`);toast('最终资料已导出（API Key 未包含）');
+      downloadJSON({format:'pokeji-data',version:'45.5.0',exportedAt:new Date().toISOString(),data:copy},`pokeji-data-${Date.now()}.json`);toast('最终资料已导出（API Key 未包含）');
     }catch(error){errorDetail(error,'资料导出失败')}
   };
   importSJ=function(ev){
