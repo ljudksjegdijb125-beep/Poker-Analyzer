@@ -9,11 +9,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · 沉浸互动空间 · V45.6.0</title>
-<link rel="manifest" href="/manifest.webmanifest?v=45.6.0">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.6.0">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.6.0">
-<link rel="stylesheet" href="/assets/app.css?v=45.6.0">
+<title>扑克机 · 沉浸互动空间 · V45.7.0</title>
+<link rel="manifest" href="/manifest.webmanifest?v=45.7.0">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.7.0">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.7.0">
+<link rel="stylesheet" href="/assets/app.css?v=45.7.0">
 </head>
 <body>
 
@@ -85,16 +85,22 @@
     <button type="button" onclick="showPageOverview()" aria-label="桌面分页">
       <span class="dock-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 5 11 6-11 6L5 11l11-6Z"/><path d="m7 16 9 5 9-5M7 21l9 5 9-5"/></svg></span><i>♣</i>
     </button>
-    <button type="button" onclick="openHomeEditor()" aria-label="整理桌面">
+    <button type="button" onclick="openHomeEditor()" aria-label="美化">
       <span class="dock-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 9h18M7 16h18M7 23h18"/><circle cx="12" cy="9" r="2.2"/><circle cx="21" cy="16" r="2.2"/><circle cx="14" cy="23" r="2.2"/></svg></span><i>♦</i>
     </button>
   </nav>
   <div class="p12-gesture"></div>
   <div class="p12-editor" id="homeEditor">
     <button class="p12-editor-close" onclick="closeHomeEditor()">×</button>
-    <h2>桌面布局</h2>
-    <p>组件可与整组四宫格换位，图标也可单独拖动互换。</p>
-    <div class="p12-editor-row"><b>整理桌面</b><button id="homeEditToggle" onclick="toggleHomeEditMode()">开启</button></div>
+    <h2>美化</h2>
+    <p>桌面排列、主题颜色、壁纸和图标在这里统一布置。</p>
+    <div class="p12-editor-section">主题与色彩</div>
+    <div class="p12-editor-row"><b>全局配色</b><button onclick="openPaletteStudio()">色卡 / 手动</button></div>
+    <div class="p12-editor-row"><b>从图片取色</b><button onclick="v457ChoosePaletteImage()">选择图片</button></div>
+    <div class="p12-editor-row"><b>已保存主题</b><button onclick="v457OpenSavedThemes()">管理</button></div>
+    <div class="p12-editor-row"><b>默认主题</b><button onclick="v457ResetTheme()">恢复</button></div>
+    <div class="p12-editor-section">桌面排列</div>
+    <div class="p12-editor-row"><b>调整桌面</b><button id="homeEditToggle" onclick="toggleHomeEditMode()">开启</button></div>
     <div class="p12-editor-row"><b>添加图1尺寸组件</b><button onclick="showWidgetPicker()">照片 / CD</button></div>
     <div class="p12-editor-row"><b>添加应用</b><button onclick="showAppPicker()">选择</button></div>
     <div class="p12-editor-row"><b>桌面分页</b><button onclick="addHomePage()">新增一页</button></div>
@@ -168,7 +174,7 @@
 <div class="scroll data-hub">
 <div class="data-hero">
  <div class="data-hero-mark">▣</div>
- <div><small>LOCAL DATA · V45.6.0</small><h2>你的本机资料</h2><p>人物、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
+ <div><small>LOCAL DATA · V45.7.0</small><h2>你的本机资料</h2><p>人物、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
  <span>仅本机</span>
 </div>
 <div class="data-stats" aria-label="本机资料统计">
@@ -184,9 +190,9 @@
  <input id="sjImport" type="file" accept=".json,application/json" hidden onchange="importSJ(event)">
 </div>
 <div class="data-panel">
- <div class="data-panel-title"><span>主题样式</span><small>单独迁移 · 导入时追加</small></div>
- <button class="data-row" onclick="exportThemes()"><span class="data-row-icon">◐</span><span><b>导出主题</b><small>只保存自定义颜色与样式</small></span><i>›</i></button>
- <button class="data-row" onclick="importThemes()"><span class="data-row-icon">＋</span><span><b>导入主题</b><small>追加到现有主题，不覆盖原主题</small></span><i>›</i></button>
+ <div class="data-panel-title"><span>美化方案</span><small>颜色与桌面一起迁移</small></div>
+ <button class="data-row" onclick="exportThemes()"><span class="data-row-icon">◐</span><span><b>导出美化方案</b><small>包含已保存主题、当前配色、桌面排列、壁纸与自定义图标</small></span><i>›</i></button>
+ <button class="data-row" onclick="importThemes()"><span class="data-row-icon">＋</span><span><b>导入美化方案</b><small>兼容旧主题文件；新方案会一并恢复桌面布置</small></span><i>›</i></button>
 </div>
 <div class="data-local-note"><span>●</span><p><b>面具记录互相隔离</b><small>每张面具都有自己的私聊、群聊、摘要、背景与手机内容。</small></p></div>
 </div>
@@ -230,6 +236,8 @@
 <div class="setting"><span><b>聊天头像</b><small style="display:block">双方头像或完全无头像</small></span><select id="chatAvatarMode" onchange="saveChatStyleSettings()"><option value="both">双方头像</option><option value="none">无头像</option></select></div>
 <div class="setting"><span><b>线上多气泡</b><small style="display:block">对方按说话节奏自行决定实际条数</small></span><input id="onlineMultiBubbleEnabled" type="checkbox" style="width:auto" onchange="saveMessageStyleSettings()"></div>
 <div class="setting"><span><b>对方主动编辑消息</b><small style="display:block">对方可偶尔修正自己已经发出的文字气泡，并显示“已编辑”</small></span><input id="characterSelfEditEnabled" type="checkbox" style="width:auto" onchange="saveCharacterSelfEditSetting()"></div>
+<div class="setting"><span><b>双方引用消息</b><small style="display:block">你和对方都可以引用彼此或自己先前说过的话</small></span><input id="quoteEnabled" type="checkbox" style="width:auto" onchange="v457SaveQuoteSettings()"></div>
+<div class="setting"><span><b>对方自主引用</b><small style="display:block">对方会按性格和当前语境决定是否引用，不会每轮强行使用</small></span><input id="characterQuoteEnabled" type="checkbox" style="width:auto" onchange="v457SaveQuoteSettings()"></div>
 <div class="setting"><span><b>最多气泡数</b><small style="display:block">只是上限，不会强制发满</small></span><input id="onlineMaxBubbles" type="number" min="2" max="8" step="1" onchange="saveMessageStyleSettings()"></div>
 <div class="setting"><span><b>未说出口的话</b><small style="display:block">显示对方没有真正说出的虚构内心独白</small></span><input id="innerThoughtsEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>自动翻译对方消息</b><small style="display:block">使用独立翻译模型；相同原文优先读取本机缓存</small></span><input id="autoTranslateEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
@@ -240,7 +248,7 @@
 <div class="setting" onclick="openCompletionWorldbookSettings()"><span><b>补全带入世界书</b><small style="display:block">人物与面具补全都可独立开启或关闭</small></span><span class="muted" id="v451CompletionWorldbookLabel">按范围带入 ›</span></div>
 <div class="setting"><span>随机事件</span><input id="randomEventsEnabled" type="checkbox" style="width:auto" onchange="saveRandomEventSettings()"></div>
 <div class="setting"><span>触发概率</span><input id="randomEventChance" type="number" min="0" max="100" step="1" onchange="saveRandomEventSettings()"></div>
-<div class="setting"><span><b>活人感主动说话</b><small style="display:block">按频率读取当前时间、上下文和对方节奏后主动开口；只对单独允许的人生效</small></span><input id="proactiveEnabled" type="checkbox" style="width:auto" onchange="saveProactiveSettings()"></div>
+<div class="setting v457-proactive-setting"><span><b>活人感主动说话</b><small style="display:block">按频率读取当前时间、上下文和对方节奏后主动开口；只对单独允许的人生效</small></span><input id="proactiveEnabled" type="checkbox" style="width:auto" onchange="saveProactiveSettings()"></div>
 <div class="setting"><span>最短间隔（分钟）</span><input id="proactiveMinMinutes" type="number" min="1" max="1440" step="1" onchange="saveProactiveSettings()"></div>
 <div class="setting"><span>最长间隔（分钟）</span><input id="proactiveMaxMinutes" type="number" min="1" max="1440" step="1" onchange="saveProactiveSettings()"></div>
 </div>
@@ -258,8 +266,7 @@
 <div class="setting" onclick="showMcpSafetyInfo()"><span><b>本地 MCP</b><small style="display:block">未开放执行；查看 localhost 风险边界</small></span><span class="muted">安全说明 ›</span></div>
 </div>
 <div class="group"><div class="group-title">最近修改</div><div class="setting" onclick="showChangeLog()"><span><b>修改播报记录</b><small style="display:block">查看本次版本实际修改了哪些设置和资料</small></span><span class="muted">查看 ›</span></div></div>
-<div class="group"><div class="group-title">美化与应用</div>
-<div class="setting" onclick="addTheme()"><span>新增主题</span><span class="muted">追加 ›</span></div>
+<div class="group"><div class="group-title">应用与显示</div>
 <div class="setting" id="installAppSetting" onclick="installPWA()"><span>安装到桌面</span><span class="muted" id="installAppStatus">检测中 ›</span></div>
 <div class="setting" onclick="chooseAppIcon()"><span>应用图标</span><span class="muted">PWA 图片 ›</span></div>
 <div class="setting" onclick="showFontSettings()"><span>界面字体</span><span class="muted" id="fontSettingLabel">系统字体 ›</span></div>
@@ -297,36 +304,38 @@
  try{Object.defineProperty(editor,'value',{configurable:true,get:text,set:value=>{editor.textContent=String(value||'')}});Object.defineProperty(editor,'placeholder',{configurable:true,get:()=>editor.dataset.placeholder||'',set:value=>{editor.dataset.placeholder=String(value||'')}});Object.defineProperty(editor,'disabled',{configurable:true,get:()=>disabled,set:value=>{disabled=!!value;editor.setAttribute('contenteditable',disabled?'false':'plaintext-only');editor.setAttribute('aria-disabled',disabled?'true':'false')}});Object.defineProperty(editor,'type',{configurable:true,get:()=>'text',set:()=>{}});Object.defineProperty(editor,'name',{configurable:true,get:()=>'',set:()=>{}});Object.defineProperty(editor,'autocomplete',{configurable:true,get:()=>'off',set:()=>{}})}catch{}
 })();
 </script>
-<script src="/assets/app.js?v=45.6.0"></script>
-<script src="/assets/v45-patch.js?v=45.6.0"></script>
-<script src="/assets/v45-final.js?v=45.6.0"></script>
-<script src="/assets/v45-ui-fix.js?v=45.6.0"></script>
-<script src="/assets/v45-phone-call.js?v=45.6.0"></script>
-<script src="/assets/v45-followup.js?v=45.6.0"></script>
-<script src="/assets/v45-stability.js?v=45.6.0"></script>
-<script src="/assets/v45.1-fix.js?v=45.6.0"></script>
+<script src="/assets/app.js?v=45.7.0"></script>
+<script src="/assets/v45-patch.js?v=45.7.0"></script>
+<script src="/assets/v45-final.js?v=45.7.0"></script>
+<script src="/assets/v45-ui-fix.js?v=45.7.0"></script>
+<script src="/assets/v45-phone-call.js?v=45.7.0"></script>
+<script src="/assets/v45-followup.js?v=45.7.0"></script>
+<script src="/assets/v45-stability.js?v=45.7.0"></script>
+<script src="/assets/v45.1-fix.js?v=45.7.0"></script>
 <!-- Existing phone desktop remains authoritative; only app interiors load below. -->
-<script src="/assets/v45.1-memory-entries.js?v=45.6.0"></script>
-<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.6.0">
-<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.6.0">
-<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.6.0">
-<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.6.0">
-<link rel="stylesheet" href="/assets/v45.4.1-runtime.css?v=45.6.0">
-<link rel="stylesheet" href="/assets/v45.4.1-phone.css?v=45.6.0">
-<link rel="stylesheet" href="/assets/v45.4.1-story.css?v=45.6.0">
-<link rel="stylesheet" href="/assets/v45.5.0-framework.css?v=45.6.0">
-<link rel="stylesheet" href="/assets/v45.6.0-refinement.css?v=45.6.0">
-<script src="/assets/v45.2-app-interiors.js?v=45.6.0"></script>
-<script src="/assets/pako-inflate.min.js?v=45.6.0"></script>
-<script src="/assets/v45.3-repair.js?v=45.6.0"></script>
+<script src="/assets/v45.1-memory-entries.js?v=45.7.0"></script>
+<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.4.1-runtime.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.4.1-phone.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.4.1-story.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.5.0-framework.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.6.0-refinement.css?v=45.7.0">
+<link rel="stylesheet" href="/assets/v45.7.0-polish.css?v=45.7.0">
+<script src="/assets/v45.2-app-interiors.js?v=45.7.0"></script>
+<script src="/assets/pako-inflate.min.js?v=45.7.0"></script>
+<script src="/assets/v45.3-repair.js?v=45.7.0"></script>
 <!-- Formal routed pages: no preview navigator is loaded into the deploy package. -->
-<script src="/assets/v45.4-next-stage.js?v=45.6.0"></script>
-<script src="/assets/v45.4.1-core.js?v=45.6.0"></script>
-<script src="/assets/v45.4.1-runtime.js?v=45.6.0"></script>
-<script src="/assets/v45.4.1-phone.js?v=45.6.0"></script>
-<script src="/assets/v45.4.1-story.js?v=45.6.0"></script>
-<script src="/assets/v45.5.0-framework.js?v=45.6.0"></script>
-<script src="/assets/v45.6.0-refinement.js?v=45.6.0"></script>
+<script src="/assets/v45.4-next-stage.js?v=45.7.0"></script>
+<script src="/assets/v45.4.1-core.js?v=45.7.0"></script>
+<script src="/assets/v45.4.1-runtime.js?v=45.7.0"></script>
+<script src="/assets/v45.4.1-phone.js?v=45.7.0"></script>
+<script src="/assets/v45.4.1-story.js?v=45.7.0"></script>
+<script src="/assets/v45.5.0-framework.js?v=45.7.0"></script>
+<script src="/assets/v45.6.0-refinement.js?v=45.7.0"></script>
+<script src="/assets/v45.7.0-polish.js?v=45.7.0"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{

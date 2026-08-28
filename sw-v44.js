@@ -1,5 +1,5 @@
-const POKEJI_WORKER_VERSION = '45.6.0';
-const CACHE_NAME = 'pokeji-v45.6.0';
+const POKEJI_WORKER_VERSION = '45.7.0';
+const CACHE_NAME = 'pokeji-v45.7.0';
 const APP_ENTRY = '/index.html';
 const BACKGROUND_DB = 'pokeji-background-v42';
 const BACKGROUND_STORE = 'results';
@@ -8,39 +8,41 @@ const cancelledTasks = new Set();
 const APP_SHELL = [
   '/',
   APP_ENTRY,
-  "/assets/app.css?v=45.6.0",
-  "/assets/app.js?v=45.6.0",
-  "/assets/v45-patch.js?v=45.6.0",
-  "/assets/v45-final.js?v=45.6.0",
-  "/assets/v45-ui-fix.js?v=45.6.0",
-  "/assets/v45-phone-call.js?v=45.6.0",
-  "/assets/v45-followup.js?v=45.6.0",
-  "/assets/v45-stability.js?v=45.6.0",
-  "/assets/v45.1-fix.js?v=45.6.0",
+  "/assets/app.css?v=45.7.0",
+  "/assets/app.js?v=45.7.0",
+  "/assets/v45-patch.js?v=45.7.0",
+  "/assets/v45-final.js?v=45.7.0",
+  "/assets/v45-ui-fix.js?v=45.7.0",
+  "/assets/v45-phone-call.js?v=45.7.0",
+  "/assets/v45-followup.js?v=45.7.0",
+  "/assets/v45-stability.js?v=45.7.0",
+  "/assets/v45.1-fix.js?v=45.7.0",
     /* original phone desktop preserved */
-  "/assets/v45.1-memory-entries.js?v=45.6.0",
-  "/assets/v45.1-scope-override.css?v=45.6.0",
-  "/assets/v45.2-app-interiors.css?v=45.6.0",
-  "/assets/v45.2-app-interiors.js?v=45.6.0",
-  "/assets/pako-inflate.min.js?v=45.6.0",
-  "/assets/v45.3-repair.css?v=45.6.0",
-  "/assets/v45.3-repair.js?v=45.6.0",
-  "/assets/v45.4-next-stage.css?v=45.6.0",
-  "/assets/v45.4-next-stage.js?v=45.6.0",
-  "/assets/v45.4.1-runtime.css?v=45.6.0",
-  "/assets/v45.4.1-phone.css?v=45.6.0",
-  "/assets/v45.4.1-story.css?v=45.6.0",
-  "/assets/v45.4.1-core.js?v=45.6.0",
-  "/assets/v45.4.1-runtime.js?v=45.6.0",
-  "/assets/v45.4.1-phone.js?v=45.6.0",
-  "/assets/v45.4.1-story.js?v=45.6.0",
-  "/assets/v45.5.0-framework.css?v=45.6.0",
-  "/assets/v45.5.0-framework.js?v=45.6.0",
-  "/assets/v45.6.0-refinement.css?v=45.6.0",
-  "/assets/v45.6.0-refinement.js?v=45.6.0",
-  "/manifest.webmanifest?v=45.6.0",
-  '/assets/icon-192.png?v=45.6.0',
-  '/assets/icon-512.png?v=45.6.0',
+  "/assets/v45.1-memory-entries.js?v=45.7.0",
+  "/assets/v45.1-scope-override.css?v=45.7.0",
+  "/assets/v45.2-app-interiors.css?v=45.7.0",
+  "/assets/v45.2-app-interiors.js?v=45.7.0",
+  "/assets/pako-inflate.min.js?v=45.7.0",
+  "/assets/v45.3-repair.css?v=45.7.0",
+  "/assets/v45.3-repair.js?v=45.7.0",
+  "/assets/v45.4-next-stage.css?v=45.7.0",
+  "/assets/v45.4-next-stage.js?v=45.7.0",
+  "/assets/v45.4.1-runtime.css?v=45.7.0",
+  "/assets/v45.4.1-phone.css?v=45.7.0",
+  "/assets/v45.4.1-story.css?v=45.7.0",
+  "/assets/v45.4.1-core.js?v=45.7.0",
+  "/assets/v45.4.1-runtime.js?v=45.7.0",
+  "/assets/v45.4.1-phone.js?v=45.7.0",
+  "/assets/v45.4.1-story.js?v=45.7.0",
+  "/assets/v45.5.0-framework.css?v=45.7.0",
+  "/assets/v45.5.0-framework.js?v=45.7.0",
+  "/assets/v45.6.0-refinement.css?v=45.7.0",
+  "/assets/v45.6.0-refinement.js?v=45.7.0",
+  "/assets/v45.7.0-polish.css?v=45.7.0",
+  "/assets/v45.7.0-polish.js?v=45.7.0",
+  "/manifest.webmanifest?v=45.7.0",
+  '/assets/icon-192.png?v=45.7.0',
+  '/assets/icon-512.png?v=45.7.0',
   '/assets/icons/apps/chat-a-heart.webp',
   '/assets/icons/apps/character-k-spade.webp',
   '/assets/icons/apps/group-q-club.webp',
@@ -94,7 +96,7 @@ function cleanBackgroundMeta(meta = {}) {
 
 async function showTaskNotification(taskId, meta, state) {
   if (!meta.showNotification || !self.registration?.showNotification || cancelledTasks.has(taskId)) return;
-  const name = meta.notificationName || 'AI';
+  const name = meta.notificationName || '对方';
   const details = state === 'working'
     ? {title: '扑克机正在生成', body: `${name}的回复正在生成；切到后台后仍会继续尝试。`}
     : state === 'completed'
