@@ -1,5 +1,5 @@
 /* =========================================================
-   POKEJI V45.6.0 · focused refinement layer
+   POKEJI V45.7.0 · focused refinement layer
    - quiet activity center instead of notification noise
    - owner-scoped context memory and hierarchy inspector
    - natural interface wording without touching authored content

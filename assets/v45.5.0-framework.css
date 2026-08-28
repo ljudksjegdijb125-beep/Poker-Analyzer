@@ -1,4 +1,4 @@
-/* POKEJI V45.6.0 · functional refinement layer (no layout redesign) */
+/* POKEJI V45.7.0 · functional refinement layer (no layout redesign) */
 :root{--theme-icon-color:var(--gold-hi,#eeda9f)}
 
 .v455-reverse-live{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 16px 12px;padding:12px 14px;border:1px solid var(--line);border-radius:15px;background:var(--panel)}

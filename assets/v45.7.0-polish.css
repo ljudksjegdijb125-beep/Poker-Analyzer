@@ -1,0 +1,149 @@
+/* POKEJI V45.7.0 · restrained visual integration */
+:root{
+  --v457-header:#17171b;
+  --v457-dock:#202024;
+  --v457-bubble-mine:#4a3a27;
+  --v457-bubble-other:#27272c;
+}
+
+/* A saved palette reaches the desktop, page chrome, icons and chat together. */
+html[data-pokeji-theme] body,
+html[data-pokeji-theme] #screen,
+html[data-pokeji-theme] .view,
+html[data-pokeji-theme] .app-view{background-color:var(--black)!important;color:var(--ivory)}
+html[data-pokeji-theme] .app-view>.header,
+html[data-pokeji-theme] #chat .chat-head{background:color-mix(in srgb,var(--v457-header) 94%,transparent)!important;color:var(--ivory);border-color:var(--line2)}
+html[data-pokeji-theme] .app-view>.scroll,
+html[data-pokeji-theme] #chat>.scroll{background:linear-gradient(180deg,color-mix(in srgb,var(--black) 96%,var(--panel)),var(--black))}
+html[data-pokeji-theme] .group,
+html[data-pokeji-theme] .section,
+html[data-pokeji-theme] .setting,
+html[data-pokeji-theme] .data-panel{color:var(--ivory);border-color:var(--line2)}
+html[data-pokeji-theme] .setting{background:color-mix(in srgb,var(--panel) 88%,transparent)}
+html[data-pokeji-theme] .p12-home:not(.has-custom-bg){background:radial-gradient(circle at 18% 8%,color-mix(in srgb,var(--gold) 14%,transparent),transparent 33%),linear-gradient(155deg,var(--theme-home-top),var(--black) 54%,var(--theme-home-bottom))!important}
+html[data-pokeji-theme] .p12-dock{background:color-mix(in srgb,var(--v457-dock) 88%,transparent)!important;border-color:var(--line2)!important}
+html[data-pokeji-theme] .home-app-glyph,
+html[data-pokeji-theme] .home-app-glyph:before,
+html[data-pokeji-theme] .home-app-glyph:after,
+html[data-pokeji-theme] .home-app-glyph b,
+html[data-pokeji-theme] .home-app-glyph svg,
+html[data-pokeji-theme] .dock-icon,
+html[data-pokeji-theme] .dock-icon svg,
+html[data-pokeji-theme] .tool-svg,
+html[data-pokeji-theme] .tool-svg svg{color:var(--theme-icon-color)!important;stroke:currentColor!important}
+html[data-pokeji-theme] .home-app-glyph img{filter:none!important;color:initial!important}
+html[data-pokeji-theme] #chat .msg-group .bubble{background:var(--v457-bubble-other)!important;color:var(--ivory)!important}
+html[data-pokeji-theme] #chat .msg-group.me .bubble{background:var(--v457-bubble-mine)!important;color:var(--ivory)!important}
+html[data-pokeji-theme] #chat .composer{background:color-mix(in srgb,var(--panel) 91%,transparent)!important;border-color:var(--line2)!important}
+
+/* “美化” keeps the existing desktop sheet, with clearer internal hierarchy. */
+.p12-editor-section{margin:20px 3px 3px;color:var(--gold-hi);font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+.p12-editor-row{gap:14px}
+.p12-editor-row b{min-width:0;font-family:var(--ui-font,system-ui)!important;font-size:13px!important;font-weight:620!important}
+.p12-editor-row button{flex:none;min-width:72px;font-size:10px!important}
+html[data-pokeji-theme] .p12-editor{background:color-mix(in srgb,var(--black) 88%,transparent)!important;color:var(--ivory)}
+html[data-pokeji-theme] .p12-editor-row{background:color-mix(in srgb,var(--panel) 83%,transparent)!important;border-color:var(--line2)!important}
+html[data-pokeji-theme] .p12-editor-row button{border-color:var(--line);background:color-mix(in srgb,var(--gold) 9%,var(--panel));color:var(--gold-hi)}
+
+/* The proactive label no longer overpowers adjacent settings. */
+.v457-proactive-setting>span:first-child{min-width:0}
+.v457-proactive-setting>span:first-child>b{font-size:12px!important;font-weight:600;letter-spacing:0;line-height:1.35}
+.v457-proactive-setting>span:first-child>small{font-size:9px!important;line-height:1.5!important;font-weight:400}
+
+/* API keys are masked by default and can be revealed intentionally. */
+.v457-secret-field{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;width:100%}
+.v457-secret-field>input{min-width:0;width:100%!important}
+.v457-secret-toggle{align-self:stretch;min-width:54px;padding:0 11px;border:1px solid var(--line,#d6cdc0);border-radius:10px;background:color-mix(in srgb,var(--panel,#fff) 90%,transparent);color:var(--gold,#80654e);font-size:11px}
+
+/* Persistent two-sided quotes. */
+#chat .composer.has-v457-quote{padding-top:8px}
+.v457-quote-preview{grid-column:1/-1;display:flex;align-items:center;gap:9px;margin:0 0 6px;padding:8px 9px;border-left:3px solid var(--gold);border-radius:8px;background:color-mix(in srgb,var(--gold) 8%,var(--panel));color:var(--ivory)}
+.v457-quote-preview>span{display:grid;gap:2px;min-width:0;flex:1}.v457-quote-preview b{font-size:9px}.v457-quote-preview small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:9px}
+.v457-quote-preview>button{width:27px;height:27px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:18px}
+.v457-quote-card{display:grid;gap:2px;width:calc(100% - 8px);margin:1px 4px 5px;padding:6px 8px;border-left:2px solid currentColor;border-radius:5px;background:color-mix(in srgb,currentColor 7%,transparent);opacity:.68;pointer-events:none}
+.v457-quote-card b{font-size:8px}.v457-quote-card span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+.v457-quote-action{border-left:3px solid var(--gold)}
+
+/* Palette studio and durable saved themes. */
+.v457-palette-studio,.v457-saved-themes{color:var(--ivory,#272421)}
+.v457-palette-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.v457-palette-tools button{min-height:38px;border:1px solid var(--line,#d8cec0);border-radius:11px;background:color-mix(in srgb,var(--panel,#fff) 92%,transparent);color:inherit;font-size:11px}
+.v457-palette-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 13px}
+.v457-palette-cards button{display:grid;gap:6px;padding:7px;border:1px solid var(--line2,#ddd);border-radius:12px;background:transparent;color:inherit;text-align:left}
+.v457-palette-cards button.on{border-color:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 13%,transparent)}
+.v457-palette-cards button>b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+.v457-palette-cards button>span{display:grid;grid-template-columns:repeat(4,1fr);height:27px;overflow:hidden;border-radius:7px;background:var(--p-bg)}
+.v457-palette-cards button i:nth-child(1){background:var(--p-bg)}.v457-palette-cards button i:nth-child(2){background:var(--p-card)}.v457-palette-cards button i:nth-child(3){background:var(--p-accent)}.v457-palette-cards button i:nth-child(4){background:var(--p-icon)}
+.v457-palette-preview{position:relative;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:24px 1fr 24px;align-items:center;gap:7px;min-height:132px;margin:9px 0 13px;padding:0 12px;overflow:hidden;border:1px solid color-mix(in srgb,var(--p-accent) 32%,transparent);border-radius:15px;background:var(--p-bg);color:var(--p-text)}
+.v457-palette-preview header,.v457-palette-preview footer{grid-column:1/-1;align-self:stretch;margin:0 -12px;padding:6px 10px;background:var(--p-head);font-size:8px}.v457-palette-preview footer{background:var(--p-dock)}
+.v457-palette-preview>span{font-size:9px}.v457-palette-preview>i{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--p-card);color:var(--p-icon);font-style:normal}.v457-palette-preview>b,.v457-palette-preview>strong{padding:7px 9px;border-radius:10px;font-size:9px}.v457-palette-preview>b{background:var(--p-other)}.v457-palette-preview>strong{position:absolute;right:12px;bottom:33px;background:var(--p-mine)}
+.v457-palette-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+.v457-palette-fields label{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:8px;border:1px solid var(--line2,#ddd);border-radius:10px;background:color-mix(in srgb,var(--panel,#fff) 78%,transparent);font-size:9px}
+.v457-palette-fields input[type=color]{width:31px;height:27px;padding:1px;border:0;border-radius:7px;background:transparent}
+.v457-palette-actions button{flex-grow:1}
+.v457-saved-theme-list{display:grid;gap:8px;margin:13px 0;max-height:56vh;overflow:auto}
+.v457-saved-theme-list article{display:grid;grid-template-columns:47px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:9px;border:1px solid var(--line2,#ddd);border-radius:12px;background:color-mix(in srgb,var(--panel,#fff) 82%,transparent)}
+.v457-saved-theme-list article.on{border-color:var(--gold)}
+.v457-saved-theme-list article>span{display:grid;grid-template-columns:1fr 1fr;width:44px;height:34px;overflow:hidden;border-radius:8px}.v457-saved-theme-list article>span i:nth-child(1){background:var(--a)}.v457-saved-theme-list article>span i:nth-child(2){background:var(--b)}.v457-saved-theme-list article>span i:nth-child(3){background:var(--c)}.v457-saved-theme-list article>span i:nth-child(4){background:var(--d)}
+.v457-saved-theme-list article>div{display:grid;gap:3px;min-width:0}.v457-saved-theme-list article b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.v457-saved-theme-list article small{color:var(--muted);font-size:8px}.v457-saved-theme-list article>button{padding:7px 9px;border:0;border-radius:8px;background:color-mix(in srgb,var(--gold) 12%,transparent);color:var(--gold);font-size:9px}.v457-saved-theme-list article>button.danger{background:color-mix(in srgb,#a34343 10%,transparent);color:#a34343}
+
+/* Side-story additions use the existing paper language and type scale. */
+.v457-story-pacing,.v457-story-continuation-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 12px}
+.v457-story-continuation-modes{grid-template-columns:repeat(3,minmax(0,1fr))}
+.v457-story-pacing button,.v457-story-continuation-modes button{display:grid;gap:4px;min-height:61px;padding:10px;border:1px solid #d1c9ba;border-radius:12px;background:#fffdf7;color:#5e584f;text-align:left}
+.v457-story-pacing button.on,.v457-story-continuation-modes button.on{border-color:#8f7a54;background:#302f2b;color:#fff;box-shadow:0 6px 14px rgb(32 29 23 / 12%)}
+.v457-story-pacing b,.v457-story-continuation-modes b{font-size:9px}.v457-story-pacing small,.v457-story-continuation-modes small{color:#91897d;font-size:7px;line-height:1.45}.v457-story-pacing button.on small,.v457-story-continuation-modes button.on small{color:#c9c4bb}
+.v457-story-meta{display:flex;justify-content:center;flex-wrap:wrap;gap:5px;margin-top:10px}.v457-story-meta span{max-width:100%;padding:4px 7px;border-radius:999px;background:#e5ded2;color:#6f6659;font-size:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v457-story-style-entry{display:flex;width:100%;align-items:center;justify-content:space-between;gap:9px;margin-top:12px;padding:12px 13px;border:1px solid #d1c9ba;border-radius:12px;background:#fffdf7;color:#49443d;text-align:left}.v457-story-style-entry span{display:grid;gap:3px}.v457-story-style-entry b{font-size:10px}.v457-story-style-entry small{color:#8b8377;font-size:7px}.v457-story-style-entry i{color:#9a865d;font-style:normal}
+.v457-story-style-text{min-height:150px!important}.v457-field-note{display:block;margin:6px 2px 0;color:#877f73;font-size:7px;line-height:1.55}
+html[data-pokeji-theme] .v455-story-view,html[data-pokeji-theme] .v455-story-page{background:var(--black)!important;color:var(--ivory)!important}
+html[data-pokeji-theme] .v455-story-head,html[data-pokeji-theme] .v455-manuscript-composer{background:color-mix(in srgb,var(--v457-header) 96%,transparent)!important;border-color:var(--line2)!important;color:var(--ivory)}
+html[data-pokeji-theme] .v455-story-head button,html[data-pokeji-theme] .v455-story-intro p,html[data-pokeji-theme] .v455-story-title p,html[data-pokeji-theme] .v455-chapter-row small{color:var(--muted)!important}
+html[data-pokeji-theme] .v455-story-field input,html[data-pokeji-theme] .v455-story-field textarea,html[data-pokeji-theme] .v455-story-field select,html[data-pokeji-theme] .v457-story-pacing button,html[data-pokeji-theme] .v457-story-continuation-modes button,html[data-pokeji-theme] .v457-story-style-entry{background:var(--panel);border-color:var(--line);color:var(--ivory)}
+html[data-pokeji-theme] .v457-story-pacing button.on,html[data-pokeji-theme] .v457-story-continuation-modes button.on{background:color-mix(in srgb,var(--gold) 20%,var(--panel));border-color:var(--gold)}
+html[data-pokeji-theme] .v455-story-row,html[data-pokeji-theme] .v455-chapter-row{color:var(--ivory);border-color:var(--line2)}
+html[data-pokeji-theme] .v457-story-meta span{background:color-mix(in srgb,var(--gold) 10%,var(--panel));color:var(--gold-hi)}
+
+/* Language partner: real scene classroom, dictionary and review—not four duplicate tools. */
+.vphone.v452-learning-shell .v452-app-learning{background:#edf1ef!important;color:#243039!important}
+.v457-learning{position:relative;height:100%;font-family:var(--ui-font,system-ui,-apple-system,"PingFang SC",sans-serif)}
+.v457-learning-scroll{position:absolute;inset:0 0 63px;overflow:auto;scrollbar-width:none;background:linear-gradient(180deg,#edf1ef,#f6f5f0)}.v457-learning-scroll::-webkit-scrollbar{display:none}
+.v457-learning-page{padding:14px 13px 28px}
+.v457-learning-head{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:12px;align-items:center;padding:15px;border-radius:18px;background:linear-gradient(145deg,#23343d,#15252d);color:#f4f4ee;box-shadow:0 12px 28px rgb(26 42 50 / 16%)}
+.v457-learning-head small{color:#9fc4bf;font-size:8px;letter-spacing:.06em}.v457-learning-head h2{margin:5px 0 4px;font-size:19px;line-height:1.15}.v457-learning-head p{margin:0;color:#c0cccc;font-size:9px;line-height:1.55}.v457-learning-head>span{display:grid;place-items:center;width:46px;height:46px;border:1px solid rgb(255 255 255 / 18%);border-radius:15px;background:rgb(255 255 255 / 9%);color:#b8ddd6;font:22px Georgia,serif}
+.v457-learning-now{display:flex;align-items:center;gap:10px;margin:11px 0;padding:12px 13px;border:1px solid #d8e0dd;border-radius:15px;background:#fff}.v457-learning-now>div{display:grid;gap:3px;min-width:0;flex:1}.v457-learning-now small{color:#708078;font-size:7px}.v457-learning-now b{font-size:11px}.v457-learning-now span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#84908b;font-size:8px}.v457-learning-now button{padding:8px 11px;border:0;border-radius:10px;background:#244047;color:#fff;font-size:9px}.v457-learning-now button:disabled{opacity:.36}
+.v457-learning-section-title{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:17px 2px 8px}.v457-learning-section-title>div{display:grid;gap:3px}.v457-learning-section-title small{color:#66847d;font-size:6px;letter-spacing:.12em}.v457-learning-section-title b{font-size:12px}.v457-learning-section-title>span,.v457-import-word{padding:5px 8px;border-radius:999px;background:#dce8e4;color:#456c63;font-size:7px}
+.v457-scene-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.v457-scene-grid button{display:grid;grid-template-columns:35px minmax(0,1fr);grid-template-rows:auto auto;column-gap:9px;min-height:83px;padding:11px;border:1px solid #d8e0dd;border-radius:15px;background:#fff;color:#243039;text-align:left;box-shadow:0 5px 14px rgb(43 63 69 / 5%)}.v457-scene-grid button>span{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:#e4eeeb;color:#315d55;font-size:16px}.v457-scene-grid b{align-self:end;font-size:10px}.v457-scene-grid small{align-self:start;margin-top:3px;color:#77847f;font-size:7px;line-height:1.42}.v457-scene-grid button.custom{border-style:dashed}
+.v457-learning-route{display:flex;align-items:center;gap:6px;margin-top:12px;padding:10px;overflow:auto;border-radius:13px;background:#dfe9e6;color:#4c645e;scrollbar-width:none}.v457-learning-route span{display:grid;place-items:center;flex:0 0 20px;width:20px;height:20px;border-radius:50%;background:#345d55;color:#fff;font-size:7px}.v457-learning-route b{flex:0 0 auto;font-size:7px}.v457-learning-route i{color:#82938e;font-style:normal}
+.v457-learning-nav{position:absolute;z-index:20;left:0;right:0;bottom:0;height:63px;display:grid;grid-template-columns:repeat(5,1fr);padding:5px 7px calc(5px + env(safe-area-inset-bottom));border-top:1px solid #d8dfdc;background:rgb(250 250 247 / 96%);backdrop-filter:blur(16px)}.v457-learning-nav button{display:grid;place-items:center;align-content:center;gap:2px;border:0;background:transparent;color:#87918d}.v457-learning-nav button span{font-size:14px}.v457-learning-nav button b{font-size:7px}.v457-learning-nav button.on{color:#28554c}
+.v457-classroom{position:absolute;inset:0;display:grid;grid-template-rows:58px minmax(0,1fr) auto;background:#eef2f0}.v457-classroom-bar{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center;padding:7px 8px;border-bottom:1px solid #d9e0dd;background:#f9faf7}.v457-classroom-bar>button{border:0;background:transparent;color:#42685f;font-size:9px}.v457-classroom-bar>button:first-child{font-size:18px;text-align:left}.v457-classroom-bar>div{display:grid;gap:2px;text-align:center}.v457-classroom-bar small{color:#75847f;font-size:7px}.v457-classroom-bar b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.v457-classroom-messages{padding:12px 11px 18px;overflow:auto}.v457-lesson-message{width:86%;margin:0 0 11px;padding:10px 11px;border-radius:15px 15px 15px 5px;background:#fff;color:#263139;box-shadow:0 5px 14px rgb(38 54 60 / 6%)}.v457-lesson-message.mine{margin-left:auto;border-radius:15px 15px 5px 15px;background:#244c47;color:#f4f8f6}.v457-lesson-message header{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}.v457-lesson-message header b{font-size:8px}.v457-lesson-message header small{opacity:.6;font-size:6px}.v457-lesson-message>p{margin:0;white-space:pre-wrap;font-size:11px;line-height:1.6}.v457-lesson-correction{display:grid;gap:3px;margin-top:8px;padding:7px 8px;border-left:2px solid #c18b52;border-radius:5px;background:#faf3e8;color:#42382e}.v457-lesson-correction b{font-size:7px}.v457-lesson-correction span{font-size:9px;line-height:1.5}.v457-lesson-tip{display:block;margin-top:7px;color:#70817c;font-size:8px;line-height:1.5}.v457-lesson-words{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.v457-lesson-words button{padding:5px 7px;border:0;border-radius:999px;background:#e4efec;color:#38675d;font-size:7px}
+.v457-lesson-typing,.v457-lesson-loading{display:flex;align-items:center;gap:4px;color:#71817c;font-size:8px}.v457-lesson-typing i{width:5px;height:5px;border-radius:50%;background:#66877f;animation:v457Pulse 1s infinite}.v457-lesson-typing i:nth-child(2){animation-delay:.16s}.v457-lesson-typing i:nth-child(3){animation-delay:.32s}.v457-lesson-typing span{margin-left:4px}@keyframes v457Pulse{50%{opacity:.28;transform:translateY(-2px)}}
+.v457-classroom-composer{padding:7px 9px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #d6dfdc;background:#fafbf8}.v457-hold-hint{margin-bottom:5px;color:#76847f;font-size:7px;text-align:center}.v457-classroom-composer>div:last-child{display:grid;grid-template-columns:45px minmax(0,1fr) 39px;gap:6px;align-items:end}.v457-classroom-composer textarea{height:45px;min-height:45px;padding:9px;border:1px solid #d1dbd7;border-radius:12px;background:#fff;color:#253039;resize:none;font-family:inherit;font-size:10px;line-height:1.45}.v457-hold-talk,.v457-classroom-composer .send{height:43px;border:0;border-radius:12px;background:#dfeae7;color:#315f56}.v457-hold-talk{display:grid;place-items:center;align-content:center;font-size:13px;touch-action:none;user-select:none}.v457-hold-talk small{font-size:6px}.v457-hold-talk.is-listening{background:#b64d4d;color:#fff;transform:scale(.96)}.v457-classroom-composer .send{background:#28574f;color:#fff;font-size:17px}
+.v457-dictionary-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin:12px 0}.v457-dictionary-search input{min-width:0;height:42px;padding:0 11px;border:1px solid #d2dcda;border-radius:12px;background:#fff;color:#263139}.v457-dictionary-search button{padding:0 14px;border:0;border-radius:12px;background:#28574f;color:#fff}
+.v457-dictionary-card{overflow:hidden;border:1px solid #d7dfdc;border-radius:17px;background:#fff;box-shadow:0 8px 22px rgb(41 61 66 / 7%)}.v457-dictionary-card>header{display:flex;justify-content:space-between;align-items:start;padding:14px;background:#213b43;color:#f2f6f4}.v457-dictionary-card h3{margin:3px 0;font:23px Georgia,serif}.v457-dictionary-card header p{margin:0;color:#b5cac5;font-size:9px}.v457-dictionary-card header button{width:36px;height:36px;border:0;border-radius:50%;background:rgb(255 255 255 / 12%);color:#fff}.v457-dictionary-card>section{padding:11px 13px;border-bottom:1px solid #e5e9e7}.v457-dictionary-card section>b{color:#54736c;font-size:7px;letter-spacing:.08em}.v457-dictionary-card section p{margin:5px 0 0;font-size:10px;line-height:1.6}.v457-dictionary-card section small{color:#7b8984;font-size:8px}.v457-dictionary-card section.memory{background:#edf5f2}.v457-dictionary-card>footer{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px}.v457-dictionary-card>footer button{min-height:36px;border:0;border-radius:10px;background:#e2ece9;color:#365f57;font-size:8px}.v457-dictionary-card>footer button:last-child{background:#28574f;color:#fff}
+.v457-import-word{position:relative;cursor:pointer}.v457-import-word input{position:absolute;inset:0;opacity:0;cursor:pointer}.v457-word-list{display:grid;gap:6px}.v457-word-list article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:8px;border:1px solid #d9e0dd;border-radius:12px;background:#fff}.v457-word-list button{border:0;background:transparent;color:#263139;text-align:left}.v457-word-list button:first-child{display:grid;gap:3px}.v457-word-list b{font-size:10px}.v457-word-list small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7b8783;font-size:8px}.v457-word-list article>button:last-child{padding:6px 9px;border-radius:8px;background:#e3eeeb;color:#38645b;font-size:8px}
+.v457-review-card{display:grid;place-items:center;align-content:center;min-height:250px;margin:15px 0 10px;padding:20px;border:1px solid #d6dedb;border-radius:22px;background:#fff;color:#263139;text-align:center;box-shadow:0 15px 36px rgb(36 55 60 / 9%)}.v457-review-card small{color:#71827d;font-size:8px}.v457-review-card h2{margin:15px 0;font:31px Georgia,serif}.v457-review-card p{font-size:12px}.v457-review-card div,.v457-review-card span{color:#71817c;font-size:9px;line-height:1.6}.v457-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.v457-review-actions button{min-height:40px;border:0;border-radius:12px;background:#dfe9e6;color:#42675f}.v457-review-actions button.primary{background:#28574f;color:#fff}.v457-review-count{text-align:center;color:#7d8985;font-size:8px}
+.v457-learning-settings{display:grid;gap:7px;margin-top:12px}.v457-learning-settings>label{display:grid;grid-template-columns:minmax(0,1fr) minmax(104px,38%);gap:8px;align-items:center;padding:10px 11px;border:1px solid #d8e0dd;border-radius:13px;background:#fff}.v457-learning-settings label>span{display:grid;gap:3px}.v457-learning-settings b{font-size:9px}.v457-learning-settings small{color:#7a8782;font-size:7px;line-height:1.4}.v457-learning-settings select,.v457-learning-settings input{min-width:0;width:100%;height:34px;border:1px solid #d2dcda;border-radius:9px;background:#f7f9f7;color:#28333a;font-size:8px}.v457-learning-boundary{margin-top:10px;padding:11px 12px;border-left:3px solid #4f776f;border-radius:8px;background:#e2ece9}.v457-learning-boundary b{font-size:9px}.v457-learning-boundary p{margin:5px 0 0;color:#5e716b;font-size:8px;line-height:1.55}
+.v457-learning-empty{display:grid;place-items:center;align-content:center;min-height:240px;padding:20px;text-align:center;color:#6f7e79}.v457-learning-empty>span{font-size:28px}.v457-learning-empty>b{margin-top:10px;color:#2f3d43}.v457-learning-empty p{max-width:230px;font-size:9px;line-height:1.6}.v457-learning-empty button{padding:9px 13px;border:0;border-radius:10px;background:#28574f;color:#fff}.v457-learning-empty.compact{min-height:150px}
+
+/* Newly added context/binding panels follow the host cards and keep contrast. */
+.v456-context-head,.v456-context-rule,.v456-area-field,.v455-reverse-live,.v455-reverse-preference{color:inherit}
+.v456-context-layer-list article,.v456-context-binding,.v456-context-details,.v456-area-field{background:color-mix(in srgb,var(--card,var(--panel,#fff)) 94%,transparent)!important;border-color:color-mix(in srgb,var(--accent,var(--gold,#80654e)) 18%,transparent)!important}
+.v456-context-head h3,.v456-context-layer-list b,.v456-area-field b{font-family:var(--ui-font,system-ui);font-weight:650}
+.v456-context-head p,.v456-context-rule p,.v456-context-layer-list small,.v456-area-field small{line-height:1.55}
+
+/* Square audience scope and fictional in-app engagement. */
+.v457-square-audience-line{display:flex!important;align-items:center!important;flex-wrap:wrap;gap:5px!important;margin:5px 0!important;text-align:left}
+.v457-square-audience{display:inline-flex!important;align-items:center;flex:0 0 auto!important;width:auto!important;padding:3px 7px!important;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:999px!important;background:color-mix(in srgb,currentColor 7%,transparent)!important;color:#6e665c!important;font-size:7px!important;line-height:1.2!important}
+.v457-square-audience.public{color:#496c62!important}.v457-square-audience.friends{color:#75623f!important}.v457-square-audience.private{color:#76545a!important}
+.v457-square-reason{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit!important;opacity:.62;font-size:7px!important}
+.v453-profile-menu .v457-profile-visibility{display:grid;gap:7px;padding:11px 12px;border:1px solid var(--line2,#ddd);border-radius:12px;background:color-mix(in srgb,var(--panel,#fff) 88%,transparent)}
+.v457-profile-visibility>b{font-size:10px}.v457-profile-visibility>small{color:var(--muted,#777);font-size:7px;line-height:1.45}.v457-profile-visibility>div{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.v457-profile-visibility button{min-height:31px!important;padding:6px!important;border:1px solid var(--line2,#ddd)!important;border-radius:9px!important;background:transparent!important;color:inherit!important;font-size:8px!important}.v457-profile-visibility button.on{border-color:var(--gold,#81674f)!important;background:color-mix(in srgb,var(--gold,#81674f) 13%,transparent)!important;color:var(--gold,#81674f)!important}
+
+@media(max-width:420px){
+  .v457-palette-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v457-palette-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v457-saved-theme-list article{grid-template-columns:43px minmax(0,1fr) auto}.v457-saved-theme-list article>button.danger{grid-column:3}
+  .v457-story-continuation-modes{grid-template-columns:1fr}.v457-story-continuation-modes button{min-height:52px}
+}
