@@ -45,7 +45,7 @@
     }
     const keys=root.querySelectorAll?.('#mpKey')||[];
     keys.forEach(key=>{
-      key.type='text';key.name='api-token';key.autocomplete='off';key.autocapitalize='none';key.autocorrect='off';key.spellcheck=false;key.inputMode='text';
+      key.type=key.dataset.pokejiSecretRevealed==='true'?'text':'password';key.name='api-token';key.autocomplete='off';key.autocapitalize='none';key.autocorrect='off';key.spellcheck=false;key.inputMode='text';
       key.removeAttribute('data-form-type');key.setAttribute('data-lpignore','true');key.setAttribute('data-1p-ignore','true');key.setAttribute('data-bwignore','true');
     });
   }
@@ -244,7 +244,7 @@
   function cacheReason(kind,provider,diagnostic,fingerprint){
     if(diagnostic.hit>0)return`服务商已返回缓存命中（${diagnostic.hit} tokens）`;
     if(provider==='gemini')return'Gemini 原生接口的隐式缓存不保证返回命中字段，页面不会把“已发送”伪装成“已命中”。';
-    if(provider==='openai'&&!/api\.openai\.com/i.test(text(modelProfile(kind).base)))return'当前是 OpenAI 兼容地址；页面已移除可能被中转拒绝的 prompt_cache_key，是否命中仍取决于中转是否实现缓存并返回 usage。';
+    if(provider==='openai'&&!/api\.openai\.com/i.test(text(modelProfile(kind).base)))return'当前是 OpenAI 兼容地址；页面会先发送稳定缓存 Key，若中转明确拒绝该参数则自动去掉并重试。是否命中仍取决于中转实现与 usage 回传。';
     if(fingerprint.approxTokens<1024)return`稳定前缀约 ${fingerprint.approxTokens} tokens，低于常见缓存门槛；继续累积稳定上下文后再观察。`;
     return'服务商响应没有返回可识别的缓存命中字段，需以服务商控制台或响应 usage 为准。';
   }

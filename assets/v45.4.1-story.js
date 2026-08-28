@@ -27,9 +27,9 @@
   function storyWords(s){return s.lengthPreset==='custom'?clampWords(s.customWordTarget):clampWords(LENGTHS[s.lengthPreset]?.target||2400)}
   function lengthLabel(s){return s.lengthPreset==='custom'?`约 ${storyWords(s).toLocaleString('zh-CN')} 字`:LENGTHS[s.lengthPreset]?.label||LENGTHS.medium.label}
   function storyMaxTokens(s){return Math.min(16000,Math.max(1200,Math.ceil(storyWords(s)*1.45)))}
-  function pacingContract(s){return s.pacingMode==='long'
-    ?'【长篇小说节奏】本章只推进完整长篇中的一个局部阶段。围绕有限时间、有限场景和一条主要矛盾展开；保留尚未解决的线索和继续生长的空间。绝对不要为了在本章收尾而从故事开端一路概述到最终结局，不要用总结式蒙太奇压缩本应分章发生的事件。除非已有明确安排，本章结尾只能完成局部落点，不能擅自完结整部故事。'
-    :'【短篇小说节奏】允许在较少章节内形成完整而克制的弧线，但仍需逐场景展开，不得以梗概、流水账或突然跳时来赶结局。若本章不是最终章，就只完成本章应完成的局部变化。'}
+  function pacingContract(s){const discipline='【章节现场】先确定一个具体的当下目标、一项阻力和一次会改变局面的行动或决定，再围绕有限场景展开；不得把本应属于数章的阶段压成蒙太奇。\n【拒绝假升华】除非长期铺垫和本章行动确实抵达那个结果，禁止突然总结人生、关系意义、成长道理或“终于明白”；用尚未解决的具体动作、物件、信息或选择收束。\n【拒绝无聊填充】每段至少承担推进动作、揭示信息、制造阻力、改变关系或形成选择中的一项；删除可互换的景物堆砌、反复心理解释和同义情绪句。';return s.pacingMode==='long'
+    ?`【长篇小说节奏】本章只推进完整长篇中的一个局部阶段。围绕有限时间、有限场景和一条主要矛盾展开；保留尚未解决的线索和继续生长的空间。绝对不要为了在本章收尾而从故事开端一路概述到最终结局，不要用总结式蒙太奇压缩本应分章发生的事件。除非已有明确安排，本章结尾只能完成局部落点，不能擅自完结整部故事。\n${discipline}`
+    :`【短篇小说节奏】允许在较少章节内形成完整而克制的弧线，但仍需逐场景展开，不得以梗概、流水账或突然跳时来赶结局。若本章不是最终章，就只完成本章应完成的局部变化。\n${discipline}`}
   function styleContract(s){const style=S(s.writingStyle).trim();return style?`【文风设置】${style}\n文风只决定用词、句式、叙述视角与文字质感；不得因此改写番外题材、人物关系、事件方向或既有事实。`:'【文风设置】沿用本番外已有正文的语言质感；若尚无正文，则采用克制、具体、自然的现代中文小说叙述。此设置只管表达，不改变题材与内容。'}
 
   function personaId(){const requested=S(data.settings?.v454SideStoryPersonaId),exists=data.personas?.some(x=>x.id===requested);return exists?requested:personaFor()?.id||data.activePersonaId||'persona_default'}
