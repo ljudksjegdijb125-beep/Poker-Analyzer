@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0c0c0e">
-<meta name="description" content="API 驱动的虚拟手机式 AI 空间">
+<meta name="description" content="API 驱动的沉浸式互动空间">
 <meta name="application-name" content="扑克机">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · Private AI Space · V45.5.0</title>
-<link rel="manifest" href="/manifest.webmanifest?v=45.5.0">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.5.0">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.5.0">
-<link rel="stylesheet" href="/assets/app.css?v=45.5.0">
+<title>扑克机 · 沉浸互动空间 · V45.6.0</title>
+<link rel="manifest" href="/manifest.webmanifest?v=45.6.0">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.6.0">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.6.0">
+<link rel="stylesheet" href="/assets/app.css?v=45.6.0">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
   <div class="boot-inner">
     <div class="boot-seal"><div class="boot-suit">♠</div><div class="boot-flare"></div></div>
     <div class="boot-name">扑克机</div>
-    <div class="boot-tag">PRIVATE AI SPACE</div>
+    <div class="boot-tag">IMMERSIVE SPACE</div>
     <div class="boot-loader"><div class="boot-fill"></div></div>
     <div class="boot-hint">LOCAL MEMORY · PERSONAL API · PRIVATE STORY</div>
   </div>
@@ -76,7 +76,7 @@
   <div class="p12-pages" id="homePages" aria-label="可分页桌面"></div>
   <div class="p12-dots" id="homeDots"></div>
   <nav class="p12-dock" aria-label="桌面底栏">
-    <button type="button" onclick="openView('notifications')" aria-label="通知">
+    <button type="button" onclick="openView('notifications')" aria-label="近况">
       <span class="dock-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"/><path d="M6 16h20M16 6c3.2 3 4.6 6.3 4.6 10S19.2 23 16 26M16 6c-3.2 3-4.6 6.3-4.6 10S12.8 23 16 26"/></svg></span><i>♠</i>
     </button>
     <button type="button" onclick="openView('dataCenter')" aria-label="资料">
@@ -115,7 +115,7 @@
 
 <section id="chats" class="view app-view">
 <div class="header"><h1>聊天</h1><div class="actions"><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
-<div class="scroll"><div class="section chat-mode-search"><input id="chatSearch" class="search" placeholder="搜索角色" oninput="renderChats()"></div><div id="chatList"></div></div>
+<div class="scroll"><div class="section chat-mode-search"><input id="chatSearch" class="search" placeholder="搜索名字" oninput="renderChats()"></div><div id="chatList"></div></div>
 </section>
 
 <section id="groups" class="view app-view">
@@ -124,17 +124,17 @@
 </section>
 
 <section id="contacts" class="view app-view">
-<div class="header"><h1>角色</h1><div class="actions"><button class="icon-btn" onclick="importCharacterCard()" aria-label="导入角色卡">⇧</button><button class="icon-btn" onclick="newCharacter()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
-<div class="scroll"><div class="character-studio-hero"><small>CHARACTER STUDIO</small><h2>角色与设定</h2><p>创建角色、编辑完整设定，或在原有内容上追加补全。</p><div class="character-studio-stats"><span id="characterCount">0 个角色</span><span id="personaCount">1 张面具</span></div><div class="character-studio-actions"><button class="primary" onclick="newCharacter()">＋ 新建角色</button><button onclick="importCharacterCard()">⇧ 导入角色卡</button><button onclick="openPersonaManager('contacts')">◈ USER 面具</button><button onclick="openView('settings')">⚙ API / 补全模型</button></div></div><div class="section character-search"><input class="search" placeholder="搜索角色" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
+<div class="header"><h1>人物</h1><div class="actions"><button class="icon-btn" onclick="importCharacterCard()" aria-label="导入人物卡">⇧</button><button class="icon-btn" onclick="newCharacter()">＋</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="scroll"><div class="character-studio-hero"><small>人物档案</small><h2>人物与设定</h2><p>建立一个人、编辑完整设定，或在原有内容上继续完善。</p><div class="character-studio-stats"><span id="characterCount">0 个人物</span><span id="personaCount">1 张面具</span></div><div class="character-studio-actions"><button class="primary" onclick="newCharacter()">＋ 新建人物</button><button onclick="importCharacterCard()">⇧ 导入人物卡</button><button onclick="openPersonaManager('contacts')">◈ 我的面具</button><button onclick="openView('settings')">⚙ API / 补全模型</button></div></div><div class="section character-search"><input class="search" placeholder="搜索名字" oninput="renderContacts(this.value)"></div><div id="contactList"></div></div>
 </section>
 
 <section id="characterEditor" class="view app-view studio-view">
-<div class="header editor-header"><button class="back" onclick="closeCharacterEditor()">‹</button><h1 id="characterEditorTitle">角色设置</h1><button class="editor-save" onclick="saveCharacterEditor()">保存</button></div>
+<div class="header editor-header"><button class="back" onclick="closeCharacterEditor()">‹</button><h1 id="characterEditorTitle">人物设置</h1><button class="editor-save" onclick="saveCharacterEditor()">保存</button></div>
 <div id="characterEditorBody" class="scroll"></div>
 </section>
 
 <section id="personaManager" class="view app-view studio-view">
-<div class="header editor-header"><button class="back" onclick="closePersonaManager()">‹</button><h1>USER 设定</h1><button class="editor-save" onclick="newPersona()">新建</button></div>
+<div class="header editor-header"><button class="back" onclick="closePersonaManager()">‹</button><h1>我的面具</h1><button class="editor-save" onclick="newPersona()">新建</button></div>
 <div id="personaManagerBody" class="scroll"></div>
 </section>
 
@@ -149,7 +149,7 @@
 </section>
 
 <section id="notifications" class="view app-view">
-<div class="header"><h1>通知</h1><div class="actions"><button class="icon-btn" onclick="clearNotifications()">✓</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
+<div class="header"><h1>近况</h1><div class="actions"><button class="icon-btn" onclick="clearNotifications()" title="清理已读近况">✓</button><button class="icon-btn" onclick="openView('home')">⌂</button></div></div>
 <div class="scroll"><div class="section" id="notificationList"></div></div>
 </section>
 
@@ -168,18 +168,18 @@
 <div class="scroll data-hub">
 <div class="data-hero">
  <div class="data-hero-mark">▣</div>
- <div><small>LOCAL DATA · V45.5.0</small><h2>你的本机资料</h2><p>角色、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
+ <div><small>LOCAL DATA · V45.6.0</small><h2>你的本机资料</h2><p>人物、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
  <span>仅本机</span>
 </div>
 <div class="data-stats" aria-label="本机资料统计">
- <div><b id="dataCharacterCount">0</b><small>角色</small></div>
+ <div><b id="dataCharacterCount">0</b><small>人物</small></div>
  <div><b id="dataPersonaCount">0</b><small>独立面具</small></div>
  <div><b id="dataMessageCount">0</b><small>消息</small></div>
  <div><b id="dataStorageSize">0 KB</b><small>占用</small></div>
 </div>
 <div class="data-panel">
  <div class="data-panel-title"><span>最终资料</span><small>完整备份 · 不含密钥</small></div>
- <button class="data-row data-row-primary" onclick="exportSJ()"><span class="data-row-icon">⇩</span><span><b>导出最终资料</b><small>下载角色、独立面具、聊天、世界书与设置</small></span><i>›</i></button>
+ <button class="data-row data-row-primary" onclick="exportSJ()"><span class="data-row-icon">⇩</span><span><b>导出最终资料</b><small>下载人物、独立面具、聊天、世界书与设置</small></span><i>›</i></button>
  <button class="data-row" onclick="document.getElementById('sjImport').click()"><span class="data-row-icon">⇧</span><span><b>导入最终资料</b><small>选择扑克机 JSON，并覆盖当前业务资料</small></span><i>›</i></button>
  <input id="sjImport" type="file" accept=".json,application/json" hidden onchange="importSJ(event)">
 </div>
@@ -188,7 +188,7 @@
  <button class="data-row" onclick="exportThemes()"><span class="data-row-icon">◐</span><span><b>导出主题</b><small>只保存自定义颜色与样式</small></span><i>›</i></button>
  <button class="data-row" onclick="importThemes()"><span class="data-row-icon">＋</span><span><b>导入主题</b><small>追加到现有主题，不覆盖原主题</small></span><i>›</i></button>
 </div>
-<div class="data-local-note"><span>●</span><p><b>面具记录互相隔离</b><small>每张 USER 面具有自己的角色聊天、群聊、摘要、背景与虚拟手机内容。</small></p></div>
+<div class="data-local-note"><span>●</span><p><b>面具记录互相隔离</b><small>每张面具都有自己的私聊、群聊、摘要、背景与手机内容。</small></p></div>
 </div>
 </section>
 
@@ -213,7 +213,7 @@
 <div class="setting"><span>Temperature</span><input id="temperature" type="number" min="0" max="2" step=".1"></div>
 <div class="setting"><span>最大输出 Tokens</span><input id="maxTokens" type="number" min="64" max="32000" step="64"></div>
 <div class="setting"><span>历史消息条数</span><input id="maxHistory" type="number" min="4" max="100" step="1"></div>
-<div class="setting"><span><b>回复触发方式</b><small style="display:block">立即回复、AI 判断表达完整后回复（会调用判断请求），或手动触发</small></span><select id="replyTriggerMode" onchange="saveReplyTriggerSetting()"><option value="instant">每条立即回复</option><option value="debounce">AI 判断后自动回复</option><option value="manual">连发后手动回复</option></select></div>
+<div class="setting"><span><b>回复触发方式</b><small style="display:block">立即回复、语义判断表达完整后回复，或手动触发</small></span><select id="replyTriggerMode" onchange="saveReplyTriggerSetting()"><option value="instant">每条立即回复</option><option value="debounce">语义判断后自动回复</option><option value="manual">连发后手动回复</option></select></div>
 <div class="setting"><span>摘要保留轮数</span><input id="summaryKeepTurns" type="number" min="2" max="100" step="1"></div>
 <div class="setting"><span>自动记忆摘要</span><input id="summaryAutoEnabled" type="checkbox" style="width:auto"></div>
 <div class="setting"><span>请求超时（秒）</span><input id="timeout" type="number" min="10" max="180" step="5"></div>
@@ -223,36 +223,36 @@
 <div class="setting"><span></span><button class="primary" onclick="saveSettings()">保存并测试主聊天模型</button></div>
 </div>
 <div class="group"><div class="group-title">绘图提示词</div>
-<div class="setting" onclick="editImagePromptLayers()"><span><b>全局 / 角色 / USER 绘图提示词</b><small style="display:block">生图时自动合并三层设定，也可手动覆盖本次提示词</small></span><span class="muted" id="imagePromptLayersLabel">未设置 ›</span></div>
+<div class="setting" onclick="editImagePromptLayers()"><span><b>全局 / 对方 / 我的绘图提示词</b><small style="display:block">生图时自动合并三层设定，也可手动覆盖本次提示词</small></span><span class="muted" id="imagePromptLayersLabel">未设置 ›</span></div>
 </div>
 <div class="group"><div class="group-title">聊天与事件</div>
-<div class="setting" onclick="openPersonaManager('settings')"><span><b>USER 设定</b><small style="display:block">身份、人格、经历与互动边界</small></span><span class="muted">进入 ›</span></div>
+<div class="setting" onclick="openPersonaManager('settings')"><span><b>我的面具</b><small style="display:block">身份、性格、经历与互动边界</small></span><span class="muted">进入 ›</span></div>
 <div class="setting"><span><b>聊天头像</b><small style="display:block">双方头像或完全无头像</small></span><select id="chatAvatarMode" onchange="saveChatStyleSettings()"><option value="both">双方头像</option><option value="none">无头像</option></select></div>
-<div class="setting"><span><b>线上多气泡</b><small style="display:block">角色按说话节奏自行决定实际条数</small></span><input id="onlineMultiBubbleEnabled" type="checkbox" style="width:auto" onchange="saveMessageStyleSettings()"></div>
-<div class="setting"><span><b>角色主动编辑消息</b><small style="display:block">角色可偶尔修正自己已经发出的文字气泡，并显示“已编辑”</small></span><input id="characterSelfEditEnabled" type="checkbox" style="width:auto" onchange="saveCharacterSelfEditSetting()"></div>
+<div class="setting"><span><b>线上多气泡</b><small style="display:block">对方按说话节奏自行决定实际条数</small></span><input id="onlineMultiBubbleEnabled" type="checkbox" style="width:auto" onchange="saveMessageStyleSettings()"></div>
+<div class="setting"><span><b>对方主动编辑消息</b><small style="display:block">对方可偶尔修正自己已经发出的文字气泡，并显示“已编辑”</small></span><input id="characterSelfEditEnabled" type="checkbox" style="width:auto" onchange="saveCharacterSelfEditSetting()"></div>
 <div class="setting"><span><b>最多气泡数</b><small style="display:block">只是上限，不会强制发满</small></span><input id="onlineMaxBubbles" type="number" min="2" max="8" step="1" onchange="saveMessageStyleSettings()"></div>
-<div class="setting"><span><b>AI 内心话</b><small style="display:block">显示角色未说出口的虚构内心独白</small></span><input id="innerThoughtsEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
-<div class="setting"><span><b>自动翻译 AI 消息</b><small style="display:block">使用独立翻译模型；相同原文优先读取本机缓存</small></span><input id="autoTranslateEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
+<div class="setting"><span><b>未说出口的话</b><small style="display:block">显示对方没有真正说出的虚构内心独白</small></span><input id="innerThoughtsEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
+<div class="setting"><span><b>自动翻译对方消息</b><small style="display:block">使用独立翻译模型；相同原文优先读取本机缓存</small></span><input id="autoTranslateEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
 <div class="setting"><span><b>识图理解表情包</b><small style="display:block">上传时用独立识图模型生成含义描述</small></span><input id="stickerVisionEnabled" type="checkbox" style="width:auto" onchange="saveImmersionSettings()"></div>
-<div class="setting"><span><b>AI 情境手机联动</b><small style="display:block">按聊天需要整理网站内虚拟内容，不读取现实手机；关闭后仍可手动查手机</small></span><input id="phoneAutoGenerate" type="checkbox" style="width:auto" onchange="savePhoneAutoSetting()"></div>
+<div class="setting"><span><b>情境手机联动</b><small style="display:block">按聊天需要整理站内手机内容，不读取现实手机；关闭后仍可手动查看</small></span><input id="phoneAutoGenerate" type="checkbox" style="width:auto" onchange="savePhoneAutoSetting()"></div>
 <div class="setting"><span><b>查手机 / 反查实时回复</b><small style="display:block">打开应用页后直接生成当前页面回应，不写入普通聊天气泡</small></span><input id="phoneRealtimeReplyEnabled" type="checkbox" style="width:auto" onchange="savePhoneRealtimeSetting()"></div>
 <div class="setting" onclick="openView('world')"><span><b>内置活人感世界书</b><small style="display:block">线上私信与线下相遇各一份</small></span><span class="muted">查看 ›</span></div>
-<div class="setting" onclick="openCompletionWorldbookSettings()"><span><b>补全带入世界书</b><small style="display:block">角色和 USER 补全都可独立开启或关闭</small></span><span class="muted" id="v451CompletionWorldbookLabel">按范围带入 ›</span></div>
+<div class="setting" onclick="openCompletionWorldbookSettings()"><span><b>补全带入世界书</b><small style="display:block">人物与面具补全都可独立开启或关闭</small></span><span class="muted" id="v451CompletionWorldbookLabel">按范围带入 ›</span></div>
 <div class="setting"><span>随机事件</span><input id="randomEventsEnabled" type="checkbox" style="width:auto" onchange="saveRandomEventSettings()"></div>
 <div class="setting"><span>触发概率</span><input id="randomEventChance" type="number" min="0" max="100" step="1" onchange="saveRandomEventSettings()"></div>
-<div class="setting"><span><b>活人感主动说话</b><small style="display:block">按频率读取当前时间、上下文和角色节奏后主动开口；仅对单独允许的角色生效</small></span><input id="proactiveEnabled" type="checkbox" style="width:auto" onchange="saveProactiveSettings()"></div>
+<div class="setting"><span><b>活人感主动说话</b><small style="display:block">按频率读取当前时间、上下文和对方节奏后主动开口；只对单独允许的人生效</small></span><input id="proactiveEnabled" type="checkbox" style="width:auto" onchange="saveProactiveSettings()"></div>
 <div class="setting"><span>最短间隔（分钟）</span><input id="proactiveMinMinutes" type="number" min="1" max="1440" step="1" onchange="saveProactiveSettings()"></div>
 <div class="setting"><span>最长间隔（分钟）</span><input id="proactiveMaxMinutes" type="number" min="1" max="1440" step="1" onchange="saveProactiveSettings()"></div>
 </div>
 <div class="group"><div class="group-title">朗读与声音</div>
-<div class="setting"><span><b>点扬声器图标朗读</b><small style="display:block">AI 文字旁常驻清晰的朗读入口；未配置声音模型时使用系统语音</small></span><span class="muted">常驻</span></div>
+<div class="setting"><span><b>点扬声器图标朗读</b><small style="display:block">对方文字旁常驻清晰的朗读入口；未配置声音模型时使用系统语音</small></span><span class="muted">常驻</span></div>
 <div class="setting"><span><b>自动朗读回复</b><small style="display:block">文字气泡保留，回复后自动播放声音</small></span><input id="autoReadEnabled" type="checkbox" style="width:auto" onchange="saveVoicePlaybackSettings()"></div>
-<div class="setting"><span><b>旁白也朗读</b><small style="display:block">关闭时只读角色对白</small></span><input id="autoReadNarration" type="checkbox" style="width:auto" onchange="saveVoicePlaybackSettings()"></div>
+<div class="setting"><span><b>旁白也朗读</b><small style="display:block">关闭时只读人物对白</small></span><input id="autoReadNarration" type="checkbox" style="width:auto" onchange="saveVoicePlaybackSettings()"></div>
 <div class="setting" onclick="editVoiceWorldBook()"><span><b>语音世界书</b><small style="display:block">朗读节奏、停顿、情绪与发音偏好</small></span><span class="muted" id="voiceWorldBookLabel">未设置 ›</span></div>
 </div>
 <div class="group"><div class="group-title">运行与后台</div>
 <div class="setting"><span><b>后台请求接力</b><small id="backgroundRelayStatus" style="display:block">请求中可切到后台</small></span><input id="backgroundRelayEnabled" type="checkbox" style="width:auto" onchange="saveRuntimeSettings()"></div>
-<div class="setting"><span><b>生成常驻通知</b><small id="backgroundNotificationStatus" style="display:block">开启时会请求通知权限</small></span><input id="backgroundNotificationEnabled" type="checkbox" style="width:auto" onchange="saveRuntimeSettings()"></div>
+<div class="setting"><span><b>后台重要提醒</b><small id="backgroundNotificationStatus" style="display:block">开启时会请求系统提醒权限</small></span><input id="backgroundNotificationEnabled" type="checkbox" style="width:auto" onchange="saveRuntimeSettings()"></div>
 <div class="setting"><span><b>前台生成防息屏</b><small style="display:block">仅在页面可见且正在生成时生效</small></span><input id="screenWakeLockEnabled" type="checkbox" style="width:auto" onchange="saveRuntimeSettings()"></div>
 <div class="setting" onclick="showBackgroundCapability()"><span>后台能力说明</span><span class="muted">查看边界 ›</span></div>
 <div class="setting" onclick="showMcpSafetyInfo()"><span><b>本地 MCP</b><small style="display:block">未开放执行；查看 localhost 风险边界</small></span><span class="muted">安全说明 ›</span></div>
@@ -279,7 +279,7 @@
 </section>
 
 <section id="chat" class="view">
-<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div class="chat-head-copy"><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">AI 对话</div><div id="chatStatusLine" class="chat-status-line"></div></div><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
+<div class="chat-head"><button class="back" onclick="backFromChat()">‹</button><div id="chatAvatar" class="avatar"></div><div class="chat-head-copy"><div id="chatName" class="chat-name"></div><div id="chatSub" class="chat-sub">沉浸对话</div><div id="chatStatusLine" class="chat-status-line"></div></div><button class="icon-btn" onclick="chatInfo()">ⓘ</button></div>
 <div class="scroll"><div id="messages" class="messages"></div></div>
 <div id="speakerPicker" class="speaker-picker" style="display:none"></div>
 <div id="chatGenerationStatus" class="chat-generation-status" hidden></div>
@@ -297,34 +297,36 @@
  try{Object.defineProperty(editor,'value',{configurable:true,get:text,set:value=>{editor.textContent=String(value||'')}});Object.defineProperty(editor,'placeholder',{configurable:true,get:()=>editor.dataset.placeholder||'',set:value=>{editor.dataset.placeholder=String(value||'')}});Object.defineProperty(editor,'disabled',{configurable:true,get:()=>disabled,set:value=>{disabled=!!value;editor.setAttribute('contenteditable',disabled?'false':'plaintext-only');editor.setAttribute('aria-disabled',disabled?'true':'false')}});Object.defineProperty(editor,'type',{configurable:true,get:()=>'text',set:()=>{}});Object.defineProperty(editor,'name',{configurable:true,get:()=>'',set:()=>{}});Object.defineProperty(editor,'autocomplete',{configurable:true,get:()=>'off',set:()=>{}})}catch{}
 })();
 </script>
-<script src="/assets/app.js?v=45.5.0"></script>
-<script src="/assets/v45-patch.js?v=45.5.0"></script>
-<script src="/assets/v45-final.js?v=45.5.0"></script>
-<script src="/assets/v45-ui-fix.js?v=45.5.0"></script>
-<script src="/assets/v45-phone-call.js?v=45.5.0"></script>
-<script src="/assets/v45-followup.js?v=45.5.0"></script>
-<script src="/assets/v45-stability.js?v=45.5.0"></script>
-<script src="/assets/v45.1-fix.js?v=45.5.0"></script>
+<script src="/assets/app.js?v=45.6.0"></script>
+<script src="/assets/v45-patch.js?v=45.6.0"></script>
+<script src="/assets/v45-final.js?v=45.6.0"></script>
+<script src="/assets/v45-ui-fix.js?v=45.6.0"></script>
+<script src="/assets/v45-phone-call.js?v=45.6.0"></script>
+<script src="/assets/v45-followup.js?v=45.6.0"></script>
+<script src="/assets/v45-stability.js?v=45.6.0"></script>
+<script src="/assets/v45.1-fix.js?v=45.6.0"></script>
 <!-- Existing phone desktop remains authoritative; only app interiors load below. -->
-<script src="/assets/v45.1-memory-entries.js?v=45.5.0"></script>
-<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.5.0">
-<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.5.0">
-<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.5.0">
-<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.5.0">
-<link rel="stylesheet" href="/assets/v45.4.1-runtime.css?v=45.5.0">
-<link rel="stylesheet" href="/assets/v45.4.1-phone.css?v=45.5.0">
-<link rel="stylesheet" href="/assets/v45.4.1-story.css?v=45.5.0">
-<link rel="stylesheet" href="/assets/v45.5.0-framework.css?v=45.5.0">
-<script src="/assets/v45.2-app-interiors.js?v=45.5.0"></script>
-<script src="/assets/pako-inflate.min.js?v=45.5.0"></script>
-<script src="/assets/v45.3-repair.js?v=45.5.0"></script>
+<script src="/assets/v45.1-memory-entries.js?v=45.6.0"></script>
+<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.6.0">
+<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.6.0">
+<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.6.0">
+<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.6.0">
+<link rel="stylesheet" href="/assets/v45.4.1-runtime.css?v=45.6.0">
+<link rel="stylesheet" href="/assets/v45.4.1-phone.css?v=45.6.0">
+<link rel="stylesheet" href="/assets/v45.4.1-story.css?v=45.6.0">
+<link rel="stylesheet" href="/assets/v45.5.0-framework.css?v=45.6.0">
+<link rel="stylesheet" href="/assets/v45.6.0-refinement.css?v=45.6.0">
+<script src="/assets/v45.2-app-interiors.js?v=45.6.0"></script>
+<script src="/assets/pako-inflate.min.js?v=45.6.0"></script>
+<script src="/assets/v45.3-repair.js?v=45.6.0"></script>
 <!-- Formal routed pages: no preview navigator is loaded into the deploy package. -->
-<script src="/assets/v45.4-next-stage.js?v=45.5.0"></script>
-<script src="/assets/v45.4.1-core.js?v=45.5.0"></script>
-<script src="/assets/v45.4.1-runtime.js?v=45.5.0"></script>
-<script src="/assets/v45.4.1-phone.js?v=45.5.0"></script>
-<script src="/assets/v45.4.1-story.js?v=45.5.0"></script>
-<script src="/assets/v45.5.0-framework.js?v=45.5.0"></script>
+<script src="/assets/v45.4-next-stage.js?v=45.6.0"></script>
+<script src="/assets/v45.4.1-core.js?v=45.6.0"></script>
+<script src="/assets/v45.4.1-runtime.js?v=45.6.0"></script>
+<script src="/assets/v45.4.1-phone.js?v=45.6.0"></script>
+<script src="/assets/v45.4.1-story.js?v=45.6.0"></script>
+<script src="/assets/v45.5.0-framework.js?v=45.6.0"></script>
+<script src="/assets/v45.6.0-refinement.js?v=45.6.0"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
