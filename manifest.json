@@ -3,7 +3,7 @@
   "short_name": "扑克机",
   "description": "本地优先、可安装的手机化人物互动空间",
   "id": "/pokeji-v45",
-  "start_url": "/index.html?v=45.7.0",
+  "start_url": "/index.html?v=45.7.1",
   "scope": "/",
   "display": "fullscreen",
   "lang": "zh-CN",
@@ -12,13 +12,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/assets/icon-192.png?v=45.7.0",
+      "src": "/assets/icon-192.png?v=45.7.1",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icon-512.png?v=45.7.0",
+      "src": "/assets/icon-512.png?v=45.7.1",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
