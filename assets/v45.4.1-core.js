@@ -46,7 +46,7 @@
   }
   function phoneSession(){try{return v435PhoneSession||{mode:'browse',owner:'user',chatId:currentChat,characterId:'',permission:'none',replies:{}}}catch{return{mode:'browse',owner:'user',chatId:currentChat,characterId:'',permission:'none',replies:{}}}}
   function ownerEntity(owner,chatId=currentChat){if(owner==='user')return personaFor(chatId);return data.characters?.find(x=>x.id===owner)||data.mpcs?.find(x=>x.id===owner)||null}
-  function ownerName(owner,chatId=currentChat){return ownerEntity(owner,chatId)?.name||(owner==='user'?'当前 USER 面具':'当前角色')}
+  function ownerName(owner,chatId=currentChat){return ownerEntity(owner,chatId)?.name||(owner==='user'?'当前面具':'对方')}
   function actualActor(session=phoneSession()){
     if(session.mode==='check')return'user';
     if(session.mode==='reverse')return S(session.characterId||directCharacter(session.chatId)?.id||'');
@@ -97,7 +97,7 @@
       if(app==='gallery'&&!real.gallery.photos.some(x=>x.legacyItemId===item.id))real.gallery.photos.push({...base,title,note:content,src:extractImage(item),albumId:'recent',takenAt:S(item.worldTimeText||item.createdAt||''),place:S(item.location||'')});
       if(app==='wallet'){
         const amount=parseAmount(content||title),balance=/余额|账户概览/.test(`${title}${content}`);
-        if(balance&&!real.wallet.accounts.some(x=>x.legacyItemId===item.id))real.wallet.accounts.push({...base,name:title||`${ownerName(owner)}的剧情账户`,last4:S(item.last4||''),balance:amount??0,currency:'CNY'});
+        if(balance&&!real.wallet.accounts.some(x=>x.legacyItemId===item.id))real.wallet.accounts.push({...base,name:title||`${ownerName(owner)}的虚构账户`,last4:S(item.last4||''),balance:amount??0,currency:'CNY'});
         else if(!real.wallet.transactions.some(x=>x.legacyItemId===item.id))real.wallet.transactions.push({...base,title,amount:Math.abs(amount??0),direction:(amount??0)>=0?'income':'expense',category:S(item.action||'旧版账目'),counterparty:'',worldTimeText:S(item.worldTimeText||item.createdAt||'')});
       }
       if(app==='notes'&&!real.notes.some(x=>x.legacyItemId===item.id))real.notes.push({...base,title,body:content,kind:/清单|待办/.test(item.action)?'checklist':'text',items:[],pinned:false,archived:false});
@@ -154,7 +154,7 @@
   try{linkedObserver.observe(document.documentElement,{subtree:true,childList:true})}catch{}
 
   function relationKeyFor(characterId,personaId=personaFor()?.id){if(!characterId||!personaId)return'';try{return directChatId(characterId,personaId)}catch{return`persona_chat::${personaId}::${characterId}`}}
-  function relationFor(characterId=directCharacter()?.id,personaId=personaFor()?.id){const key=relationKeyFor(characterId,personaId);if(!key)return null;const raw=O(data.blockRelationsV455[key]);return data.blockRelationsV455[key]={key,characterId:S(characterId),personaId:S(personaId),userBlocksCharacter:raw.userBlocksCharacter===true,characterBlocksUser:raw.characterBlocksUser===true,userBlockedAt:S(raw.userBlockedAt),characterBlockedAt:S(raw.characterBlockedAt),userReason:S(raw.userReason),characterReason:S(raw.characterReason),history:array(raw.history),updatedAt:S(raw.updatedAt||NOW())}}
+  function relationFor(characterId=directCharacter()?.id,personaId=personaFor()?.id){const key=relationKeyFor(characterId,personaId);if(!key)return null;const raw=O(data.blockRelationsV455[key]);return data.blockRelationsV455[key]={key,characterId:S(characterId),personaId:S(personaId),userBlocksCharacter:raw.userBlocksCharacter===true,characterBlocksUser:raw.characterBlocksUser===true,characterCanBlockUser:raw.characterCanBlockUser===true,userBlockedAt:S(raw.userBlockedAt),characterBlockedAt:S(raw.characterBlockedAt),userReason:S(raw.userReason),characterReason:S(raw.characterReason),history:array(raw.history),updatedAt:S(raw.updatedAt||NOW())}}
 
   const V={S,O,E,AT,A,NOW,uid,clone,save:saveData,chatKey,personaFor,directCharacter,currentWorld,worldTime,phoneSession,ownerEntity,ownerName,actualActor,permissionAtLeast,canCreate,canSend,ownerStore,ensureRealApps,entityFromToken,avatarMarkup,appName,setPhoneContent,phoneStatus,currentCharacterForSession,cleanObsoletePhoneArtifacts,relationKeyFor,relationFor,parseAmount,extractImage,array};
   window.V455=V;
