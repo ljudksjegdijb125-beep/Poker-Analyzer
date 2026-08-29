@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.7.9';
+const VERSION='45.7.10';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -705,7 +705,7 @@ function renderContacts(q=''){
 }
 
 /* ---------- group chat ---------- */
-function avatarStack(members){return `<div class="avatar-stack">${members.slice(0,3).map(c=>avatar(c)).join('')}</div>`}
+function avatarStack(members){const rows=(Array.isArray(members)?members:[]).filter(Boolean).slice(0,4);if(!rows.length)return `<div class="avatar-stack v45710-group-grid is-empty" data-members="0"><div class="avatar"><b class="avatar-fallback">群</b></div></div>`;return `<div class="avatar-stack v45710-group-grid" data-members="${rows.length}">${rows.map(c=>avatar(c)).join('')}</div>`}
 function renderGroups(){
  const e=document.getElementById('groupList');
  if(!data.groups.length){e.innerHTML='<div class="empty"><div class="big">❖</div>还没有群聊<br>至少创建 2 个角色后即可建群。</div>';return}
@@ -889,8 +889,8 @@ function openChat(id,mode='online',offlineStyle='direct'){
    if(!members.length)return;
    document.getElementById('chatName').textContent=g.name;
    if(sub)sub.textContent=`群聊 · ${members.length} 人 · ${activePersonaFor(currentChat).name} 独立记录`;
-   ava.classList.remove('avatar');ava.classList.add('avatar-stack');
-   ava.innerHTML=members.slice(0,3).map(c=>avatar(c)).join('');
+   ava.classList.remove('avatar');ava.classList.add('avatar-stack','v45710-group-grid');ava.dataset.members=String(Math.min(4,members.length));
+   ava.innerHTML=members.slice(0,4).map(c=>avatar(c)).join('');
    if(picker){picker.style.display='flex';renderSpeakerPicker(g)}
   }else{
    const c=data.characters.find(x=>x.id===id);
@@ -1957,7 +1957,7 @@ function openChat(id,mode=null,offlineStyle=null){
   if(g){
     const members=g.memberIds.map(mid=>data.characters.find(x=>x.id===mid)).filter(Boolean);if(!members.length)return;
     document.getElementById('chatName').textContent=g.name;if(sub)sub.textContent=`群聊 · ${members.length} 人 · ${activePersonaFor(currentChat).name} 独立记录`;
-    ava.classList.remove('avatar');ava.classList.add('avatar-stack');ava.innerHTML=members.slice(0,3).map(c=>avatar(c)).join('');if(picker){picker.style.display='flex';renderSpeakerPicker(g)}
+    ava.classList.remove('avatar');ava.classList.add('avatar-stack','v45710-group-grid');ava.dataset.members=String(Math.min(4,members.length));ava.innerHTML=members.slice(0,4).map(c=>avatar(c)).join('');if(picker){picker.style.display='flex';renderSpeakerPicker(g)}
   }else{
     const c=data.characters.find(x=>x.id===baseId);if(!c)return;
     document.getElementById('chatName').textContent=c.name;

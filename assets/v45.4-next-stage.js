@@ -216,7 +216,23 @@
 
   function conversationLast(thread){return thread.messages?.at(-1)||null}
   function threadInitial(thread){return S(thread.title||'会').trim().slice(0,1)||'会'}
-  function threadAvatar(thread){const token=S(thread.contactToken||''),parts=token.split(':'),entity=parts[0]==='character'?data.characters?.find(item=>item.id===parts[1]):parts[0]==='mpc'?data.mpcs?.find(item=>item.id===parts[1]):null,src=typeof safeImageSrc==='function'?safeImageSrc(entity?.image):S(entity?.image);return`<span class="v454-phone-avatar">${src?`<img src="${AT(src)}" alt="">`:E(threadInitial(thread))}</span>`}
+  /* V45.7.10: group rows show up to four member avatars instead of one initial. */
+  function threadMemberCell(entity,fallback){
+    const src=typeof safeImageSrc==='function'?safeImageSrc(entity?.image):S(entity?.image);
+    const initial=S(entity?.name||fallback||'群').trim().slice(0,1)||'群';
+    return`<span class="v45710-group-cell">${src?`<img src="${AT(src)}" alt="">`:`<b>${E(initial)}</b>`}</span>`;
+  }
+  function threadAvatar(thread){
+    const token=S(thread.contactToken||''),parts=token.split(':');
+    if(parts[0]==='group'||thread.kind==='group'){
+      const group=data.groups?.find(item=>S(item.id)===S(parts[1]||thread.groupId||thread.contactId))||data.groups?.find(item=>S(item.name)===S(thread.title));
+      const members=(Array.isArray(group?.memberIds)?group.memberIds:[]).map(id=>data.characters?.find(item=>S(item.id)===S(id))||data.mpcs?.find(item=>S(item.id)===S(id))).filter(Boolean).slice(0,4);
+      if(members.length)return`<span class="v454-phone-avatar v45710-group-grid" data-members="${members.length}">${members.map(member=>threadMemberCell(member,member?.name)).join('')}</span>`;
+    }
+    const entity=parts[0]==='character'?data.characters?.find(item=>item.id===parts[1]):parts[0]==='mpc'?data.mpcs?.find(item=>item.id===parts[1]):null;
+    const src=typeof safeImageSrc==='function'?safeImageSrc(entity?.image):S(entity?.image);
+    return`<span class="v454-phone-avatar">${src?`<img src="${AT(src)}" alt="">`:E(threadInitial(thread))}</span>`;
+  }
   function phoneHead(title,backAction,action='管理',actionFn='v454OpenPhoneTools()'){return`${phoneStatus()}<header class="v454-phone-head"><button onclick="${backAction}" aria-label="返回">‹</button><h2>${E(title)}</h2><button onclick="${actionFn}">${E(action)}</button></header>`}
   function phoneListRows(store){
     const rows=store.conversations.slice().sort((a,b)=>(b.pinned===true)-(a.pinned===true)||S(b.updatedAt).localeCompare(S(a.updatedAt)));

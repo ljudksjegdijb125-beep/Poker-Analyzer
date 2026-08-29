@@ -39,12 +39,18 @@
   /* API secrets remain hidden unless the nearby button explicitly reveals them. */
   function secureSecrets(root=document){
     for(const key of root.querySelectorAll?.('#mpKey,input[data-secret-key],input[name="api-token"]')||[]){
-      const revealed=key.dataset.pokejiSecretRevealed==='true';
-      if(key.type!==(revealed?'text':'password'))key.type=revealed?'text':'password';
-      key.autocomplete='off';key.spellcheck=false;key.setAttribute('data-lpignore','true');
+      const revealed=key.dataset.pokejiSecretRevealed==='true',wanted=revealed?'text':'password';
+      /* V45.7.10: write only on real change; unconditional writes retriggered this observer. */
+      if(key.type!==wanted)key.type=wanted;
+      if(key.autocomplete!=='off')key.autocomplete='off';
+      if(key.spellcheck!==false)key.spellcheck=false;
+      if(key.getAttribute('data-lpignore')!=='true')key.setAttribute('data-lpignore','true');
     }
   }
-  const secretObserver=new MutationObserver(()=>secureSecrets());
+  /* V45.7.10: same coalescing guard. This observer used to answer its own
+     writes and froze the API editor. */
+  let secretQueued=false;
+  const secretObserver=new MutationObserver(()=>{if(secretQueued)return;secretQueued=true;queueMicrotask(()=>{secretQueued=false;secureSecrets()})});
   try{secretObserver.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['type']})}catch{}
 
   /* Per-person text routes. A group turn resolves the selected speaker before the request. */
@@ -240,7 +246,7 @@
   window.v4571VNMenu=function(id){const item=game(id);if(!item)return;modal(`<h2>${E(item.title)}</h2><div class="about-meta"><div class="meta-row"><span>游玩形式</span><span>${item.playMode==='companion'?'共同游玩':'人物入戏'}</span></div><div class="meta-row"><span>场景</span><span>${item.scenes.length} 幕</span></div><div class="meta-row"><span>相处记忆</span><span>${item.contextMode==='linked'?'读取并带来源写回':'完全独立'}</span></div><div class="meta-row"><span>画面</span><span>${item.imageEnabled?'开启':'关闭'}</span></div></div><div class="form-actions"><button onclick="closeModal()">取消</button><button onclick="v4571RegenerateVNScene(${A(id)})">重做当前幕</button><button class="danger" onclick="v4571DeleteVN(${A(id)})">删除存档</button></div>`)};
   window.v4571RegenerateVNScene=function(id){const item=game(id);if(!item||busy)return;const last=item.scenes.at(-1),choice=item.scenes.at(-2)?.selectedChoice||'请重新生成这一幕';if(last&&!confirm('重做当前幕会替换它的文字、选择和画面，继续吗？'))return;item.scenes.pop();closeModal();renderPlayer();void generateScene(item,choice,item.scenes.length===0)};
   window.v4571DeleteVN=function(id){const item=game(id);if(!item||!confirm(`删除文游“${item.title}”及其场景存档？普通聊天不会删除。`))return;data.visualNovelsV4571.games=data.visualNovelsV4571.games.filter(row=>row.id!==id);if(activeId===id)activeId='';data.visualNovelsV4571.activeId=activeId;save();closeModal();show('visualNovel');renderLibrary();toast('文游存档已删除')};
-  function addHomeEntry(){try{if(data.runtime.v4571.visualNovelDesktopAdded)return;data.homeDesktop=normalizeHomeDesktop(data.homeDesktop);if(!data.homeDesktop.items.some(item=>item.kind==='app'&&item.app==='visualNovel')){data.homeDesktop.pageCount=Math.max(2,data.homeDesktop.pageCount);const occupied=new Set(data.homeDesktop.items.filter(item=>item.page===1).map(item=>`${item.x}:${item.y}`));let slot=null;for(let y=0;y<4&&!slot;y++)for(let x=0;x<4;x++)if(!occupied.has(`${x}:${y}`)){slot={x,y};break}if(slot)data.homeDesktop.items.push({id:ID('app_visualNovel'),kind:'app',app:'visualNovel',page:1,x:slot.x,y:slot.y,w:1,h:1})}data.runtime.v4571.visualNovelDesktopAdded=true;save();renderHomeDesktop?.()}catch{}}
+  function addHomeEntry(){try{data.homeDesktop=normalizeHomeDesktop(data.homeDesktop);if(data.homeDesktop.items.some(item=>item.kind==='app'&&item.app==='visualNovel'))return;if(!data.homeDesktop.items.some(item=>item.kind==='app'&&item.app==='visualNovel')){data.homeDesktop.pageCount=Math.max(2,data.homeDesktop.pageCount);let slot=null;for(const page of [1,0,...Array.from({length:data.homeDesktop.pageCount},(_,i)=>i)]){if(slot)break;const occupied=new Set(data.homeDesktop.items.filter(item=>item.page===page).map(item=>`${item.x}:${item.y}`));for(let y=0;y<4&&!slot;y++)for(let x=0;x<4;x++)if(!occupied.has(`${x}:${y}`)){slot={page,x,y};break}}if(!slot){data.homeDesktop.pageCount=Math.min(12,data.homeDesktop.pageCount+1);slot={page:data.homeDesktop.pageCount-1,x:0,y:0}}data.homeDesktop.items.push({id:ID('app_visualNovel'),kind:'app',app:'visualNovel',page:slot.page,x:slot.x,y:slot.y,w:1,h:1})}data.runtime.v4571.visualNovelDesktopAdded=true;save();renderHomeDesktop?.()}catch{}}
   ensureView();addHomeEntry();
 })();
 

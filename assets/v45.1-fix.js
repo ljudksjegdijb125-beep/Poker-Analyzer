@@ -37,21 +37,28 @@
   }
 
   /* ---------- Android autofill hardening ---------- */
+  /* V45.7.10: only write when the value actually differs. Unconditional writes fed
+     the observers below and froze the API editor in an endless mutation loop. */
+  const setProp=(node,key,value)=>{try{if(node&&node[key]!==value)node[key]=value}catch{}};
+  const setAttr=(node,key,value)=>{try{if(node&&node.getAttribute(key)!==String(value))node.setAttribute(key,String(value))}catch{}};
   function hardenInputs(root=document){
     const chat=root.querySelector?.('#messageInput')||document.getElementById('messageInput');
     if(chat){
-      chat.type='text';chat.name='chat-message';chat.autocomplete='off';chat.autocapitalize='sentences';chat.autocorrect='off';chat.spellcheck=false;chat.inputMode='text';
-      chat.setAttribute('data-form-type','other');chat.setAttribute('data-lpignore','true');chat.setAttribute('data-1p-ignore','true');chat.setAttribute('data-bwignore','true');
+      setProp(chat,'type','text');setProp(chat,'name','chat-message');setProp(chat,'autocomplete','off');setProp(chat,'autocapitalize','sentences');setProp(chat,'autocorrect','off');setProp(chat,'spellcheck',false);setProp(chat,'inputMode','text');
+      setAttr(chat,'data-form-type','other');setAttr(chat,'data-lpignore','true');setAttr(chat,'data-1p-ignore','true');setAttr(chat,'data-bwignore','true');
     }
     const keys=root.querySelectorAll?.('#mpKey')||[];
     keys.forEach(key=>{
-      key.type=key.dataset.pokejiSecretRevealed==='true'?'text':'password';key.name='api-token';key.autocomplete='off';key.autocapitalize='none';key.autocorrect='off';key.spellcheck=false;key.inputMode='text';
-      key.removeAttribute('data-form-type');key.setAttribute('data-lpignore','true');key.setAttribute('data-1p-ignore','true');key.setAttribute('data-bwignore','true');
+      setProp(key,'type',key.dataset.pokejiSecretRevealed==='true'?'text':'password');setProp(key,'name','api-token');setProp(key,'autocomplete','off');setProp(key,'autocapitalize','none');setProp(key,'autocorrect','off');setProp(key,'spellcheck',false);setProp(key,'inputMode','text');
+      if(key.hasAttribute?.('data-form-type'))key.removeAttribute('data-form-type');setAttr(key,'data-lpignore','true');setAttr(key,'data-1p-ignore','true');setAttr(key,'data-bwignore','true');
     });
   }
   window.v45HardenInputs=hardenInputs;
   hardenInputs();
-  const inputObserver=new MutationObserver(()=>hardenInputs());
+  /* V45.7.10: coalesce into one pass per task. Even if a future write is not
+     idempotent, the observer can no longer chain microtasks without end. */
+  let hardenQueued=false;
+  const inputObserver=new MutationObserver(()=>{if(hardenQueued)return;hardenQueued=true;queueMicrotask(()=>{hardenQueued=false;hardenInputs()})});
   inputObserver.observe(document.getElementById('modal')||document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['type','name','autocomplete','style']});
   setInterval(hardenInputs,500);
 

@@ -55,7 +55,20 @@
     if(thread.contactId)return data.characters?.find(x=>x.id===thread.contactId)||data.mpcs?.find(x=>x.id===thread.contactId)||data.personas?.find(x=>x.id===thread.contactId)||null;
     return data.characters?.find(x=>x.name===thread.title)||data.mpcs?.find(x=>x.name===thread.title)||null
   }
-  function threadAvatar(thread,className='v455-phone-avatar'){if(thread.kind==='group'){const group=threadContact(thread)||data.groups?.find(x=>x.id===thread.contactId);return avatarMarkup(group,thread.title||'群',className)}return avatarMarkup(threadContact(thread),thread.title||'联',className)}
+  /* V45.7.10: a group shows each member's own avatar, never one shared initial. */
+  function threadGroupMembers(thread){
+    const token=S(thread?.contactToken),tokenId=token.startsWith('group:')?token.slice(6):'';
+    const group=data.groups?.find(x=>S(x.id)===S(thread?.groupId||thread?.contactId||tokenId))||data.groups?.find(x=>S(x.name)===S(thread?.title));
+    const ids=array(group?.memberIds).length?array(group.memberIds):array(thread?.memberIds);
+    return ids.map(id=>data.characters?.find(x=>S(x.id)===S(id))||data.mpcs?.find(x=>S(x.id)===S(id))).filter(Boolean);
+  }
+  function threadAvatar(thread,className='v455-phone-avatar'){
+    const isGroup=thread.kind==='group'||S(thread.contactToken).startsWith('group:');
+    if(!isGroup)return avatarMarkup(threadContact(thread),thread.title||'联',className);
+    const members=threadGroupMembers(thread).slice(0,4);
+    if(!members.length)return avatarMarkup(null,'群',className);
+    return`<span class="${className} v45710-group-grid" data-members="${members.length}">${members.map(member=>avatarMarkup(member,member?.name||'群','v45710-group-cell')).join('')}</span>`;
+  }
   function lastMessage(thread){return thread.messages?.at(-1)||null}
   function openMessages(){app='messages';threadId='';const s=store(),rows=s.conversations.slice().sort((a,b)=>(b.pinned===true)-(a.pinned===true)||S(b.updatedAt).localeCompare(S(a.updatedAt))).map(t=>{const last=lastMessage(t);return`<button class="v455-conversation-row" onclick="v455PhoneOpenThread(${A(t.id)})">${threadAvatar(t)}<span><span><b>${E(t.title)}</b>${t.kind==='group'?'<i>群聊</i>':''}${t.pinned?'<i>置顶</i>':''}${t.unread?`<em>${Math.min(99,t.unread)}</em>`:''}</span><small>${E(t.typing?'正在输入…':S(last?.localText||last?.text||'暂无消息'))}</small></span><time>${E(last?.worldTimeText||displayTime(t.updatedAt))}</time></button>`}).join('');shell('聊天',`${reactionMarkup('messages-list',`${s.conversations.length} 条手机会话`)}<div class="v455-phone-search">⌕　搜索联系人、群聊或消息</div>${rows?`<div class="v455-conversation-list">${rows}</div>`:empty('◇','还没有手机会话','可从联系人白名单建立第一条独立手机会话。',`v455PhoneOpenContacts()`,'管理联系人')}<div class="v455-app-actions"><button onclick="v455PhoneOpenContacts()">联系人</button><button onclick="v455PhoneOpenMessageManagement()">聊天管理</button></div>`,{right:'管理',rightAction:'v455PhoneOpenMessageManagement()',bodyClass:'v455-messages-body'})}
   window.v455PhoneOpenMessages=openMessages;

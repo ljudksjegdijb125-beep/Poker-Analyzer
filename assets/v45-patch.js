@@ -55,12 +55,15 @@
 
   /* ---------- no password-manager misclassification ---------- */
   function v45HardenInputs(){
+    /* V45.7.10: idempotent writes only, so the modal observers cannot recurse. */
+    const put=(node,key,value)=>{try{if(node&&node[key]!==value)node[key]=value}catch{}};
+    const mark=(node,key,value)=>{try{if(node&&node.getAttribute(key)!==String(value))node.setAttribute(key,String(value))}catch{}};
     const chatInput=document.getElementById('messageInput');
-    if(chatInput){chatInput.type='text';chatInput.name='chat-message';chatInput.autocomplete='off';chatInput.autocapitalize='sentences';chatInput.autocorrect='off';chatInput.spellcheck=false;chatInput.setAttribute('inputmode','text');chatInput.setAttribute('data-form-type','other');chatInput.setAttribute('data-lpignore','true')}
+    if(chatInput){put(chatInput,'type','text');put(chatInput,'name','chat-message');put(chatInput,'autocomplete','off');put(chatInput,'autocapitalize','sentences');put(chatInput,'autocorrect','off');put(chatInput,'spellcheck',false);mark(chatInput,'inputmode','text');mark(chatInput,'data-form-type','other');mark(chatInput,'data-lpignore','true')}
     const key=document.getElementById('mpKey');
     if(key){
       /* Keep secrets masked unless the person explicitly pressed the reveal button. */
-      key.type=key.dataset.pokejiSecretRevealed==='true'?'text':'password';key.name='api-token';key.autocomplete='off';key.autocapitalize='none';key.autocorrect='off';key.spellcheck=false;key.removeAttribute('data-form-type');key.setAttribute('data-lpignore','true');key.setAttribute('data-1p-ignore','true');key.setAttribute('data-bwignore','true');
+      put(key,'type',key.dataset.pokejiSecretRevealed==='true'?'text':'password');put(key,'name','api-token');put(key,'autocomplete','off');put(key,'autocapitalize','none');put(key,'autocorrect','off');put(key,'spellcheck',false);if(key.hasAttribute?.('data-form-type'))key.removeAttribute('data-form-type');mark(key,'data-lpignore','true');mark(key,'data-1p-ignore','true');mark(key,'data-bwignore','true');
     }
   }
   window.v45HardenInputs=v45HardenInputs;
