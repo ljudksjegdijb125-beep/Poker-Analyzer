@@ -11,7 +11,7 @@
 </head>
 <body>
 <main class="box">
- <header><div class="mark">♠</div><div><h1>启动诊断与恢复</h1><small>V45.7.11 · 构建时间 2026-08-30（北京时间）</small></div></header>
+ <header><div class="mark">♠</div><div><h1>启动诊断与恢复</h1><small>V45.7.12 · 构建时间 2026-08-30（北京时间）</small></div></header>
  <p>这里独立于主程序运行。可以检查部署文件、重新请求最新版，或只清理离线服务与网页缓存。</p>
  <div class="actions"><button class="primary" onclick="freshReload()">重新加载最新版</button><button onclick="openSafeRepair()">打开安全修复页</button><button onclick="openWithoutWorker()">无离线服务打开</button><button onclick="skipBootOnce()">仅跳过一次待机画面</button></div>
  <div id="status" class="status">正在检查部署文件…</div>
@@ -19,15 +19,15 @@
  <div class="note">“修复缓存”不会操作 localStorage 或 IndexedDB，因此不会主动删除人物、面具、聊天、设置和接口配置。若检查结果显示旧版本，请重新完整覆盖部署包。</div>
 </main>
 <script>
-const BUILD='45.7.11';
-const BUILD_ID='V45.7.11-20260830-CST';
+const BUILD='45.7.12';
+const BUILD_ID='V45.7.12-20260830-CST';
 const targets=[
  {name:'构建编号',path:'/build-info.json',marker:BUILD_ID},
  {name:'页面入口',path:'/index.html',marker:BUILD_ID},
- {name:'主程序',path:'/assets/app.js',marker:"const VERSION='45.7.11'"},
+ {name:'主程序',path:'/assets/app.js',marker:"const VERSION='45.7.12'"},
  {name:'主样式',path:'/assets/app.css',marker:'#bootScreen'},
- {name:'离线服务',path:'/sw-v44.js',marker:"pokeji-v45.7.11"},
- {name:'应用清单',path:'/manifest.webmanifest',marker:'45.7.11'},
+ {name:'离线服务',path:'/sw-v44.js',marker:"pokeji-v45.7.12"},
+ {name:'应用清单',path:'/manifest.webmanifest',marker:'45.7.12'},
  {name:'缓存修复页',path:'/repair-sw.html',marker:BUILD_ID}
 ];
 const status=document.getElementById('status'),checks=document.getElementById('checks');
