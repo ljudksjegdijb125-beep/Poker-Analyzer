@@ -40,14 +40,14 @@
   function secureSecrets(root=document){
     for(const key of root.querySelectorAll?.('#mpKey,input[data-secret-key],input[name="api-token"]')||[]){
       const revealed=key.dataset.pokejiSecretRevealed==='true',wanted=revealed?'text':'password';
-      /* V45.7.10: write only on real change; unconditional writes retriggered this observer. */
+      /* V45.7.11: write only on real change; unconditional writes retriggered this observer. */
       if(key.type!==wanted)key.type=wanted;
       if(key.autocomplete!=='off')key.autocomplete='off';
       if(key.spellcheck!==false)key.spellcheck=false;
       if(key.getAttribute('data-lpignore')!=='true')key.setAttribute('data-lpignore','true');
     }
   }
-  /* V45.7.10: same coalescing guard. This observer used to answer its own
+  /* V45.7.11: same coalescing guard. This observer used to answer its own
      writes and froze the API editor. */
   let secretQueued=false;
   const secretObserver=new MutationObserver(()=>{if(secretQueued)return;secretQueued=true;queueMicrotask(()=>{secretQueued=false;secureSecrets()})});

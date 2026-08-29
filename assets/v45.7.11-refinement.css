@@ -1,0 +1,123 @@
+/* =========================================================
+   POKEJI V45.7.10 · scoped additions only
+   Existing desktop, chat and phone visuals stay untouched.
+   ========================================================= */
+
+/* ---------- group avatar: 2x2 grid of real member avatars ---------- */
+.avatar-stack.v45710-group-grid{
+ display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);
+ gap:2px;width:38px;height:38px;min-width:38px;padding:2px;flex:none;
+ border-radius:13px;overflow:hidden;background:var(--panel2,#1b1b1e);
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)
+}
+.avatar-stack.v45710-group-grid>.avatar{
+ width:100%;height:100%;min-width:0;min-height:0;margin:0!important;
+ border:0;border-radius:5px;box-shadow:none
+}
+.avatar-stack.v45710-group-grid[data-members="1"]{grid-template-columns:1fr;grid-template-rows:1fr}
+.avatar-stack.v45710-group-grid[data-members="2"]{grid-template-rows:1fr}
+.avatar-stack.v45710-group-grid[data-members="3"]>.avatar:first-child{grid-row:span 2;border-radius:5px}
+.avatar-stack.v45710-group-grid .avatar-fallback{font-size:9px;font-weight:600}
+.avatar-stack.v45710-group-grid[data-members="1"] .avatar-fallback{font-size:14px}
+.avatar-stack.v45710-group-grid>.avatar img{border-radius:5px}
+.chat-head .avatar-stack.v45710-group-grid{width:38px;height:38px}
+.chat-row-main .avatar-stack.v45710-group-grid,
+.row.card .avatar-stack.v45710-group-grid{width:46px;height:46px;min-width:46px;border-radius:13px}
+
+/* phone routes use the same rule inside their own avatar box */
+.v45710-group-grid.v455-phone-avatar,
+.v45710-group-grid.v454-phone-avatar{
+ display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);
+ gap:2px;padding:2px;overflow:hidden
+}
+.v45710-group-grid[data-members="1"].v455-phone-avatar,
+.v45710-group-grid[data-members="1"].v454-phone-avatar{grid-template-columns:1fr;grid-template-rows:1fr}
+.v45710-group-grid[data-members="2"].v455-phone-avatar,
+.v45710-group-grid[data-members="2"].v454-phone-avatar{grid-template-rows:1fr}
+.v45710-group-grid[data-members="3"]>.v45710-group-cell:first-child{grid-row:span 2}
+.v45710-group-cell{
+ display:grid;place-items:center;width:100%;height:100%;min-width:0;min-height:0;
+ margin:0;border-radius:5px;overflow:hidden;background:#2c3034;color:#f4f2eb;
+ font:8px/1 Georgia,"Songti SC",serif
+}
+.v45710-group-cell img{display:block;width:100%;height:100%;object-fit:cover}
+.v45710-group-cell b{font-weight:600}
+
+/* ---------- 表情包原图缺失时的可读卡片，替代浏览器破图 ---------- */
+.sticker-bubble.is-missing{background:transparent;box-shadow:none}
+.sticker-missing{
+ display:grid;gap:3px;align-content:center;min-width:112px;max-width:190px;
+ min-height:64px;padding:10px 12px;border-radius:13px;
+ background:rgba(255,255,255,.055);box-shadow:inset 0 0 0 1px var(--line2)
+}
+.sticker-missing b{color:var(--muted);font-size:8px;font-weight:600;letter-spacing:.08em}
+.sticker-missing small{color:var(--ivory2,#d8d8d3);font-size:10px;line-height:1.55}
+
+/* ---------- 文游设置内新增：规则绑定（沿用现有 modal 结构） ---------- */
+.v45710-vn-binding{padding:2px 0 4px}
+.v45710-vn-binding>.note{margin:0 0 11px}
+.v45710-bind-group{margin-bottom:10px;padding:12px;border-radius:15px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line2)}
+.v45710-bind-group>header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.v45710-bind-group>header b{font-size:12px}
+.v45710-bind-group>header small{color:var(--dim);font-size:8px}
+.v45710-bind-row{display:flex;align-items:flex-start;gap:8px;min-height:30px;padding:7px 9px;margin-bottom:5px;border-radius:10px;background:rgba(255,255,255,.035);font-size:10px;line-height:1.5}
+.v45710-bind-row:last-child{margin-bottom:0}
+.v45710-bind-row input{width:15px;height:15px;flex:none;margin:2px 0 0;padding:0;accent-color:var(--gold,#c9c9c4)}
+.v45710-bind-row span{min-width:0;flex:1}
+.v45710-bind-row em{display:block;margin-top:3px;color:var(--dim);font-size:8px;font-style:normal;line-height:1.5}
+.v45710-bind-empty{padding:11px;border-radius:10px;background:rgba(255,255,255,.03);color:var(--dim);font-size:9px;text-align:center}
+.v45710-regex-item{margin-bottom:8px;padding:11px;border-radius:13px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px var(--line2)}
+.v45710-regex-item:last-child{margin-bottom:0}
+.v45710-regex-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.v45710-regex-head b{font-size:11px}
+.v45710-regex-head label{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:9px}
+.v45710-regex-head input{width:14px;height:14px;margin:0;padding:0;accent-color:var(--gold,#c9c9c4)}
+.v45710-regex-code{margin:7px 0;padding:7px 9px;border-radius:9px;background:rgba(0,0,0,.34);color:var(--ivory2,#d8d8d3);font:9px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+.v45710-regex-targets{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.v45710-regex-targets label{display:flex;align-items:center;gap:6px;min-height:28px;padding:0 8px;border-radius:9px;background:rgba(0,0,0,.24);color:var(--ivory2,#d8d8d3);font-size:9px}
+.v45710-regex-targets input{width:14px;height:14px;margin:0;padding:0;accent-color:var(--gold,#c9c9c4)}
+.v45710-regex-targets label.off{opacity:.4}
+.v45710-snapshot{margin-top:10px;padding:11px;border-radius:13px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line2)}
+.v45710-snapshot b{display:block;font-size:10px}
+.v45710-snapshot small{display:block;margin-top:5px;color:var(--muted);font-size:8px;line-height:1.6}
+
+/* ---------- 语伴词典页新增：行式录入（沿用 v457 版式） ---------- */
+.v45710-lines{margin-top:11px;padding:12px;border-radius:16px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px var(--line2)}
+.v45710-lines>header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.v45710-lines>header b{font-size:12px}
+.v45710-lines>header small{color:var(--dim);font-size:8px}
+.v45710-lines-note{margin-bottom:9px;padding:9px 10px;border-radius:11px;background:rgba(0,0,0,.22);color:var(--muted);font-size:9px;line-height:1.65}
+.v45710-lines-note b{color:var(--ivory2,#d8d8d3)}
+.v45710-lines textarea{width:100%;min-height:104px;padding:9px 10px;border:0;border-radius:11px;background:rgba(0,0,0,.3);color:var(--ivory,#f3f3f0);font:10px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;outline:0;box-shadow:inset 0 0 0 1px var(--line2)}
+.v45710-lines textarea:focus{box-shadow:inset 0 0 0 1px rgba(255,255,255,.26)}
+.v45710-lines-meta{margin-top:6px;color:var(--dim);font-size:8px;line-height:1.6}
+.v45710-lines-meta b{color:var(--ivory2,#d8d8d3)}
+.v45710-lines-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.v45710-lines-actions button{min-height:38px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.05);color:var(--ivory2,#d8d8d3);font-size:10px}
+.v45710-lines-actions button.primary{border:0;background:var(--gold-hi,#f4f4ef);color:#161618;font-weight:650}
+.v45710-lines-actions button:disabled{opacity:.45}
+.v45710-lines-actions.wide{grid-template-columns:1fr}
+.v45710-preview-row{margin-bottom:8px;padding:10px;border-radius:12px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px var(--line2)}
+.v45710-preview-row:last-child{margin-bottom:0}
+.v45710-preview-row>label{display:flex;align-items:center;gap:6px;margin-bottom:6px;color:var(--muted);font-size:9px}
+.v45710-preview-row>label input{width:14px;height:14px;margin:0;padding:0;accent-color:var(--gold,#c9c9c4)}
+.v45710-preview-line{padding:7px 9px;border-radius:9px;background:rgba(0,0,0,.26);font-size:10px;line-height:1.65}
+.v45710-preview-line+.v45710-preview-line{margin-top:5px}
+.v45710-preview-line small{display:block;color:var(--dim);font-size:8px;margin-bottom:3px}
+.v45710-preview-line.filled{color:#a9c8b0}
+.v45710-line-entry{margin-bottom:7px;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line2)}
+.v45710-line-entry:last-child{margin-bottom:0}
+.v45710-line-entry .src{font-size:11px;font-weight:600}
+.v45710-line-entry .dst{margin-top:4px;color:var(--ivory2,#d8d8d3);font-size:10px;line-height:1.6}
+.v45710-line-entry .dst.pending{color:var(--dim)}
+.v45710-line-entry .tools{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px}
+.v45710-line-entry .tools button{min-height:29px;border:1px solid var(--line2);border-radius:9px;background:rgba(0,0,0,.2);color:var(--ivory2,#d8d8d3);font-size:8px}
+.v45710-drill-modes{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px;padding:4px;border-radius:12px;background:rgba(0,0,0,.26)}
+.v45710-drill-modes button{min-height:32px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:9px}
+.v45710-drill-modes button.on{background:var(--gold-hi,#f4f4ef);color:#161618;font-weight:650}
+.v45710-mask{display:inline-block;min-width:64px;padding:0 6px;border-radius:6px;background:rgba(255,255,255,.16);color:transparent;cursor:pointer;user-select:none}
+.v45710-mask.show{background:transparent;color:inherit}
+@media(max-width:360px){
+ .v45710-regex-targets{grid-template-columns:1fr}
+ .chat-row-main .avatar-stack.v45710-group-grid,.row.card .avatar-stack.v45710-group-grid{width:42px;height:42px;min-width:42px}
+}

@@ -55,7 +55,7 @@
 
   /* ---------- no password-manager misclassification ---------- */
   function v45HardenInputs(){
-    /* V45.7.10: idempotent writes only, so the modal observers cannot recurse. */
+    /* V45.7.11: idempotent writes only, so the modal observers cannot recurse. */
     const put=(node,key,value)=>{try{if(node&&node[key]!==value)node[key]=value}catch{}};
     const mark=(node,key,value)=>{try{if(node&&node.getAttribute(key)!==String(value))node.setAttribute(key,String(value))}catch{}};
     const chatInput=document.getElementById('messageInput');

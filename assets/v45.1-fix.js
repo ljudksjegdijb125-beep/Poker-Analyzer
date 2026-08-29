@@ -37,7 +37,7 @@
   }
 
   /* ---------- Android autofill hardening ---------- */
-  /* V45.7.10: only write when the value actually differs. Unconditional writes fed
+  /* V45.7.11: only write when the value actually differs. Unconditional writes fed
      the observers below and froze the API editor in an endless mutation loop. */
   const setProp=(node,key,value)=>{try{if(node&&node[key]!==value)node[key]=value}catch{}};
   const setAttr=(node,key,value)=>{try{if(node&&node.getAttribute(key)!==String(value))node.setAttribute(key,String(value))}catch{}};
@@ -55,7 +55,7 @@
   }
   window.v45HardenInputs=hardenInputs;
   hardenInputs();
-  /* V45.7.10: coalesce into one pass per task. Even if a future write is not
+  /* V45.7.11: coalesce into one pass per task. Even if a future write is not
      idempotent, the observer can no longer chain microtasks without end. */
   let hardenQueued=false;
   const inputObserver=new MutationObserver(()=>{if(hardenQueued)return;hardenQueued=true;queueMicrotask(()=>{hardenQueued=false;hardenInputs()})});

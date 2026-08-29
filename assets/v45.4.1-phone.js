@@ -55,7 +55,7 @@
     if(thread.contactId)return data.characters?.find(x=>x.id===thread.contactId)||data.mpcs?.find(x=>x.id===thread.contactId)||data.personas?.find(x=>x.id===thread.contactId)||null;
     return data.characters?.find(x=>x.name===thread.title)||data.mpcs?.find(x=>x.name===thread.title)||null
   }
-  /* V45.7.10: a group shows each member's own avatar, never one shared initial. */
+  /* V45.7.11: a group shows each member's own avatar, never one shared initial. */
   function threadGroupMembers(thread){
     const token=S(thread?.contactToken),tokenId=token.startsWith('group:')?token.slice(6):'';
     const group=data.groups?.find(x=>S(x.id)===S(thread?.groupId||thread?.contactId||tokenId))||data.groups?.find(x=>S(x.name)===S(thread?.title));

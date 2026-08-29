@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.7.10';
+const VERSION='45.7.11';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -2045,7 +2045,7 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
   let original='';
   if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'暂停语音':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
   else if(m.kind==='image'){const src=safeImageSrc(m.image);original=src?`<div class="image-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(src)}" alt="${attr(m.text||'AI 生成图片')}"><small>${esc(m.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" onclick="showMsgMenu(event,${i})">${m.imageError?'图片暂未生成':'AI 正在生成图片…'}</div>`}
-  else if(m.kind==='sticker')original=`<div class="sticker-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(safeImageSrc(m.image)||'')}" alt="${attr(m.text||'表情包')}"></div>`;
+  else if(m.kind==='sticker')original=v45710StickerBubble(m,'',`onclick="showMsgMenu(event,${i})"`);
   else original=`<div class="bubble bubble-original" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span class="edited-mark">(已编辑)</span>':''}</div>`;
   const translation=m.translation?`<div class="bubble-translation" onclick="showMsgMenu(event,${i})"><small>译文</small><span>${esc(m.translation)}</span></div>`:'';
   const footer=isLast?`<div class="message-footer"><span class="msg-time">${esc(m.time||'')}</span>${messageReadButton(chatId,i,m,m.role==='assistant'&&m.kind==='message')}</div>`:'';
@@ -2198,7 +2198,7 @@ function v43DerivedUserPhoneItems(chatId=currentChat){
 }
 function v43HydrateAssistantMedia(chatId,indexes=[]){return(async()=>{for(const idx of indexes){const message=(data.chats[chatId]||[])[idx];if(!message||message.kind!=='image'||message.image||message.imageGenerating)continue;if(!validModel('image')){message.imagePending=false;message.imageError='尚未配置生图模型';save();continue}message.imageGenerating=true;try{message.image=await generateImageFromProfile(message.imagePrompt||message.text);message.imagePending=false;delete message.imageError}catch(error){message.imagePending=false;message.imageError=redactSensitive(error?.message||'图片暂未生成');console.warn(redactSensitive(`AI 图片生成未完成：${error?.message||error}`))}finally{delete message.imageGenerating;save();if(currentChat===chatId)renderMessages()}}})()}
 function v43MessageItemMarkup(m,i,isLast,chatId){
- let original='';if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}else if(m.kind==='image'){const src=safeImageSrc(m.image);original=src?`<div class="image-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(src)}" alt="${attr(m.text||'AI 生成图片')}"><small>${esc(m.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" onclick="showMsgMenu(event,${i})">${esc(m.imageError||'AI 正在生成图片…')}</div>`}else if(m.kind==='sticker')original=`<div class="sticker-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(safeImageSrc(m.image)||'')}" alt="${attr(m.text||'表情包')}"></div>`;else original=`<div class="bubble bubble-original" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span class="edited-mark">(已编辑)</span>':''}</div>`;
+ let original='';if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}else if(m.kind==='image'){const src=safeImageSrc(m.image);original=src?`<div class="image-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(src)}" alt="${attr(m.text||'AI 生成图片')}"><small>${esc(m.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" onclick="showMsgMenu(event,${i})">${esc(m.imageError||'AI 正在生成图片…')}</div>`}else if(m.kind==='sticker')original=v45710StickerBubble(m,'',`onclick="showMsgMenu(event,${i})"`);else original=`<div class="bubble bubble-original" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span class="edited-mark">(已编辑)</span>':''}</div>`;
  const translation=m.translation?`<div class="bubble-translation" onclick="showMsgMenu(event,${i})"><small>译文</small><span>${esc(m.translation)}</span></div>`:'',footer=isLast?`<div class="message-footer"><span class="msg-time">${esc(m.time||'')}</span>${messageReadButton(chatId,i,m,m.role==='assistant'&&m.kind==='message')}</div>`:'';return`<div class="message-item" data-idx="${i}"><div class="bubble-line">${original}</div>${translation}${footer}</div>`;
 }
 function v43PostCommit(chatId,indexes=[]){const direct=directCharacterForChat(chatId);if(direct&&Math.random()<.28&&!simulatedPhoneItems(direct.id,chatId).length&&validAPI())void v43GenerateCharacterPhoneSnapshot(direct.id,chatId).catch(()=>{})}
@@ -2218,7 +2218,7 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
  let original='';
  if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
  else if(m.kind==='image'){const src=safeImageSrc(m.image);original=src?`<div class="image-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(src)}" alt="${attr(m.text||'AI 生成图片')}"><small>${esc(m.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" onclick="showMsgMenu(event,${i})">${esc(m.imageError||'AI 正在生成图片…')}</div>`}
- else if(m.kind==='sticker')original=`<div class="sticker-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(safeImageSrc(m.image)||'')}" alt="${attr(m.text||'表情包')}"></div>`;
+ else if(m.kind==='sticker')original=v45710StickerBubble(m,'',`onclick="showMsgMenu(event,${i})"`);
  else original=`<div class="bubble bubble-original" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span class="edited-mark">(已编辑)</span>':''}</div>`;
  const translation=m.translation?`<div class="bubble-translation" onclick="showMsgMenu(event,${i})"><small>译文</small><span>${esc(m.translation)}</span></div>`:'';
  const readable=m.role==='assistant'&&m.kind==='message',footer=(isLast||readable)?`<div class="message-footer">${isLast?`<span class="msg-time">${esc(m.time||'')}</span>`:''}${readable?messageReadButton(chatId,i,m,true):''}</div>`:'';
@@ -2250,7 +2250,7 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
  let original='',hasInlineRead=false;
  if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})" aria-label="${playing?'正在播放':'播放语音'}"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
  else if(m.kind==='image'){const src=safeImageSrc(m.image);original=src?`<div class="image-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(src)}" alt="${attr(m.text||'AI 生成图片')}"><small>${esc(m.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" onclick="showMsgMenu(event,${i})">${esc(m.imageError||'AI 正在生成图片…')}</div>`}
- else if(m.kind==='sticker')original=`<div class="sticker-bubble" onclick="showMsgMenu(event,${i})"><img src="${attr(safeImageSrc(m.image)||'')}" alt="${attr(m.text||'表情包')}"></div>`;
+ else if(m.kind==='sticker')original=v45710StickerBubble(m,'',`onclick="showMsgMenu(event,${i})"`);
  else{original=`<div class="bubble bubble-original" onclick="showMsgMenu(event,${i})">${esc(m.text)}${m.edited?'<span class="edited-mark">(已编辑)</span>':''}</div>`;hasInlineRead=m.role==='assistant'}
  const translation=m.translation?`<div class="bubble-translation" onclick="showMsgMenu(event,${i})"><small>译文</small><span>${esc(m.translation)}</span></div>`:'',inlineRead=hasInlineRead?v43InlineReadButton(chatId,i,m):'',footer=isLast?`<div class="message-footer"><span class="msg-time">${esc(m.time||'')}</span></div>`:'';
  return`<div class="message-item" data-idx="${i}"><div class="bubble-line ${hasInlineRead?'has-inline-read':''}">${original}${inlineRead}</div>${translation}${footer}</div>`;
@@ -2562,7 +2562,7 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
  const menuEvents=`onclick="showMsgMenu(event,${i})" oncontextmenu="return showMsgMenu(event,${i})" ontouchstart="touchStartMsg(event,${i})" ontouchend="touchEndMsg(event)"`;
  if(m.kind==='voice'){const key=messageAudioKey(chatId,i,m),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" onclick="event.stopPropagation();playMessageAudio('${attr(chatId)}',${i})"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(m)}</em></button>`}
  else if(m.kind==='image'){const src=safeImageSrc(m.image);original=src?`<div class="image-bubble" ${menuEvents}><img src="${attr(src)}" alt=""><small>${esc(m.text||'AI 生成图片')}</small></div>`:`<div class="image-pending" ${menuEvents}>${esc(m.imageError||'AI 正在生成图片…')}</div>`}
- else if(m.kind==='sticker')original=`<div class="sticker-bubble" ${menuEvents}><img src="${attr(safeImageSrc(m.image)||'')}" alt=""></div>`;
+ else if(m.kind==='sticker')original=v45710StickerBubble(m,'',menuEvents);
  else{original=`<div class="bubble bubble-original" ${menuEvents}>${esc(m.text)}${v439EditedMark(m)}</div>`;hasInlineRead=m.role==='assistant'}
  const translation=m.translation?`<div class="bubble-translation" onclick="showMsgMenu(event,${i})"><small>译文</small><span>${esc(m.translation)}</span></div>`:'',inlineRead=hasInlineRead?v43InlineReadButton(chatId,i,m):'',footer=isLast?`<div class="message-footer"><span class="msg-time">${esc(m.time||'')}</span></div>`:'';
  return`<div class="message-item" data-idx="${i}" oncontextmenu="return showMsgMenu(event,${i})">${`<div class="bubble-line ${hasInlineRead?'has-inline-read':''}">${original}${inlineRead}</div>`}${translation}${footer}</div>`;
@@ -2594,25 +2594,65 @@ function touchStartMsg(event,ref){clearTimeout(msgTouchTimer);msgTouchTimer=setT
 function touchEndMsg(){clearTimeout(msgTouchTimer)}
 function v4310MessageEvents(){return'oncontextmenu="return v4310MenuFromNode(event,this)" ontouchstart="v4310TouchStart(event,this)" ontouchend="touchEndMsg()" ontouchcancel="touchEndMsg()"'}
 function v43InlineReadButton(chatId,idx,message){const key=messageAudioKey(chatId,idx,message),playing=activeAudioMessageKey===key;return`<button class="message-read-button inline-read ${playing?'is-playing':''}" data-message-id="${attr(message.id)}" onclick="v4310PlayMessageByNode(event,this)" aria-label="${playing?'正在朗读':'朗读这条消息'}" title="${playing?'正在朗读':'朗读这条消息'}">${v43SpeakerIcon()}</button>`}
+/* V45.7.11: one sticker bubble builder shared by every render path. An empty
+   src renders as the browser broken-image glyph, which is where the "?" tile
+   inside a chat came from. Fall back to the sticker library, then to text. */
+function v45710StickerBubble(message,rowAttr='',clickAttr='onclick="v4310MenuFromNode(event,this)"'){
+ const library=Array.isArray(data.stickers)?data.stickers:[];
+ const stored=String(message?.stickerId||'');
+ const sticker=stored?library.find(item=>String(item?.id)===stored):null;
+ let src='';
+ try{src=safeImageSrc(message?.image)||safeImageSrc(sticker?.image)||''}catch{src=''}
+ const caption=String(message?.text||sticker?.description||sticker?.name||'').trim();
+ if(src)return `<div class="sticker-bubble" ${rowAttr} ${clickAttr}><img src="${attr(src)}" alt="${attr(caption||'表情包')}"></div>`;
+ return `<div class="sticker-bubble is-missing" ${rowAttr} ${clickAttr}><div class="sticker-missing"><b>表情包</b><small>${esc(caption||'原图已不在本机')}</small></div></div>`;
+}
 function v43MessageItemMarkup(message,index,isLast,chatId){
  const id=String(message.id),data=`data-message-id="${attr(id)}"`,events=v4310MessageEvents();let original='',hasInlineRead=false;
  if(message.kind==='voice'){const key=messageAudioKey(chatId,index,message),playing=activeAudioMessageKey===key;original=`<button class="voice-strip ${playing?'is-playing':''}" ${data} onclick="v4310PlayMessageByNode(event,this)"><span class="voice-play">${playing?'Ⅱ':'▶'}</span><span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span><em>${v43VoiceDuration(message)}</em></button>`}
  else if(message.kind==='image'){const src=safeImageSrc(message.image);original=src?`<div class="image-bubble" ${data} onclick="v4310MenuFromNode(event,this)"><img src="${attr(src)}" alt=""><small>${esc(message.text||'生成图片')}</small></div>`:`<div class="image-pending" ${data} onclick="v4310MenuFromNode(event,this)">${esc(message.imageError||'图片正在生成…')}</div>`}
- else if(message.kind==='sticker')original=`<div class="sticker-bubble" ${data} onclick="v4310MenuFromNode(event,this)"><img src="${attr(safeImageSrc(message.image)||'')}" alt=""></div>`;
+ else if(message.kind==='sticker')original=v45710StickerBubble(message,data);
  else{original=`<div class="bubble bubble-original" ${data} onclick="v4310MenuFromNode(event,this)">${esc(message.text)}${v439EditedMark(message)}</div>`;hasInlineRead=message.role==='assistant'}
  const translation=message.translation?`<div class="bubble-translation" ${data} onclick="v4310MenuFromNode(event,this)"><small>译文</small><span>${esc(message.translation)}</span></div>`:'',inlineRead=hasInlineRead?v43InlineReadButton(chatId,index,message):'',footer=isLast?`<div class="message-footer" ${data} onclick="v4310MenuFromNode(event,this)"><span class="msg-time">${esc(message.time||'')}</span></div>`:'';
  return`<div class="message-item" ${data} ${events}><div class="bubble-line ${hasInlineRead?'has-inline-read':''}">${original}${inlineRead}</div>${translation}${footer}</div>`;
+}
+/* V45.7.11: one place that answers "who said this group line". Older records
+   sometimes stored a display name instead of an id, and members may be MPCs. */
+function v45710GroupSpeaker(message,group){
+ const token=String(message?.speaker||'').trim();
+ const people=Array.isArray(data.characters)?data.characters:[];
+ const mpcs=Array.isArray(data.mpcs)?data.mpcs:[];
+ const memberIds=Array.isArray(group?.memberIds)?group.memberIds.map(String):[];
+ if(token){
+  const byId=people.find(x=>String(x?.id)===token)||mpcs.find(x=>String(x?.id)===token);
+  if(byId)return byId;
+  const byName=people.find(x=>String(x?.name).trim()===token)||mpcs.find(x=>String(x?.name).trim()===token);
+  if(byName)return byName;
+ }
+ const stored=String(message?.speakerName||'').trim();
+ if(stored){
+  const byStored=people.find(x=>String(x?.name).trim()===stored)||mpcs.find(x=>String(x?.name).trim()===stored);
+  if(byStored)return byStored;
+ }
+ if(memberIds.length===1)return people.find(x=>String(x?.id)===memberIds[0])||mpcs.find(x=>String(x?.id)===memberIds[0])||null;
+ return null;
 }
 function renderMessages(){
  data.characters=Array.isArray(data.characters)?data.characters:[];data.groups=Array.isArray(data.groups)?data.groups:[];data.personas=Array.isArray(data.personas)?data.personas:[];
  const container=document.getElementById('messages'),messages=v4310EnsureMessageIds(currentChat);if(!container)return;if(!messages.length){container.innerHTML='<div class="empty"><div class="big">♡</div>还没有消息</div>';return}
  const groupChat=groupForChat(currentChat),showAvatars=data.settings.chatAvatarMode!=='none',persona=activePersonaFor(currentChat),directCharacter=!groupChat&&directCharacterForChat(currentChat),html=[];
- for(let index=0;index<messages.length;){const message=messages[index],id=String(message.id),data=`data-message-id="${attr(id)}"`,events=v4310MessageEvents();
+ /* V45.7.11: renamed from `data`. The old name shadowed the global data object,
+    so the group speaker lookup below always failed and every group bubble fell
+    back to 对方 -> 对 for its avatar. */
+ for(let index=0;index<messages.length;){const message=messages[index],id=String(message.id),rowAttr=`data-message-id="${attr(id)}"`,events=v4310MessageEvents();
   if(message.kind==='phoneEvent'){index++;continue}
-  if(message.kind==='thought'){html.push(`<div class="thought-entry" ${data} ${events} onclick="v4310MenuFromNode(event,this)"><span>内心话</span><p>${esc(message.text)}</p>${message.translation?`<div class="thought-translation"><small>译文</small>${esc(message.translation)}</div>`:''}</div>`);index++;continue}
-  if(message.kind==='narration'){html.push(`<div class="narration-entry" ${data} ${events}><div class="narration-text" onclick="v4310MenuFromNode(event,this)">${esc(message.text)}${v439EditedMark(message)}</div>${message.translation?`<div class="narration-translation" onclick="v4310MenuFromNode(event,this)"><small>译文</small><span>${esc(message.translation)}</span></div>`:''}</div>`);index++;continue}
+  if(message.kind==='thought'){html.push(`<div class="thought-entry" ${rowAttr} ${events} onclick="v4310MenuFromNode(event,this)"><span>内心话</span><p>${esc(message.text)}</p>${message.translation?`<div class="thought-translation"><small>译文</small>${esc(message.translation)}</div>`:''}</div>`);index++;continue}
+  if(message.kind==='narration'){html.push(`<div class="narration-entry" ${rowAttr} ${events}><div class="narration-text" onclick="v4310MenuFromNode(event,this)">${esc(message.text)}${v439EditedMark(message)}</div>${message.translation?`<div class="narration-translation" onclick="v4310MenuFromNode(event,this)"><small>译文</small><span>${esc(message.translation)}</span></div>`:''}</div>`);index++;continue}
   const key=v43GroupKey(message),batch=[{m:message,i:index}];let next=index+1;while(next<messages.length&&v43Renderable(messages[next])&&v43GroupKey(messages[next])===key){batch.push({m:messages[next],i:next});next++}
-  const first=batch[0].m,speaker=groupChat&&first.role==='assistant'?(Array.isArray(data.characters)?data.characters:[]).find(character=>character.id===first.speaker):directCharacter,entity=first.role==='user'?persona:speaker,label=(groupChat&&first.role==='assistant'?speaker?.name:'')||(first.proactive?'主动说话':''),avatarHtml=showAvatars?messageAvatar(entity,first.role==='user'?(persona?.name||'我'):(speaker?.name||'对方')):'',items=batch.map((entry,position)=>v43MessageItemMarkup(entry.m,entry.i,position===batch.length-1,currentChat)).join('');
+  /* V45.7.11: resolve a group speaker by id, then by MPC, then by stored name.
+     A group bubble must show that member's own avatar or their own first
+     character, never one shared fallback glyph. */
+  const first=batch[0].m,speaker=groupChat&&first.role==='assistant'?v45710GroupSpeaker(first,groupChat):directCharacter,entity=first.role==='user'?persona:speaker,speakerLabel=groupChat&&first.role==='assistant'?(speaker?.name||String(first.speakerName||'').trim()):'',label=speakerLabel||(first.proactive?'主动说话':''),avatarHtml=showAvatars?messageAvatar(entity,first.role==='user'?(persona?.name||'我'):(speakerLabel||'成员')):'',items=batch.map((entry,position)=>v43MessageItemMarkup(entry.m,entry.i,position===batch.length-1,currentChat)).join('');
   html.push(`<div class="msg-group ${first.role==='user'?'me':''} ${showAvatars?'with-avatar':'without-avatar'} ${first.mode==='offline'?'offline-message':''} ${batch.length>1?'batch-message':''}" data-batch="${attr(first.batchId||first.id)}">${avatarHtml}<div class="message-column">${label?`<div class="msg-speaker">${esc(label)}</div>`:''}${items}</div></div>`);index=next;
  }
  container.innerHTML=html.join('');const scroller=container.parentElement;if(scroller)scroller.scrollTop=scroller.scrollHeight;

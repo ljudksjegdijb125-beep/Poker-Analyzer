@@ -22,10 +22,35 @@
     if(Array.isArray(content))return content.map(part=>S(part?.text||part?.content||part)).join('');
     return S(content);
   }
+  /* V45.7.11: a streamed answer also carries usage, usually in the last SSE
+     payload. The old version threw `raw` away and hard-coded reported:false, so
+     with streaming on (the default) a real cache hit never reached the UI. */
+  function streamedCacheUsage(raw){
+    let hit=0,created=0,prompt=0,seen=false;
+    const inspect=json=>{
+      const usage=json?.usage||json?.usageMetadata||json?.message?.usage||null;
+      if(!usage||typeof usage!=='object')return;
+      seen=true;
+      hit+=Number(usage?.prompt_tokens_details?.cached_tokens||usage?.cached_tokens||usage?.cache_read_input_tokens||usage?.cachedContentTokenCount||usage?.cache_read_tokens||0)||0;
+      created+=Number(usage?.cache_creation_input_tokens||usage?.cache_creation_tokens||0)||0;
+      prompt+=Number(usage?.prompt_tokens||usage?.promptTokenCount||usage?.input_tokens||0)||0;
+    };
+    for(const line of S(raw).split(/\r?\n/)){
+      const payload=line.replace(/^data:\s*/,'').trim();
+      if(!payload||payload==='[DONE]'||!(payload.startsWith('{')||payload.startsWith('[')))continue;
+      try{const json=JSON.parse(payload);inspect(json);if(Array.isArray(json))for(const row of json)inspect(row)}catch{}
+    }
+    return{hit,created,prompt,seen};
+  }
   function recordStreamDiagnostic({provider,mode,reason='',startedAt,raw=''}){
     const elapsed=Math.max(0,Date.now()-startedAt),diag={provider:S(provider||'openai'),mode,streaming:mode==='stream',fallback:mode!=='stream',reason:S(reason),elapsed,at:NOW()};
     data.runtime.v455StreamDiagnostic=diag;
-    data.runtime.cacheDiagnostics={...O(data.runtime.cacheDiagnostics),provider:diag.provider,elapsed,streaming:diag.streaming,at:diag.at,reported:false};
+    const usage=streamedCacheUsage(raw),previous=O(data.runtime.cacheDiagnostics);
+    /* The full-response path is already covered by parseProviderResponse, so only
+       overwrite the numbers when this stream actually reported usage itself. */
+    const measured=usage.seen?{hit:usage.hit,created:usage.created,prompt:usage.prompt,reported:Boolean(usage.hit||usage.created)}
+                             :{hit:Number(previous.hit)||0,created:Number(previous.created)||0,prompt:Number(previous.prompt)||0,reported:Boolean(previous.reported)};
+    data.runtime.cacheDiagnostics={...previous,...measured,usageReported:usage.seen,provider:diag.provider,elapsed,streaming:diag.streaming,at:diag.at};
     save();return diag
   }
   async function fullProviderRequest(req,provider,signal){

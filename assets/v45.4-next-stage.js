@@ -216,7 +216,7 @@
 
   function conversationLast(thread){return thread.messages?.at(-1)||null}
   function threadInitial(thread){return S(thread.title||'会').trim().slice(0,1)||'会'}
-  /* V45.7.10: group rows show up to four member avatars instead of one initial. */
+  /* V45.7.11: group rows show up to four member avatars instead of one initial. */
   function threadMemberCell(entity,fallback){
     const src=typeof safeImageSrc==='function'?safeImageSrc(entity?.image):S(entity?.image);
     const initial=S(entity?.name||fallback||'群').trim().slice(0,1)||'群';
