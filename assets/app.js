@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.7.5';
+const VERSION='45.7.6';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -1153,7 +1153,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V44_SW_URL='/sw-v44.js?build=45.7.5';
+const V44_SW_URL='/sw-v44.js?build=45.7.6';
 function isV44WorkerUrl(url){return /\/sw-v44\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v(?:38|42|43)\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1635,7 +1635,7 @@ function clearNotifications(){data.notifications=[];save();renderNotifications()
 
 /* ---------- world & memory ---------- */
 function worldTargetPicker(scope='global',selected=[]){return `<div class="field world-targets" id="worldCharacterTargets" style="display:${scope==='character'?'block':'none'}"><label>绑定人物（可多选）</label><div class="target-checks">${data.characters.length?data.characters.map(c=>`<label><input class="world-character-target" type="checkbox" value="${attr(c.id)}" ${selected.includes(c.id)?'checked':''}>${esc(c.name)}</label>`).join(''):'<small>还没有人物</small>'}</div></div><div class="field world-targets" id="worldGroupTargets" style="display:${scope==='group'?'block':'none'}"><label>绑定群聊（可多选）</label><div class="target-checks">${data.groups.length?data.groups.map(g=>`<label><input class="world-group-target" type="checkbox" value="${attr(g.id)}" ${selected.includes(g.id)?'checked':''}>${esc(g.name)}</label>`).join(''):'<small>还没有群聊</small>'}</div></div>`}
-function worldEditorFields(w={scope:'global',mode:'all',activation:'persistent',targetIds:[],enabled:true}){const locked=w.builtIn===true,disabled=locked?'disabled':'';return `${locked?'<div class="note" style="margin:0 16px 12px">这是 V45.7.5 内置活人感世界书。内容可以调整，也可随时恢复；入口、范围与常驻方式保持固定。</div>':''}<div class="field"><label>名称</label><input id="wn" value="${attr(w.name||'')}" ${locked?'readonly':''}></div><div class="field"><label>适用入口</label><select id="wm" ${disabled}><option value="all" ${!['online','offline'].includes(w.mode)?'selected':''}>全部入口</option><option value="online" ${w.mode==='online'?'selected':''}>仅线上</option><option value="offline" ${w.mode==='offline'?'selected':''}>仅线下</option></select></div><div class="field"><label>作用范围</label><select id="ws" onchange="updateWorldEditorVisibility()" ${disabled}><option value="global" ${w.scope==='global'?'selected':''}>全局 · 所有适用对话</option><option value="character" ${w.scope==='character'?'selected':''}>人物绑定 · 指定人物</option><option value="group" ${w.scope==='group'?'selected':''}>群聊绑定 · 指定群聊</option></select></div>${worldTargetPicker(w.scope,w.targetIds||[])}<div class="field"><label>激活方式</label><select id="wa" onchange="updateWorldEditorVisibility()" ${disabled}><option value="persistent" ${w.activation!=='trigger'?'selected':''}>常驻 · 对应范围内每轮生效</option><option value="trigger" ${w.activation==='trigger'?'selected':''}>普通 · 命中条件时才生效</option></select></div><div class="field" id="worldTriggerField" style="display:${w.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}" placeholder="关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="可引用世界状态、本轮消息、所选人物与面具资料">${esc(w.desc||'')}</textarea></div>`}
+function worldEditorFields(w={scope:'global',mode:'all',activation:'persistent',targetIds:[],enabled:true}){const locked=w.builtIn===true,disabled=locked?'disabled':'';return `${locked?'<div class="note" style="margin:0 16px 12px">这是 V45.7.6 内置活人感世界书。内容可以调整，也可随时恢复；入口、范围与常驻方式保持固定。</div>':''}<div class="field"><label>名称</label><input id="wn" value="${attr(w.name||'')}" ${locked?'readonly':''}></div><div class="field"><label>适用入口</label><select id="wm" ${disabled}><option value="all" ${!['online','offline'].includes(w.mode)?'selected':''}>全部入口</option><option value="online" ${w.mode==='online'?'selected':''}>仅线上</option><option value="offline" ${w.mode==='offline'?'selected':''}>仅线下</option></select></div><div class="field"><label>作用范围</label><select id="ws" onchange="updateWorldEditorVisibility()" ${disabled}><option value="global" ${w.scope==='global'?'selected':''}>全局 · 所有适用对话</option><option value="character" ${w.scope==='character'?'selected':''}>人物绑定 · 指定人物</option><option value="group" ${w.scope==='group'?'selected':''}>群聊绑定 · 指定群聊</option></select></div>${worldTargetPicker(w.scope,w.targetIds||[])}<div class="field"><label>激活方式</label><select id="wa" onchange="updateWorldEditorVisibility()" ${disabled}><option value="persistent" ${w.activation!=='trigger'?'selected':''}>常驻 · 对应范围内每轮生效</option><option value="trigger" ${w.activation==='trigger'?'selected':''}>普通 · 命中条件时才生效</option></select></div><div class="field" id="worldTriggerField" style="display:${w.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="wt" value="${attr(w.trigger||'')}" placeholder="关键词、逗号分隔或 /正则/i"></div><div class="field"><label>内容</label><textarea id="wd" placeholder="可引用世界状态、本轮消息、所选人物与面具资料">${esc(w.desc||'')}</textarea></div>`}
 function updateWorldEditorVisibility(){const scope=document.getElementById('ws')?.value,activation=document.getElementById('wa')?.value;const chars=document.getElementById('worldCharacterTargets'),groups=document.getElementById('worldGroupTargets'),trigger=document.getElementById('worldTriggerField');if(chars)chars.style.display=scope==='character'?'block':'none';if(groups)groups.style.display=scope==='group'?'block':'none';if(trigger)trigger.style.display=activation==='trigger'?'block':'none'}
 function collectWorldEditor(){const scope=document.getElementById('ws').value,mode=document.getElementById('wm')?.value||'all',activation=document.getElementById('wa').value,targetSelector=scope==='character'?'.world-character-target:checked':scope==='group'?'.world-group-target:checked':'';return{name:document.getElementById('wn').value.trim(),scope,mode,activation,targetIds:targetSelector?[...document.querySelectorAll(targetSelector)].map(el=>el.value):[],trigger:document.getElementById('wt')?.value.trim()||'',desc:document.getElementById('wd').value}}
 function validateWorldEntry(w){if(!w.name){toast('请填写名称');return false}if(w.scope!=='global'&&!w.targetIds.length){toast(w.scope==='character'?'请选择绑定人物':'请选择绑定群聊');return false}if(w.activation==='trigger'&&!w.trigger){toast('普通条目需要填写触发条件');return false}return true}
@@ -1840,7 +1840,7 @@ function saveImmersionSettings(){data.settings.innerThoughtsEnabled=document.get
 function saveVoicePlaybackSettings(){data.settings.autoReadEnabled=document.getElementById('autoReadEnabled')?.checked===true;data.settings.autoReadNarration=document.getElementById('autoReadNarration')?.checked===true;save();if(currentChat)renderMessages();toast(data.settings.autoReadEnabled?'自动朗读已开启':'自动朗读已关闭；仍可点听筒图标')}
 function editVoiceWorldBook(){modal(`<h2>语音世界书</h2><div class="note">这里描述角色台词的朗读节奏、停顿、情绪与发音偏好。它会进入聊天模型的上下文来影响可朗读文本；真正的音色、Voice ID 与语速仍由独立声音模型决定。</div><div class="field"><label>全局语音规则</label><textarea id="voiceWorldBookText" style="min-height:190px" placeholder="例如：克制时停顿稍长；笑意只在亲密场景出现；外语人名按……发音">${esc(data.settings.voiceWorldBook||'')}</textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveVoiceWorldBook()">保存</button></div>`)}
 function saveVoiceWorldBook(){data.settings.voiceWorldBook=document.getElementById('voiceWorldBookText')?.value.trim()||'';save();closeModal();loadSettings();toast('语音世界书已保存')}
-function showMcpSafetyInfo(){modal(`<h2>本地 MCP 暂未开放</h2><div class="note">公网部署的网站连接 localhost 并不是零风险：网页可能探测或请求本机服务，浏览器还会受本地网络权限与 CORS 限制；一旦允许模型执行工具，也可能被提示注入诱导调用。你的条件是“没有安全风险才加入”，因此 V45.7.5 没有放入可执行 MCP 工具的入口。后续若加入，只会采用默认关闭、仅 127.0.0.1、工具白名单、每次调用确认且不保存密钥的安全模式。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`)}
+function showMcpSafetyInfo(){modal(`<h2>本地 MCP 暂未开放</h2><div class="note">公网部署的网站连接 localhost 并不是零风险：网页可能探测或请求本机服务，浏览器还会受本地网络权限与 CORS 限制；一旦允许模型执行工具，也可能被提示注入诱导调用。你的条件是“没有安全风险才加入”，因此 V45.7.6 没有放入可执行 MCP 工具的入口。后续若加入，只会采用默认关闭、仅 127.0.0.1、工具白名单、每次调用确认且不保存密钥的安全模式。</div><div class="form-actions"><button class="primary" onclick="closeModal()">知道了</button></div>`)}
 function editDynamicIsland(){
  const cfg=cleanIslandConfig();
  modal(`<h2>自定义灵动岛</h2><div class="field"><label><input id="diEnabled" type="checkbox" style="width:auto" ${data.settings.dynamicIslandEnabled!==false?'checked':''}> 显示灵动岛</label></div><div class="field"><label>收起文字</label><input id="diCompact" maxlength="18" value="${attr(cfg.compactText)}"></div><div class="field"><label>展开标题</label><input id="diTitle" maxlength="24" value="${attr(cfg.title)}"></div><div class="field"><label>展开副标题</label><input id="diSubtitle" maxlength="36" value="${attr(cfg.subtitle)}"></div><div class="field"><label>符号</label><input id="diSymbol" maxlength="6" value="${attr(cfg.symbol)}"></div><div class="field"><label>强调色</label><input id="diAccent" type="color" value="${attr(cfg.accent)}"></div><div class="field"><label>尺寸</label><select id="diSize"><option value="compact" ${cfg.size==='compact'?'selected':''}>紧凑</option><option value="standard" ${cfg.size==='standard'?'selected':''}>标准</option><option value="wide" ${cfg.size==='wide'?'selected':''}>宽</option></select></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveDynamicIsland()">保存</button></div>`);
@@ -1866,17 +1866,17 @@ async function saveAppearanceSettings(){
  if(!isInstalledMode()&&data.settings.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch(e){errorDetail(e,'无法进入全屏')}}else if(!data.settings.fullscreenEnabled&&document.fullscreenElement){try{await document.exitFullscreen()}catch(e){errorDetail(e,'无法退出全屏')}}
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.5 资源包更新');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.6 资源包更新');
  if(!('serviceWorker' in navigator))return toast('当前浏览器不支持离线更新');
  toast('正在检查更新…');
  try{
   const registration=await ensureV44ServiceWorker({forceUpdate:true});
-  if(!registration)throw Error('V45.7.5 离线服务未能注册');
+  if(!registration)throw Error('V45.7.6 离线服务未能注册');
   if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}
-  toast('V45.7.5 更新检查完成');
+  toast('V45.7.6 更新检查完成');
  }catch(error){errorDetail(error,'检查更新失败')}
 }
-function resetData(){if(!confirm('确定清空 V45.7.5 的本机数据吗？历史版本的独立存储不会被删除。'))return;try{localStorage.setItem(STORE,JSON.stringify(blank()));localStorage.removeItem(`${STORE}_migration`);location.reload()}catch(error){errorDetail(error,'清空 V45.7.5 本机数据失败')}}
+function resetData(){if(!confirm('确定清空 V45.7.6 的本机数据吗？历史版本的独立存储不会被删除。'))return;try{localStorage.setItem(STORE,JSON.stringify(blank()));localStorage.removeItem(`${STORE}_migration`);location.reload()}catch(error){errorDetail(error,'清空 V45.7.6 本机数据失败')}}
 function chatInfo(){const g=groupForChat(currentChat);if(g)return editGroup(g.id);const c=directCharacterForChat(currentChat);if(!c)return;editCharacter(c.id,'profile','chat')}
 
 /* ---------- about ---------- */
@@ -1889,7 +1889,7 @@ function about(){
       <div class="about-divider"></div>
       <div class="about-desc">
         <p>由你自己的接口驱动的虚拟手机式互动空间。</p>
-        <p>没有预置人物或聊天。V45.7.5 内置线上活人感、线下活人感与线下去油腻三份可查看、可停用、可恢复的世界书；其余人物、独立面具聊天、动态、世界、记忆、预设、表情包与虚拟应用均属于本机数据。</p>
+        <p>没有预置人物或聊天。V45.7.6 内置线上活人感、线下活人感与线下去油腻三份可查看、可停用、可恢复的世界书；其余人物、独立面具聊天、动态、世界、记忆、预设、表情包与虚拟应用均属于本机数据。</p>
       </div>
       <div class="about-meta">
         <div class="meta-row"><span>数据格式版本</span><span>V${VERSION}</span></div>
@@ -2228,15 +2228,15 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
 
 /* Service Worker update diagnostics */
 async function v43FetchWorkerScript(){
- const response=await fetch('/sw-v44.js?build=45.7.5&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
+ const response=await fetch('/sw-v44.js?build=45.7.6&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v45.7.5"))throw Error('线上 sw-v44.js 仍不是 V45.7.5。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v45.7.6"))throw Error('线上 sw-v44.js 仍不是 V45.7.6。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.5 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V45.7.5 更新…');
- try{await v43FetchWorkerScript();const registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('V45.7.5 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V45.7.5 更新检查完成')}
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.6 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V45.7.6 更新…');
+ try{await v43FetchWorkerScript();const registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('V45.7.6 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V45.7.6 更新检查完成')}
  catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V45\.2|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v44.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
 
@@ -2416,7 +2416,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 /* V44.1 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.5')}
+function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.6')}
 async function v43FetchWorkerScript(){
  const expected=v435ExpectedBuild(),response=await fetch(`/sw-v44.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
@@ -2428,7 +2428,7 @@ async function v43FetchWorkerScript(){
  return{online,expected};
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.5 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.6 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
  try{const versions=await v43FetchWorkerScript(),registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast(`更新检查完成 · Worker ${versions.online}`)}
  catch(error){const detail=String(error?.message||error);if(/Service Worker 版本|sw-v44\.js|ServiceWorker|Failed to update|unknown error|fetching the script|Content-Type|语法无效|无法识别版本/i.test(detail)){modal(`<h2>离线服务版本不一致</h2><div class="note">${esc(detail)}<br><br>当前页面可能仍由旧缓存控制。请先把同一版本的 index.html、assets/app.js、assets/app.css、sw-v44.js、repair-sw.html 一起部署，再打开修复页。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
@@ -2830,7 +2830,7 @@ function showMessageEditHistory(ref=msgMenuTarget){const resolved=v4310ResolveMe
       for(const profile of Object.values(copy.models||{}))if(profile&&typeof profile==='object')delete profile.key;
       for(const profile of Object.values(copy.apiConfigs||{}))if(profile&&typeof profile==='object'){delete profile.key;delete profile.apiKey;delete profile.token;delete profile.accessToken;delete profile.signature}
       if(copy.settings&&typeof copy.settings==='object'){delete copy.settings.apiKey;delete copy.settings.apiKeyToken}
-      downloadJSON({format:'pokeji-data',version:'45.7.5',exportedAt:new Date().toISOString(),data:copy},`pokeji-data-${Date.now()}.json`);toast('最终资料已导出（API Key 未包含）');
+      downloadJSON({format:'pokeji-data',version:'45.7.6',exportedAt:new Date().toISOString(),data:copy},`pokeji-data-${Date.now()}.json`);toast('最终资料已导出（API Key 未包含）');
     }catch(error){errorDetail(error,'资料导出失败')}
   };
   importSJ=function(ev){
