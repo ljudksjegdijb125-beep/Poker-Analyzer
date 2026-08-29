@@ -6,23 +6,50 @@
 <meta name="robots" content="noindex,nofollow">
 <title>扑克机 · V45 离线服务修复</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0d0d0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}body{display:grid;place-items:center;padding:24px}.box{width:min(420px,100%);padding:22px;border-radius:18px;background:#19191c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 20px 50px #0008}.mark{width:43px;height:43px;border-radius:13px;background:#eee;color:#202023;display:grid;place-items:center;font-size:20px}h1{margin:15px 0 8px;font-size:19px}p{margin:0;color:#aaa;font-size:12px;line-height:1.7}.status{margin-top:15px;padding:12px;border-radius:12px;background:#101012;color:#d3d3d0;font-size:11px;line-height:1.7;white-space:pre-wrap}.ok{color:#a9c3ad}.bad{color:#dfa0a6}button{width:100%;height:44px;margin-top:14px;border:0;border-radius:12px;background:#eee;color:#171719;font-weight:650}small{display:block;margin-top:12px;color:#777;line-height:1.6}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0d0d0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}body{display:grid;place-items:center;padding:24px}.box{width:min(420px,100%);padding:22px;border-radius:18px;background:#19191c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 20px 50px #0008}.mark{width:43px;height:43px;border-radius:13px;background:#eee;color:#202023;display:grid;place-items:center;font-size:20px}h1{margin:15px 0 8px;font-size:19px}p{margin:0;color:#aaa;font-size:12px;line-height:1.7}.status{margin-top:15px;padding:12px;border-radius:12px;background:#101012;color:#d3d3d0;font-size:11px;line-height:1.7;white-space:pre-wrap}.ok{color:#a9c3ad}.bad{color:#dfa0a6}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.actions button,.actions a{min-height:42px;margin:0;padding:9px;border:1px solid #343438;border-radius:11px;background:#26262a;color:#eee;display:grid;place-items:center;text-align:center;text-decoration:none;font:inherit;font-size:11px}.actions .primary{grid-column:1/-1;background:#eee;color:#171719;font-weight:650}.actions [hidden]{display:none}.actions button:disabled{opacity:.5}small{display:block;margin-top:12px;color:#85858a;line-height:1.6}
 </style>
 </head>
 <body>
-<main class="box"><div class="mark">♠</div><h1>修复离线更新</h1><p>仅注销旧 Service Worker 并清理扑克机网页缓存；不会删除 localStorage 中的人物、聊天、设置或接口配置。</p><div id="status" class="status">准备修复…</div><button id="retry" hidden onclick="repair()">重新修复</button><button onclick="location.href='/startup-repair.html?v=45.7.4'">打开启动诊断</button><small>修复后如果仍显示旧版本，请完全关闭这个网站/PWA，再重新打开。</small></main>
+<main class="box">
+ <div class="mark">♠</div><h1>安全修复离线更新</h1>
+ <p>只注销旧离线服务并删除扑克机 Cache Storage；不操作保存人物、聊天、设置和接口配置的本机资料。</p>
+ <div id="status" class="status">等待开始。整个过程最多等待 6 秒；即使浏览器接口没有回应，也会自动结束等待。</div>
+ <div class="actions">
+  <button id="startRepair" class="primary" onclick="repair()">开始安全修复</button>
+  <a id="leaveRepair" href="/index.html?no-sw=1&amp;leave-repair=45.7.5">无离线服务打开</a>
+  <a href="/startup-repair.html?v=45.7.5">启动诊断</a>
+ </div>
+ <small id="afterNote">修复完成后不会自动跳转。请完全关闭这个页面和已安装的扑克机，再从 Chrome 重新打开，避免旧离线服务继续控制本次跳转。</small>
+</main>
 <script>
-async function repair(){
- const status=document.getElementById('status'),retry=document.getElementById('retry');retry.hidden=true;status.className='status';status.textContent='正在注销旧离线服务…';
- try{
-  let unregistered=0,deleted=0;
-  if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();for(const registration of registrations){if(await registration.unregister())unregistered++}}
-  if('caches'in window){const keys=await caches.keys();for(const key of keys){if(key.startsWith('pokeji-')&&await caches.delete(key))deleted++}}
-  status.className='status ok';status.textContent=`修复完成\n已注销 ${unregistered} 个离线服务\n已清理 ${deleted} 个扑克机缓存\n聊天与设置未删除。\n\n正在重新打开 V45…`;
-  setTimeout(()=>location.replace('/index.html?repaired=45.7.4&t='+Date.now()),1200);
- }catch(error){status.className='status bad';status.textContent='修复失败：'+(error?.message||error);retry.hidden=false}
+const BUILD='45.7.5';
+let running=false,finished=false,timeoutCount=0,errorCount=0,repairRun=0;
+function limited(task,ms,fallback){
+ return new Promise(resolve=>{let settled=false;const timer=setTimeout(()=>{if(settled)return;settled=true;timeoutCount++;resolve(fallback)},ms);Promise.resolve(task).then(value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value)}).catch(()=>{if(settled)return;settled=true;clearTimeout(timer);errorCount++;resolve(fallback)})});
 }
-repair();
+function finishRepair(runId,detail){
+ if(runId!==repairRun||finished)return;finished=true;running=false;
+ const status=document.getElementById('status'),start=document.getElementById('startRepair'),leave=document.getElementById('leaveRepair'),note=document.getElementById('afterNote');
+ status.className='status ok';status.textContent=detail;start.disabled=false;start.textContent='再次修复';leave.textContent='无离线服务打开';leave.href='/index.html?no-sw=1&repaired='+BUILD+'&t='+Date.now();note.textContent='最稳妥的方式仍是先完全关闭这个页面和已安装的扑克机，再重新打开。“无离线服务打开”可用于先确认主界面能否正常启动。';
+}
+async function repair(){
+ if(running)return;running=true;finished=false;timeoutCount=0;errorCount=0;
+ const runId=++repairRun;
+ const status=document.getElementById('status'),start=document.getElementById('startRepair');start.disabled=true;start.textContent='修复中…';status.className='status';status.textContent='正在限时注销旧离线服务并清理缓存…';
+ const hardStop=setTimeout(()=>finishRepair(runId,'安全等待已结束。部分浏览器接口没有及时回应，但页面不会继续卡住。\n\n请完全关闭本页和已安装的扑克机，再重新打开。'),6200);
+ try{
+  const sources=await Promise.all([
+   'serviceWorker'in navigator?limited(navigator.serviceWorker.getRegistrations(),1800,[]):Promise.resolve([]),
+   'caches'in window?limited(caches.keys(),1800,[]):Promise.resolve([])
+  ]),registrations=Array.isArray(sources[0])?sources[0]:[],cacheNames=Array.isArray(sources[1])?sources[1]:[],pokejiCaches=cacheNames.filter(name=>String(name).startsWith('pokeji-'));
+  const results=await Promise.all([
+   Promise.all(registrations.map(registration=>limited(registration.unregister(),2200,false))),
+   Promise.all(pokejiCaches.map(name=>limited(caches.delete(name),2200,false)))
+  ]),unregistered=results[0].filter(Boolean).length,deleted=results[1].filter(Boolean).length;
+  clearTimeout(hardStop);
+  finishRepair(runId,`安全修复已结束\n已注销 ${unregistered}/${registrations.length} 个离线服务\n已清理 ${deleted}/${pokejiCaches.length} 个扑克机缓存\n超时 ${timeoutCount} 项 · 失败 ${errorCount} 项\n\n人物、聊天、设置和接口配置未被删除。`);
+ }catch(error){clearTimeout(hardStop);errorCount++;finishRepair(runId,'安全修复已结束，但浏览器返回异常：'+String(error&&error.message||error)+'\n\n页面不会继续等待，请完全关闭后重新打开。')}
+}
 </script>
 </body>
 </html>
