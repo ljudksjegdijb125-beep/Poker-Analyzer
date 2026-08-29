@@ -1,7 +1,7 @@
 {
-  "version": "45.7.9",
-  "build_id": "V45.7.9-20260829-224505-CST",
-  "built_at": "2026-08-29T22:45:05+08:00",
+  "version": "45.7.10",
+  "build_id": "V45.7.10-20260830-CST",
+  "built_at": "2026-08-30T00:00:00+08:00",
   "timezone": "Asia/Shanghai",
-  "package": "POKEJI-V45.7.9-BUILD-20260829-224505-CST-DEPLOY-ROOT.zip"
+  "package": "POKEJI-V45.7.10.zip"
 }
