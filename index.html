@@ -9,11 +9,48 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · 沉浸互动空间 · V45.7.3</title>
-<link rel="manifest" href="/manifest.webmanifest?v=45.7.3">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.7.3">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.7.3">
-<link rel="stylesheet" href="/assets/app.css?v=45.7.3">
+<title>扑克机 · 沉浸互动空间 · V45.7.4</title>
+<script>
+(function(){
+  var BUILD='45.7.4',finished=false,watchdog=0,absoluteTimer=0;
+  function node(id){return document.getElementById(id)}
+  function removeNode(target){if(!target)return;if(target.remove)target.remove();else if(target.parentNode)target.parentNode.removeChild(target)}
+  function messageFor(kind){
+    if(kind==='asset')return '启动文件没有完整加载，可能是部署目录不完整或仍被旧缓存控制。';
+    if(kind==='runtime')return '本机旧资料或启动模块发生兼容异常，资料不会因此被清空。';
+    return '启动等待已超过 6 秒，可以重新加载、修复缓存或打开启动诊断。';
+  }
+  function emergency(kind){
+    if(finished||window.__pokejiCoreReady===true)return;
+    var recovery=node('bootRecovery'),copy=node('bootRecoveryText');
+    if(recovery){recovery.hidden=false;if(copy)copy.textContent=messageFor(kind);return}
+    var panel=node('pokejiEmergencyStartup');
+    if(!panel){
+      panel=document.createElement('div');panel.id='pokejiEmergencyStartup';
+      panel.style.cssText='position:fixed;z-index:2147483647;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));max-width:430px;margin:auto;padding:14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:#171719;color:#f4f4f0;box-shadow:0 18px 55px rgba(0,0,0,.72);font:12px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif';
+      panel.innerHTML='<b style="display:block;font-size:13px">启动没有完成 · V'+BUILD+'</b><p id="pokejiEmergencyText" style="margin:5px 0 10px;color:#c9c9c4"></p><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px"><a href="/index.html?manual-reload='+BUILD+'" style="padding:10px;border-radius:9px;background:#29292d;color:#fff;text-align:center;text-decoration:none">重新加载</a><a href="/repair-sw.html?from=boot-'+BUILD+'" style="padding:10px;border-radius:9px;background:#f0f0ec;color:#171719;text-align:center;text-decoration:none">修复缓存</a><a href="/startup-repair.html?v='+BUILD+'" style="grid-column:1/-1;padding:9px;border:1px solid rgba(255,255,255,.15);border-radius:9px;color:#ddd;text-align:center;text-decoration:none">打开启动诊断</a></div>';
+      (document.body||document.documentElement).appendChild(panel);
+    }
+    var emergencyCopy=node('pokejiEmergencyText');if(emergencyCopy)emergencyCopy.textContent=messageFor(kind);
+  }
+  function hideBootOnly(){var boot=node('bootScreen');if(boot){boot.classList.add('done');setTimeout(function(){removeNode(boot)},900)}}
+  window.__pokejiBootReport=emergency;
+  window.__pokejiBootFinish=function(){
+    if(finished)return;finished=true;clearTimeout(watchdog);clearTimeout(absoluteTimer);
+    var recovery=node('bootRecovery');if(recovery)recovery.hidden=true;
+    removeNode(node('pokejiEmergencyStartup'));hideBootOnly();
+  };
+  window.addEventListener('error',function(event){if(window.__pokejiCoreReady===true)return;var target=event.target;if(target&&/^(SCRIPT|LINK)$/.test(target.tagName||''))emergency('asset');else if(event.error)emergency('runtime')},true);
+  window.addEventListener('unhandledrejection',function(){if(window.__pokejiCoreReady!==true)emergency('runtime')});
+  watchdog=setTimeout(function(){if(window.__pokejiCoreReady!==true)emergency('timeout')},6500);
+  absoluteTimer=setTimeout(function(){if(window.__pokejiCoreReady!==true){emergency('timeout');hideBootOnly();setTimeout(function(){emergency('timeout')},1000)}},12000);
+  try{if(sessionStorage.getItem('pokeji_skip_boot_once')==='1'){sessionStorage.removeItem('pokeji_skip_boot_once');document.addEventListener('DOMContentLoaded',function(){hideBootOnly()})}}catch(error){}
+})();
+</script>
+<link rel="manifest" href="/manifest.webmanifest?v=45.7.4">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.7.4">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.7.4">
+<link rel="stylesheet" href="/assets/app.css?v=45.7.4">
 </head>
 <body>
 
@@ -31,21 +68,11 @@
     <div id="bootRecovery" class="boot-recovery" hidden>
       <b>启动没有完成</b>
       <p id="bootRecoveryText">正在检查启动资源…</p>
-      <div><button type="button" onclick="location.reload()">重新加载</button><button type="button" onclick="location.href='/repair-sw.html?t='+Date.now()">修复缓存</button></div>
+      <div><a href="/index.html?manual-reload=45.7.4">重新加载</a><a href="/repair-sw.html?from=boot-45.7.4">修复缓存</a><a href="/startup-repair.html?v=45.7.4">启动诊断</a></div>
     </div>
+    <details class="boot-manual"><summary>启动帮助</summary><div><a href="/index.html?manual-reload=45.7.4">重新加载</a><a href="/repair-sw.html?from=boot-45.7.4">修复缓存</a></div></details>
   </div>
 </div>
-<script>
-(function(){
-  const boot=document.getElementById('bootScreen'),recovery=document.getElementById('bootRecovery'),text=document.getElementById('bootRecoveryText');
-  let finished=false;
-  window.__pokejiBootFinish=function(){if(finished)return;finished=true;if(recovery)recovery.hidden=true;if(!boot)return;boot.classList.add('done');setTimeout(()=>{if(boot.remove)boot.remove();else if(boot.parentNode)boot.parentNode.removeChild(boot)},900)};
-  window.__pokejiBootReport=function(kind){if(finished||window.__pokejiCoreReady===true||!recovery)return;recovery.hidden=false;if(text)text.textContent=kind==='asset'?'启动文件没有完整加载。请确认压缩包内容位于部署根目录，或先修复旧缓存。':kind==='runtime'?'本机旧资料在启动时发生兼容异常。资料不会被清空，可先重新加载或修复旧缓存。':'启动等待已超过 8 秒。请重新加载；若仍停留在这里，再修复旧缓存。'};
-  window.addEventListener('error',event=>{if(window.__pokejiCoreReady===true)return;const target=event.target;if(target&&/^(SCRIPT|LINK)$/.test(target.tagName||''))window.__pokejiBootReport('asset');else if(event.error)window.__pokejiBootReport('runtime')},true);
-  window.addEventListener('unhandledrejection',()=>{if(window.__pokejiCoreReady!==true)window.__pokejiBootReport('runtime')});
-  setTimeout(()=>{if(window.__pokejiCoreReady!==true)window.__pokejiBootReport('timeout')},8000);
-})();
-</script>
 
 <div id="phone">
 <div id="status">
@@ -190,7 +217,7 @@
 <div class="scroll data-hub">
 <div class="data-hero">
  <div class="data-hero-mark">▣</div>
- <div><small>LOCAL DATA · V45.7.3</small><h2>你的本机资料</h2><p>人物、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
+ <div><small>LOCAL DATA · V45.7.4</small><h2>你的本机资料</h2><p>人物、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
  <span>仅本机</span>
 </div>
 <div class="data-stats" aria-label="本机资料统计">
@@ -321,42 +348,42 @@
  try{Object.defineProperty(editor,'value',{configurable:true,get:text,set:value=>{editor.textContent=String(value||'')}});Object.defineProperty(editor,'placeholder',{configurable:true,get:()=>editor.dataset.placeholder||'',set:value=>{editor.dataset.placeholder=String(value||'')}});Object.defineProperty(editor,'disabled',{configurable:true,get:()=>disabled,set:value=>{disabled=!!value;editor.setAttribute('contenteditable',disabled?'false':'plaintext-only');editor.setAttribute('aria-disabled',disabled?'true':'false')}});Object.defineProperty(editor,'type',{configurable:true,get:()=>'text',set:()=>{}});Object.defineProperty(editor,'name',{configurable:true,get:()=>'',set:()=>{}});Object.defineProperty(editor,'autocomplete',{configurable:true,get:()=>'off',set:()=>{}})}catch{}
 })();
 </script>
-<script src="/assets/app.js?v=45.7.3"></script>
-<script src="/assets/v45-patch.js?v=45.7.3"></script>
-<script src="/assets/v45-final.js?v=45.7.3"></script>
-<script src="/assets/v45-ui-fix.js?v=45.7.3"></script>
-<script src="/assets/v45-phone-call.js?v=45.7.3"></script>
-<script src="/assets/v45-followup.js?v=45.7.3"></script>
-<script src="/assets/v45-stability.js?v=45.7.3"></script>
-<script src="/assets/v45.1-fix.js?v=45.7.3"></script>
+<script src="/assets/app.js?v=45.7.4"></script>
+<script src="/assets/v45-patch.js?v=45.7.4"></script>
+<script src="/assets/v45-final.js?v=45.7.4"></script>
+<script src="/assets/v45-ui-fix.js?v=45.7.4"></script>
+<script src="/assets/v45-phone-call.js?v=45.7.4"></script>
+<script src="/assets/v45-followup.js?v=45.7.4"></script>
+<script src="/assets/v45-stability.js?v=45.7.4"></script>
+<script src="/assets/v45.1-fix.js?v=45.7.4"></script>
 <!-- Existing phone desktop remains authoritative; only app interiors load below. -->
-<script src="/assets/v45.1-memory-entries.js?v=45.7.3"></script>
-<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.4.1-runtime.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.4.1-phone.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.4.1-story.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.5.0-framework.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.6.0-refinement.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.7.0-polish.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.7.1-refinement.css?v=45.7.3">
-<link rel="stylesheet" href="/assets/v45.7.2-refinement.css?v=45.7.3">
-<script src="/assets/v45.2-app-interiors.js?v=45.7.3"></script>
-<script src="/assets/pako-inflate.min.js?v=45.7.3"></script>
-<script src="/assets/v45.3-repair.js?v=45.7.3"></script>
+<script src="/assets/v45.1-memory-entries.js?v=45.7.4"></script>
+<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.4.1-runtime.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.4.1-phone.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.4.1-story.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.5.0-framework.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.6.0-refinement.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.7.0-polish.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.7.1-refinement.css?v=45.7.4">
+<link rel="stylesheet" href="/assets/v45.7.2-refinement.css?v=45.7.4">
+<script src="/assets/v45.2-app-interiors.js?v=45.7.4"></script>
+<script src="/assets/pako-inflate.min.js?v=45.7.4"></script>
+<script src="/assets/v45.3-repair.js?v=45.7.4"></script>
 <!-- Formal routed pages: no preview navigator is loaded into the deploy package. -->
-<script src="/assets/v45.4-next-stage.js?v=45.7.3"></script>
-<script src="/assets/v45.4.1-core.js?v=45.7.3"></script>
-<script src="/assets/v45.4.1-runtime.js?v=45.7.3"></script>
-<script src="/assets/v45.4.1-phone.js?v=45.7.3"></script>
-<script src="/assets/v45.4.1-story.js?v=45.7.3"></script>
-<script src="/assets/v45.5.0-framework.js?v=45.7.3"></script>
-<script src="/assets/v45.6.0-refinement.js?v=45.7.3"></script>
-<script src="/assets/v45.7.0-polish.js?v=45.7.3"></script>
-<script src="/assets/v45.7.1-refinement.js?v=45.7.3"></script>
-<script src="/assets/v45.7.2-refinement.js?v=45.7.3"></script>
+<script src="/assets/v45.4-next-stage.js?v=45.7.4"></script>
+<script src="/assets/v45.4.1-core.js?v=45.7.4"></script>
+<script src="/assets/v45.4.1-runtime.js?v=45.7.4"></script>
+<script src="/assets/v45.4.1-phone.js?v=45.7.4"></script>
+<script src="/assets/v45.4.1-story.js?v=45.7.4"></script>
+<script src="/assets/v45.5.0-framework.js?v=45.7.4"></script>
+<script src="/assets/v45.6.0-refinement.js?v=45.7.4"></script>
+<script src="/assets/v45.7.0-polish.js?v=45.7.4"></script>
+<script src="/assets/v45.7.1-refinement.js?v=45.7.4"></script>
+<script src="/assets/v45.7.2-refinement.js?v=45.7.4"></script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{

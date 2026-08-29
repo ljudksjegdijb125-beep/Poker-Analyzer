@@ -10,7 +10,7 @@
 </style>
 </head>
 <body>
-<main class="box"><div class="mark">♠</div><h1>修复离线更新</h1><p>仅注销旧 Service Worker 并清理扑克机网页缓存；不会删除 localStorage 中的人物、聊天、设置或接口配置。</p><div id="status" class="status">准备修复…</div><button id="retry" hidden onclick="repair()">重新修复</button><small>修复后如果仍显示旧版本，请完全关闭这个网站/PWA，再重新打开。</small></main>
+<main class="box"><div class="mark">♠</div><h1>修复离线更新</h1><p>仅注销旧 Service Worker 并清理扑克机网页缓存；不会删除 localStorage 中的人物、聊天、设置或接口配置。</p><div id="status" class="status">准备修复…</div><button id="retry" hidden onclick="repair()">重新修复</button><button onclick="location.href='/startup-repair.html?v=45.7.4'">打开启动诊断</button><small>修复后如果仍显示旧版本，请完全关闭这个网站/PWA，再重新打开。</small></main>
 <script>
 async function repair(){
  const status=document.getElementById('status'),retry=document.getElementById('retry');retry.hidden=true;status.className='status';status.textContent='正在注销旧离线服务…';
@@ -19,7 +19,7 @@ async function repair(){
   if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();for(const registration of registrations){if(await registration.unregister())unregistered++}}
   if('caches'in window){const keys=await caches.keys();for(const key of keys){if(key.startsWith('pokeji-')&&await caches.delete(key))deleted++}}
   status.className='status ok';status.textContent=`修复完成\n已注销 ${unregistered} 个离线服务\n已清理 ${deleted} 个扑克机缓存\n聊天与设置未删除。\n\n正在重新打开 V45…`;
-  setTimeout(()=>location.replace('/index.html?repaired=45.7.3&t='+Date.now()),1200);
+  setTimeout(()=>location.replace('/index.html?repaired=45.7.4&t='+Date.now()),1200);
  }catch(error){status.className='status bad';status.textContent='修复失败：'+(error?.message||error);retry.hidden=false}
 }
 repair();

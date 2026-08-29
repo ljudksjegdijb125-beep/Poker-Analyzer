@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>扑克机 · 启动诊断</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0d0d0f;color:#f2f2ef;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}body{padding:22px}.box{width:min(480px,100%);margin:auto;padding:20px;border:1px solid #303034;border-radius:18px;background:#19191c;box-shadow:0 20px 60px #0008}header{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border-radius:12px;background:#efefeb;color:#19191b;display:grid;place-items:center;font-size:19px}h1{margin:0;font-size:18px}header small{display:block;margin-top:3px;color:#929297}p{color:#aaa;font-size:12px;line-height:1.7}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.actions button{min-height:42px;border:1px solid #36363b;border-radius:11px;background:#26262a;color:#eee;font:inherit;font-size:12px}.actions button.primary{background:#efefeb;color:#171719}.actions button:last-child{grid-column:1/-1}.status{padding:12px;border-radius:12px;background:#101012;font-size:11px;line-height:1.65;white-space:pre-wrap}.checks{display:grid;gap:7px;margin-top:11px}.check{display:grid;grid-template-columns:9px 1fr auto;gap:8px;align-items:center;padding:9px;border:1px solid #2b2b2f;border-radius:10px;background:#151517;font-size:10px}.check i{width:7px;height:7px;border-radius:50%;background:#777}.check.ok i{background:#8eb395}.check.bad i{background:#d5848b}.check span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.check small{color:#85858a}.note{margin-top:12px;color:#818186;font-size:10px;line-height:1.65}
+</style>
+</head>
+<body>
+<main class="box">
+ <header><div class="mark">♠</div><div><h1>启动诊断与恢复</h1><small>V45.7.4 · 不删除本机资料</small></div></header>
+ <p>这里独立于主程序运行。可以检查部署文件、重新请求最新版，或只清理离线服务与网页缓存。</p>
+ <div class="actions"><button class="primary" onclick="freshReload()">重新加载最新版</button><button onclick="repairAndReload()">修复缓存并重开</button><button onclick="skipBootOnce()">仅跳过一次待机画面</button></div>
+ <div id="status" class="status">正在检查部署文件…</div>
+ <div id="checks" class="checks"></div>
+ <div class="note">“修复缓存”不会操作 localStorage 或 IndexedDB，因此不会主动删除人物、面具、聊天、设置和接口配置。若检查结果显示旧版本，请重新完整覆盖部署包。</div>
+</main>
+<script>
+const BUILD='45.7.4';
+const targets=[
+ {name:'页面入口',path:'/index.html',marker:'V45.7.4'},
+ {name:'主程序',path:'/assets/app.js',marker:"const VERSION='45.7.4'"},
+ {name:'主样式',path:'/assets/app.css',marker:'#bootScreen'},
+ {name:'离线服务',path:'/sw-v44.js',marker:"pokeji-v45.7.4"},
+ {name:'应用清单',path:'/manifest.webmanifest',marker:'45.7.4'},
+ {name:'缓存修复页',path:'/repair-sw.html',marker:'repaired=45.7.4'}
+];
+const status=document.getElementById('status'),checks=document.getElementById('checks');
+function row(item){const el=document.createElement('div');el.className='check '+(item.ok?'ok':'bad');el.innerHTML=`<i></i><span>${item.name}</span><small>${item.detail}</small>`;checks.appendChild(el)}
+async function inspect(){
+ checks.innerHTML='';let passed=0;
+ for(const target of targets){
+  try{
+   const join=target.path.includes('?')?'&':'?',response=await fetch(target.path+join+'probe='+Date.now(),{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),body=await response.text();
+   const markerOk=body.includes(target.marker),typeOk=!/\.(?:js)$/i.test(target.path)||/(?:javascript|ecmascript|text\/plain)/i.test(type),ok=response.ok&&markerOk&&typeOk;
+   if(ok)passed++;row({name:target.name,ok,detail:ok?'V'+BUILD:(!response.ok?'HTTP '+response.status:!typeOk?'类型错误':'版本不符')});
+  }catch(error){row({name:target.name,ok:false,detail:'无法读取'})}
+ }
+ status.textContent=passed===targets.length?`检查完成：${passed}/${targets.length} 项正常。\n可以直接重新加载最新版。`:`检查完成：${passed}/${targets.length} 项正常。\n部署文件仍不完整或旧缓存尚未退出，请先修复缓存；若版本仍不符，需要重新覆盖部署包。`;
+}
+function freshReload(){location.replace('/index.html?manual-reload='+BUILD+'&t='+Date.now())}
+function skipBootOnce(){try{sessionStorage.setItem('pokeji_skip_boot_once','1')}catch(error){}location.replace('/index.html?skip-boot=1&t='+Date.now())}
+async function repairAndReload(){
+ status.textContent='正在注销离线服务并清理扑克机缓存…';
+ try{
+  let unregistered=0,deleted=0;
+  if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();for(const registration of registrations)try{if(await registration.unregister())unregistered++}catch(error){}}
+  if('caches'in window){const names=await caches.keys();for(const name of names)if(name.startsWith('pokeji-'))try{if(await caches.delete(name))deleted++}catch(error){}}
+  status.textContent=`修复完成：注销 ${unregistered} 个离线服务，删除 ${deleted} 个扑克机缓存。\n本机资料没有删除，正在重新打开…`;
+  setTimeout(freshReload,900);
+ }catch(error){status.textContent='修复未完成：'+String(error?.message||error)+'\n请完全关闭网站/PWA 后重开本页再试。'}
+}
+inspect();
+</script>
+</body>
+</html>
