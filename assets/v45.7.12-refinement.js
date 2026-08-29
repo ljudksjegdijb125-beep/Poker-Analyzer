@@ -1,0 +1,2244 @@
+/* V45.7.12: shared selector escaper. Some installed WebViews lack CSS.escape,
+   and a missing one used to throw inside the regex binding sheets. */
+window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
+  const text=String(value??'');
+  try{if(window.CSS&&typeof window.CSS.escape==='function')return window.CSS.escape(text)}catch{}
+  return text.replace(/[^a-zA-Z0-9_-]/g,ch=>'\\'+ch);
+};
+/* =========================================================
+   POKEJI V45.7.11 · incremental fixes and in-place UI additions
+   - conversation-owned chat background
+   - visual novel rule binding inside the existing 文游 settings sheet
+   - line-based entry inside the existing 语伴 dictionary page
+   No page is rebuilt; existing routes, classes and visuals are reused.
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiV45710Loaded)return;
+  window.__pokejiV45710Loaded=true;
+
+  const S=(value,fallback='')=>String(value??fallback);
+  const O=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+  const L=value=>Array.isArray(value)?value:[];
+  const E=value=>typeof esc==='function'?esc(S(value)):S(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=value=>typeof attr==='function'?attr(S(value)):E(value);
+  const A=value=>`decodeURIComponent('${encodeURIComponent(S(value)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const ID=prefix=>`${prefix}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const persist=()=>{try{save()}catch{}};
+  const say=text=>{try{toast(text)}catch{}};
+  const imageOf=value=>{try{return typeof safeImageSrc==='function'?safeImageSrc(value):S(value)}catch{return''}};
+
+  /* =========================================================
+     1 · Chat background belongs to the conversation only
+     A private chat is one character under one mask; a group chat is one group
+     under one mask. Restoring the default really clears the stored image.
+     ========================================================= */
+  function conversationSettings(chatId){
+    try{return chatId&&typeof getChatSettings==='function'?getChatSettings(chatId):null}catch{return null}
+  }
+  function paintDefaultBackground(){
+    const chat=document.getElementById('chat');if(!chat)return;
+    chat.style.removeProperty('background-image');
+    chat.style.removeProperty('background-size');
+    chat.style.removeProperty('background-position');
+    chat.style.removeProperty('background-repeat');
+    chat.classList.remove('has-custom-bg');
+    if(chat.style.getPropertyValue('--background-overlay-opacity')!=='0')chat.style.setProperty('--background-overlay-opacity','0');
+  }
+  function paintConversationBackground(){
+    const chat=document.getElementById('chat');if(!chat)return;
+    const settings=conversationSettings(typeof currentChat!=='undefined'?currentChat:'');
+    const src=imageOf(settings?.background);
+    if(!src){paintDefaultBackground();return}
+    chat.classList.add('has-custom-bg');
+    chat.style.backgroundSize='cover';chat.style.backgroundPosition='center';chat.style.backgroundRepeat='no-repeat';
+    /* Some installed WebViews reject the layered gradient form; keep a plain fallback. */
+    if(!S(chat.style.backgroundImage).trim())try{chat.style.backgroundImage=`url(${src})`}catch{}
+  }
+  const baseApplyChatBackground=typeof window.applyChatBackground==='function'?window.applyChatBackground:null;
+  if(baseApplyChatBackground&&!baseApplyChatBackground.__v45710){
+    const wrapped=function(...args){const result=baseApplyChatBackground.apply(this,args);paintConversationBackground();return result};
+    wrapped.__v45710=true;window.applyChatBackground=wrapped;try{applyChatBackground=wrapped}catch{}
+  }
+  const baseClearChatBackground=typeof window.clearChatBackground==='function'?window.clearChatBackground:null;
+  if(baseClearChatBackground&&!baseClearChatBackground.__v45710){
+    const wrapped=function(...args){const result=baseClearChatBackground.apply(this,args);paintDefaultBackground();return result};
+    wrapped.__v45710=true;window.clearChatBackground=wrapped;try{clearChatBackground=wrapped}catch{}
+  }
+
+  /* The character editor labelled this "当前面具背景". There is no mask-level
+     background: it is this character's private chat under the current mask. */
+  const baseBindingPage=typeof window.characterBindingPage==='function'?window.characterBindingPage:null;
+  if(baseBindingPage&&!baseBindingPage.__v45710){
+    const wrapped=function(draft){
+      let html=baseBindingPage.call(this,draft);
+      const settings=(()=>{
+        try{
+          if(draft?.__new)return null;
+          const personaId=draft?.boundPersonaId||selectedPersonaIdForEntity(draft.id);
+          return getChatSettings(directChatId(draft.id,personaId));
+        }catch{return null}
+      })();
+      const label=`<b>与${E(draft?.name||'此人')}的私信背景</b><small>${draft?.__new?'保存后可设置':(settings?.background?'已设置图片 · 可恢复默认纯色':'当前使用主题默认纯色')}</small>`;
+      html=html.replace(/<b>当前面具背景<\/b><small>[^<]*<\/small>/,label);
+      if(!draft?.__new)html=html.replace(
+        /(<button [^>]*onclick="chooseCharacterChatBackground\(\)">[\s\S]*?<\/button>)/,
+        `$1<button onclick="v45710ClearCharacterBackground(${A(draft.id)})"><span>▤</span><b>恢复默认纯色</b><small>${settings?.background?'清除这条私信的背景图片':'已经是默认纯色'}</small></button>`
+      );
+      return html;
+    };
+    wrapped.__v45710=true;window.characterBindingPage=wrapped;try{characterBindingPage=wrapped}catch{}
+  }
+  window.v45710ClearCharacterBackground=function(characterId){
+    try{
+      const draft=typeof characterEditorDraft!=='undefined'?characterEditorDraft:null;
+      const personaId=draft?.boundPersonaId||selectedPersonaIdForEntity(characterId);
+      const chatId=directChatId(characterId,personaId),settings=getChatSettings(chatId);
+      if(!settings?.background)return say('这条私信已经在使用默认纯色');
+      settings.background='';settings.backgroundMode='overlay';persist();
+      if(typeof currentChat!=='undefined'&&currentChat===chatId)paintDefaultBackground();
+      if(typeof renderCharacterEditor==='function')renderCharacterEditor();
+      say('已恢复这条私信的默认纯色背景');
+    }catch(error){console.warn('V45.7.11 背景恢复失败',error)}
+  };
+
+  /* Group settings sheet: same wording correction, background stays per group per mask. */
+  const baseEditGroup=typeof window.editGroup==='function'?window.editGroup:null;
+  if(baseEditGroup&&!baseEditGroup.__v45710){
+    const wrapped=function(id,...rest){
+      const result=baseEditGroup.call(this,id,...rest);
+      setTimeout(()=>{
+        const title=[...document.querySelectorAll('#modalContent .group-title')].find(node=>S(node.textContent).trim()==='当前面具外观');
+        if(title)title.textContent='本群聊背景';
+      },0);
+      return result;
+    };
+    wrapped.__v45710=true;window.editGroup=wrapped;try{editGroup=wrapped}catch{}
+  }
+
+  /* =========================================================
+     2 · Visual novel rule binding, added into the existing settings sheet
+     ========================================================= */
+  const REGEX_TARGETS=[['ai','文游 AI 输出'],['narration','场景旁白'],['dialogue','角色对白'],['user','USER 输入']];
+  function games(){data.visualNovelsV4571=O(data.visualNovelsV4571);data.visualNovelsV4571.games=L(data.visualNovelsV4571.games);return data.visualNovelsV4571.games}
+  function gameById(id){return games().find(item=>S(item.id)===S(id))||null}
+  function availableWorlds(){return L(data.worlds).filter(item=>item&&item.enabled!==false).map(item=>({id:S(item.id),name:S(item.name||'未命名世界书'),note:`${item.scope==='character'?'人物绑定':item.scope==='group'?'群聊绑定':'全局'} · ${item.activation==='trigger'?'命中触发':'常驻'}`,desc:S(item.desc||'')}))}
+  function availablePresets(){return L(data.engine?.presetModules).filter(item=>item&&item.enabled!==false).map(item=>({id:S(item.id||item.name),name:S(item.name||'未命名预设'),note:S(item.kind||'自定义'),content:S(item.content||'')}))}
+  function availableRules(){return L(data.engine?.worldRules).filter(item=>item&&item.enabled!==false).map(item=>({id:S(item.id||item.name),name:S(item.name||'未命名规则'),note:(item.activation||'persistent')==='trigger'?'命中触发':'常驻',content:S(item.content||'')}))}
+  function availableRegex(){return L(data.engine?.regexRules).filter(item=>item&&item.enabled!==false).map(item=>({id:S(item.id||item.pattern),name:S(item.name||'未命名正则'),pattern:S(item.pattern||''),replace:S(item.replace??''),flags:S(item.flags||'g')}))}
+
+  function ensureBinding(game){
+    if(!game||typeof game!=='object')return game;
+    const first=!game.ruleBindings;
+    game.ruleBindings=O(game.ruleBindings);
+    for(const key of ['worldIds','presetIds','worldRuleIds','regexIds'])game.ruleBindings[key]=L(game.ruleBindings[key]).map(S);
+    game.ruleBindings.regexTargets=O(game.ruleBindings.regexTargets);
+    game.ruleSnapshot=O(game.ruleSnapshot);
+    for(const key of ['worlds','presets','worldRules','regex'])game.ruleSnapshot[key]=L(game.ruleSnapshot[key]);
+    if(first&&!game.ruleSnapshot.createdAt)captureSnapshot(game,{worldIds:availableWorlds().map(r=>r.id),presetIds:availablePresets().map(r=>r.id),worldRuleIds:availableRules().map(r=>r.id),regexIds:[]});
+    return game;
+  }
+  /* A snapshot is an independent copy taken when the binding is saved, so later
+     edits to the main world books or presets never silently change this game. */
+  function captureSnapshot(game,selection){
+    const pickedWorlds=new Set(L(selection.worldIds).map(S));
+    const pickedPresets=new Set(L(selection.presetIds).map(S));
+    const pickedRules=new Set(L(selection.worldRuleIds).map(S));
+    const pickedRegex=new Set(L(selection.regexIds).map(S));
+    const targets=O(selection.regexTargets);
+    game.ruleBindings={
+      worldIds:[...pickedWorlds],presetIds:[...pickedPresets],worldRuleIds:[...pickedRules],regexIds:[...pickedRegex],
+      regexTargets:Object.fromEntries([...pickedRegex].map(id=>[id,L(targets[id]).length?L(targets[id]).map(S):['ai']]))
+    };
+    game.ruleSnapshot={
+      worlds:availableWorlds().filter(row=>pickedWorlds.has(row.id)),
+      presets:availablePresets().filter(row=>pickedPresets.has(row.id)),
+      worldRules:availableRules().filter(row=>pickedRules.has(row.id)),
+      regex:availableRegex().filter(row=>pickedRegex.has(row.id)).map(row=>({...row,targets:game.ruleBindings.regexTargets[row.id]||['ai']})),
+      createdAt:NOW()
+    };
+    game.ruleBindingUpdatedAt=NOW();
+    return game;
+  }
+  window.v45710VNSnapshot=id=>ensureBinding(gameById(id))?.ruleSnapshot||null;
+
+  function bindingRows(rows,key,selected,emptyText){
+    if(!rows.length)return`<div class="v45710-bind-empty">${E(emptyText)}</div>`;
+    return rows.map(row=>`<label class="v45710-bind-row"><input type="checkbox" class="v45710-bind" data-kind="${key}" value="${AT(row.id)}" ${selected.includes(row.id)?'checked':''}><span>${E(row.name)}<em>${E(row.note)}</em></span></label>`).join('');
+  }
+  function regexRows(rows,binding){
+    if(!rows.length)return`<div class="v45710-bind-empty">规则页里还没有启用的正则。</div>`;
+    return rows.map(row=>{
+      const on=binding.regexIds.includes(row.id),targets=L(binding.regexTargets[row.id]).length?binding.regexTargets[row.id]:['ai'];
+      const preview=`${row.pattern||'（未填写表达式）'}${row.replace?` → ${row.replace}`:''}`;
+      return`<div class="v45710-regex-item">
+        <div class="v45710-regex-head"><b>${E(row.name)}</b><label><input type="checkbox" class="v45710-bind" data-kind="regexIds" value="${AT(row.id)}" ${on?'checked':''} onchange="v45710ToggleRegex(${A(row.id)},this.checked)">启用</label></div>
+        <div class="v45710-regex-code">${E(preview)}</div>
+        <div class="v45710-regex-targets">${REGEX_TARGETS.map(([id,label])=>`<label class="${on?'':'off'}"><input type="checkbox" class="v45710-target" data-regex="${AT(row.id)}" value="${id}" ${targets.includes(id)?'checked':''} ${on?'':'disabled'} onchange="v45710ToggleTarget(${A(row.id)},'${id}',this.checked)">${E(label)}</label>`).join('')}</div>
+      </div>`;
+    }).join('');
+  }
+  window.v45710OpenVNBinding=function(id){
+    const game=ensureBinding(gameById(id));if(!game)return;
+    const binding=game.ruleBindings,snap=game.ruleSnapshot;
+    modal(`<div class="v45710-vn-binding"><h2>${E(game.title||'文游')} · 规则绑定</h2>
+      <div class="note">每部文游独立多选绑定。保存时会对所选内容做一次快照；之后主线里的世界书、预设、世界规则或正则怎么改，这部文游都不会被悄悄改变。需要跟进主线时回到这里重新绑定。</div>
+      <section class="v45710-bind-group"><header><b>世界书</b><small>已选 ${binding.worldIds.length} / ${availableWorlds().length}</small></header>${bindingRows(availableWorlds(),'worldIds',binding.worldIds,'还没有启用的世界书。')}</section>
+      <section class="v45710-bind-group"><header><b>预设</b><small>已选 ${binding.presetIds.length} / ${availablePresets().length}</small></header>${bindingRows(availablePresets(),'presetIds',binding.presetIds,'规则页里还没有启用的预设。')}</section>
+      <section class="v45710-bind-group"><header><b>世界规则</b><small>已选 ${binding.worldRuleIds.length} / ${availableRules().length}</small></header>${bindingRows(availableRules(),'worldRuleIds',binding.worldRuleIds,'规则页里还没有启用的世界规则。')}</section>
+      <section class="v45710-bind-group"><header><b>正则</b><small>每条单独选作用对象</small></header><div class="v45710-lines-note">可以只处理文游 AI 输出，也可以把场景旁白和角色对白分开控制；每条至少保留一个作用对象。</div>${regexRows(availableRegex(),binding)}</section>
+      <div class="v45710-snapshot"><b>当前快照</b><small>${snap.createdAt?`生成于 ${E(new Date(snap.createdAt).toLocaleString('zh-CN'))}`:'尚未生成快照'} · 世界书 ${snap.worlds.length} · 预设 ${snap.presets.length} · 世界规则 ${snap.worldRules.length} · 正则 ${snap.regex.length}</small></div>
+      <div class="form-actions"><button onclick="closeModal()">取消</button><button onclick="v45710OpenVNMenuAgain(${A(game.id)})">返回文游设置</button><button class="primary" onclick="v45710SaveVNBinding(${A(game.id)})">保存并重新绑定</button></div></div>`);
+  };
+  window.v45710ToggleRegex=function(regexId,on){
+    for(const input of document.querySelectorAll(`.v45710-target[data-regex="${window.__pokejiCssEscape(regexId)}"]`)){
+      input.disabled=!on;input.closest('label')?.classList.toggle('off',!on);
+      if(on&&![...document.querySelectorAll(`.v45710-target[data-regex="${window.__pokejiCssEscape(regexId)}"]`)].some(node=>node.checked)&&input.value==='ai')input.checked=true;
+    }
+  };
+  window.v45710ToggleTarget=function(regexId,target,on){
+    const inputs=[...document.querySelectorAll(`.v45710-target[data-regex="${window.__pokejiCssEscape(regexId)}"]`)];
+    if(!on&&!inputs.some(node=>node.checked)){
+      const restore=inputs.find(node=>node.value===target);if(restore)restore.checked=true;
+      say('每条正则至少保留一个作用对象');
+    }
+  };
+  window.v45710SaveVNBinding=function(id){
+    const game=ensureBinding(gameById(id));if(!game)return;
+    const selection={worldIds:[],presetIds:[],worldRuleIds:[],regexIds:[],regexTargets:{}};
+    for(const input of document.querySelectorAll('.v45710-bind:checked')){
+      const kind=S(input.dataset.kind);if(selection[kind])selection[kind].push(S(input.value));
+    }
+    for(const regexId of selection.regexIds){
+      const targets=[...document.querySelectorAll(`.v45710-target[data-regex="${window.__pokejiCssEscape(regexId)}"]:checked`)].map(node=>S(node.value));
+      selection.regexTargets[regexId]=targets.length?targets:['ai'];
+    }
+    captureSnapshot(game,selection);persist();closeModal();
+    say(`已保存绑定并生成新快照：世界书 ${game.ruleSnapshot.worlds.length} · 预设 ${game.ruleSnapshot.presets.length} · 世界规则 ${game.ruleSnapshot.worldRules.length} · 正则 ${game.ruleSnapshot.regex.length}`);
+  };
+  window.v45710OpenVNMenuAgain=function(id){closeModal();setTimeout(()=>window.v4571VNMenu?.(id),0)};
+
+  /* Add the entry into the existing 文游 settings sheet, without rebuilding it. */
+  const baseVNMenu=typeof window.v4571VNMenu==='function'?window.v4571VNMenu:null;
+  if(baseVNMenu&&!baseVNMenu.__v45710){
+    const wrapped=function(id,...rest){
+      const result=baseVNMenu.call(this,id,...rest);
+      setTimeout(()=>{
+        const game=ensureBinding(gameById(id));if(!game)return;
+        const meta=document.querySelector('#modalContent .about-meta'),actions=document.querySelector('#modalContent .form-actions');
+        const snap=game.ruleSnapshot,total=snap.worlds.length+snap.presets.length+snap.worldRules.length+snap.regex.length;
+        if(meta&&!meta.querySelector('[data-v45710-rules]'))
+          meta.insertAdjacentHTML('beforeend',`<div class="meta-row" data-v45710-rules="true"><span>规则绑定</span><span>${total?`${total} 项 · 已快照`:'尚未绑定'}</span></div>`);
+        if(actions&&!actions.querySelector('[data-v45710-bind]')){
+          const button=document.createElement('button');
+          button.dataset.v45710Bind='true';button.textContent='规则绑定';
+          button.onclick=()=>{closeModal();window.v45710OpenVNBinding(id)};
+          actions.insertBefore(button,actions.firstChild);
+        }
+      },0);
+      return result;
+    };
+    wrapped.__v45710=true;window.v4571VNMenu=wrapped;try{v4571VNMenu=wrapped}catch{}
+  }
+  /* New games start bound to whatever is active at creation time. */
+  const baseSaveNewVN=typeof window.v4571SaveNewVN==='function'?window.v4571SaveNewVN:null;
+  if(baseSaveNewVN&&!baseSaveNewVN.__v45710){
+    const wrapped=function(...args){
+      const before=new Set(games().map(item=>S(item.id)));
+      const result=baseSaveNewVN.apply(this,args);
+      const created=games().find(item=>!before.has(S(item.id)));
+      if(created){ensureBinding(created);persist()}
+      return result;
+    };
+    wrapped.__v45710=true;window.v4571SaveNewVN=wrapped;try{v4571SaveNewVN=wrapped}catch{}
+  }
+
+  /* Bound rules must actually reach the request, and regex must respect its target. */
+  function activeGame(){const id=S(data.visualNovelsV4571?.activeId);return id?ensureBinding(gameById(id)):null}
+  function snapshotPrompt(game){
+    const snap=game?.ruleSnapshot;if(!snap)return'';
+    const blocks=[];
+    if(snap.worlds.length)blocks.push(`【本文游绑定的世界书】\n${snap.worlds.map(row=>`《${row.name}》\n${row.desc}`).join('\n\n')}`);
+    if(snap.worldRules.length)blocks.push(`【本文游绑定的世界规则】\n${snap.worldRules.map(row=>`${row.name}：${row.content}`).join('\n')}`);
+    if(snap.presets.length)blocks.push(`【本文游绑定的预设】\n${snap.presets.map(row=>`${row.name}：${row.content}`).join('\n')}`);
+    if(!blocks.length)return'';
+    return`\n\n${blocks.join('\n\n')}\n这些内容是创建这部文游时的独立快照，只在本文游生效。`;
+  }
+  function regexFlags(row){const raw=S(row.flags||'g');const cleaned=[...new Set(raw.replace(/[^dgimsuvy]/g,''))].join('');return cleaned||'g'}
+  function applyBoundRegex(text,target){
+    const game=activeGame();if(!game)return S(text);
+    let output=S(text);
+    for(const row of L(game.ruleSnapshot?.regex)){
+      const targets=L(row.targets).length?row.targets:['ai'];
+      if(!targets.includes(target))continue;
+      try{output=output.replace(new RegExp(row.pattern,regexFlags(row)),row.replace??'')}catch{}
+    }
+    return output;
+  }
+  window.v45710ApplyVNRegex=applyBoundRegex;
+  const baseInvoke=typeof window.invokeModel==='function'?window.invokeModel:null;
+  if(baseInvoke&&!baseInvoke.__v45710){
+    const wrapped=async function(kind,options={}){
+      if(options?.activityArea!=='文游')return baseInvoke.call(this,kind,options);
+      const game=activeGame(),extra=snapshotPrompt(game);
+      const enhanced={...options};
+      if(extra)enhanced.system=S(options.system)+extra;
+      if(game&&L(game.ruleSnapshot?.regex).length){
+        const last=L(enhanced.history).at(-1);
+        if(last&&typeof last.content==='string'){
+          const cleaned=applyBoundRegex(last.content,'user');
+          if(cleaned!==last.content)enhanced.history=[...L(enhanced.history).slice(0,-1),{...last,content:cleaned}];
+        }
+      }
+      const raw=await baseInvoke.call(this,kind,enhanced);
+      if(!game||!L(game.ruleSnapshot?.regex).length)return raw;
+      /* Whole output first, then narration and dialogue separately inside the JSON. */
+      let text=applyBoundRegex(S(raw),'ai');
+      try{
+        const start=text.indexOf('{'),end=text.lastIndexOf('}');
+        if(start>=0&&end>start){
+          const row=JSON.parse(text.slice(start,end+1));
+          if(typeof row.narration==='string')row.narration=applyBoundRegex(row.narration,'narration');
+          if(Array.isArray(row.dialogue))row.dialogue=row.dialogue.map(line=>line&&typeof line==='object'?{...line,text:applyBoundRegex(S(line.text),'dialogue')}:line);
+          text=text.slice(0,start)+JSON.stringify(row)+text.slice(end+1);
+        }
+      }catch{}
+      return text;
+    };
+    wrapped.__v45710=true;window.invokeModel=wrapped;try{invokeModel=wrapped}catch{}
+  }
+
+  /* =========================================================
+     3 · Line-based entry inside the existing 语伴 dictionary page
+     ========================================================= */
+  function learningStore(){
+    data.learningV452=O(data.learningV452);data.learningV452.personas=O(data.learningV452.personas);
+    let personaId='persona_default';
+    try{personaId=activePersonaFor(typeof currentChat!=='undefined'?currentChat:'')?.id||data.activePersonaId||'persona_default'}catch{personaId=S(data.activePersonaId||'persona_default')}
+    const state=data.learningV452.personas[personaId]=O(data.learningV452.personas[personaId]);
+    state.words=L(state.words);state.review=L(state.review);
+    state.v45710=O(state.v45710);
+    state.v45710.lines=L(state.v45710.lines);
+    state.v45710.draft=S(state.v45710.draft);
+    state.v45710.drillMode=['dst','src','write'].includes(state.v45710.drillMode)?state.v45710.drillMode:'dst';
+    if(!state.v45710.migrated){migrateDictionary(state)}
+    return state;
+  }
+  /* Existing dictionary entries are kept and converted into line records. */
+  function migrateDictionary(state){
+    const seen=new Set(state.v45710.lines.map(row=>S(row.src)+'\u0000'+S(row.dst)));
+    let moved=0;
+    for(const word of state.words){
+      const src=S(word?.word||word?.term||word?.value||word?.src).trim();
+      const dst=S(word?.meaning||word?.definition||word?.translation||word?.dst).trim();
+      if(!src&&!dst)continue;
+      const key=src+'\u0000'+dst;if(seen.has(key))continue;seen.add(key);
+      state.v45710.lines.push({id:ID('line'),src,dst,raw:src||dst,source:'旧词典迁移',createdAt:S(word?.createdAt||NOW()),reviewCount:Math.max(0,Number(word?.reviewCount)||0),legacyId:S(word?.id||'')});
+      moved++;
+    }
+    state.v45710.migrated=true;state.v45710.migratedAt=NOW();state.v45710.migratedCount=moved;
+    if(moved)persist();
+    return moved;
+  }
+  function splitLine(line){
+    const raw=S(line).trim();if(!raw)return null;
+    const parts=raw.split(/\t|｜|\|/).map(part=>part.trim()).filter(Boolean);
+    if(parts.length>=2)return{src:parts[0],dst:parts.slice(1).join(' '),raw,missing:''};
+    const cjk=/[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/.test(parts[0]);
+    return cjk?{src:'',dst:parts[0],raw,missing:'src'}:{src:parts[0],dst:'',raw,missing:'dst'};
+  }
+  function parseDraft(text){return S(text).split(/\r?\n/).map(splitLine).filter(Boolean)}
+  window.v45710LineStats=function(){
+    const state=learningStore(),area=document.getElementById('v45710LineDraft');
+    const rows=parseDraft(area?area.value:state.v45710.draft);
+    const total=document.getElementById('v45710LineTotal'),missing=document.getElementById('v45710LineMissing');
+    if(total)total.textContent=String(rows.length);
+    if(missing)missing.textContent=String(rows.filter(row=>row.missing).length);
+    if(area){state.v45710.draft=area.value;persist()}
+    return rows;
+  };
+  function linePanelMarkup(state){
+    const rows=parseDraft(state.v45710.draft),lines=state.v45710.lines;
+    const missing=rows.filter(row=>row.missing).length;
+    return`<section class="v45710-lines">
+      <header><b>行式录入</b><small>共 ${lines.length} 条词条</small></header>
+      <div class="v45710-lines-note"><b>一行一条。</b>用 TAB 分隔原文与译文，也支持「｜」或竖线；只写一侧时，缺的那侧可以交给 AI 补全。原始行始终保留，补全结果先预览再写入。</div>
+      <textarea id="v45710LineDraft" placeholder="I'll take the late bus.\t我坐末班车。&#10;It's pouring outside.&#10;听起来像有人在敲窗。" oninput="v45710LineStats()">${E(state.v45710.draft)}</textarea>
+      <div class="v45710-lines-meta">当前 <b id="v45710LineTotal">${rows.length}</b> 行 · 待补全 <b id="v45710LineMissing">${missing}</b> 行${state.v45710.migratedCount?` · 已从旧词典迁移 ${state.v45710.migratedCount} 条`:''}</div>
+      <div class="v45710-lines-actions">
+        <button onclick="v45710WriteLines(false)">直接写入</button>
+        <button class="primary" onclick="v45710CompleteLines()">AI 补全缺失侧</button>
+      </div>
+      ${lines.length?`<div class="v45710-lines-actions wide" style="margin-top:7px"><button onclick="v45710OpenDrill()">开始复习 · ${lines.filter(row=>row.src&&row.dst).length} 条可用</button></div>`:''}
+      ${lines.length?`<div class="v457-learning-section-title" style="margin-top:12px"><div><small>LINE ENTRIES</small><b>已录入的行</b></div><span>${lines.length}</span></div>${lines.slice(-40).reverse().map(row=>`<article class="v45710-line-entry">
+          <div class="src">${E(row.src||'（待补原文）')}</div>
+          <div class="dst${row.dst?'':' pending'}">${E(row.dst||'待补译文')}</div>
+          <div class="tools"><button onclick="v45710CompleteOne(${A(row.id)})">补全这条</button><button onclick="v45710QueueLine(${A(row.id)})">加入复习</button><button onclick="v45710DeleteLine(${A(row.id)})">删除</button></div>
+        </article>`).join('')}`:''}
+    </section>`;
+  }
+  /* Append into the existing dictionary panel instead of replacing it. */
+  const baseDictionaryPanel=typeof window.dictionaryPanel==='function'?window.dictionaryPanel:(typeof dictionaryPanel==='function'?dictionaryPanel:null);
+  if(baseDictionaryPanel&&!baseDictionaryPanel.__v45710){
+    const wrapped=function(state,...rest){
+      const html=baseDictionaryPanel.call(this,state,...rest);
+      let extra='';
+      try{extra=linePanelMarkup(learningStore())}catch(error){console.warn('V45.7.11 行式录入渲染失败',error)}
+      if(!extra)return html;
+      const marker='<div class="v457-learning-section-title"><div><small>PERSONAL DICTIONARY</small>';
+      return html.includes(marker)?html.replace(marker,extra+marker):html.replace(/<\/div>\s*$/,extra+'</div>');
+    };
+    wrapped.__v45710=true;window.dictionaryPanel=wrapped;try{dictionaryPanel=wrapped}catch{}
+  }
+
+  function refreshLearning(){try{if(typeof renderLearning==='function')renderLearning()}catch{}}
+  window.v45710WriteLines=function(silent){
+    const state=learningStore(),rows=parseDraft(state.v45710.draft);
+    if(!rows.length)return say('还没有可写入的行');
+    const seen=new Set(state.v45710.lines.map(row=>S(row.src)+'\u0000'+S(row.dst)));
+    let added=0;
+    for(const row of rows){
+      const key=S(row.src)+'\u0000'+S(row.dst);if(seen.has(key))continue;seen.add(key);
+      state.v45710.lines.push({id:ID('line'),src:row.src,dst:row.dst,raw:row.raw,source:'行式录入',createdAt:NOW(),reviewCount:0});
+      added++;
+    }
+    state.v45710.draft='';persist();refreshLearning();
+    if(!silent)say(`已写入 ${added} 条；原始行保持不变`);
+    return added;
+  };
+  window.v45710DeleteLine=function(id){
+    const state=learningStore(),index=state.v45710.lines.findIndex(row=>S(row.id)===S(id));
+    if(index<0)return;
+    if(!confirm('删除这一条行记录？旧词典里的原始条目不会被删除。'))return;
+    state.v45710.lines.splice(index,1);persist();refreshLearning();say('已删除这条行记录');
+  };
+  window.v45710QueueLine=function(id){
+    const state=learningStore(),row=state.v45710.lines.find(item=>S(item.id)===S(id));
+    if(!row)return;
+    state.v45710.queue=L(state.v45710.queue);
+    if(!state.v45710.queue.includes(row.id))state.v45710.queue.push(row.id);
+    persist();say('已加入复习队列');
+  };
+
+  function completionReady(){
+    try{if(typeof validModel==='function'&&validModel('translation'))return'translation'}catch{}
+    try{if(typeof validModel==='function'&&validModel('chat'))return'chat'}catch{}
+    return'';
+  }
+  async function requestCompletion(rows,languageLabel){
+    const kind=completionReady();
+    if(!kind)throw Error('请先在课堂设置里绑定翻译线路，或配置主聊天线路');
+    const controller=typeof withTimeout==='function'?withTimeout(Number(data.settings?.timeout)||60000):null;
+    try{
+      const payload=rows.map((row,index)=>`${index+1}. ${row.missing==='dst'?`原文：${row.src}`:`译文：${row.dst}`}`).join('\n');
+      const raw=await invokeModel(kind,{
+        system:`你是${languageLabel}学习资料整理者。下面每一行只给出了一侧内容，请补出缺失的另一侧：给出原文时补自然译文，给出译文时补地道原文。严格只输出 JSON 数组，每项为 {"index":序号,"filled":"补出的那一侧"}；不要解释，不要改写已给出的一侧。`,
+        history:[{role:'user',content:`学习语言：${languageLabel}\n需要补全的行：\n${payload}`}],
+        temperature:.2,maxTokens:1200,signal:controller?.signal
+      });
+      const text=S(raw),start=text.indexOf('['),end=text.lastIndexOf(']');
+      if(start<0||end<=start)throw Error('返回内容无法识别，请重试');
+      return L(JSON.parse(text.slice(start,end+1)));
+    }finally{try{releaseController?.(controller)}catch{}}
+  }
+  function languageLabel(){
+    try{const state=learningStore();return typeof languageName==='function'?languageName(state.language):S(state.language||'英语')}catch{return'英语'}
+  }
+  let pendingCompletion=[];
+  window.v45710CompleteLines=async function(){
+    const state=learningStore(),rows=parseDraft(state.v45710.draft).filter(row=>row.missing);
+    if(!rows.length)return say('没有待补全的行');
+    say('正在补全缺失的一侧…');
+    try{
+      const filled=await requestCompletion(rows,languageLabel());
+      pendingCompletion=rows.map((row,index)=>{
+        const hit=filled.find(item=>Number(item?.index)===index+1)||filled[index];
+        return{...row,filled:S(hit?.filled).trim()};
+      }).filter(row=>row.filled);
+      if(!pendingCompletion.length)return say('没有得到可用的补全结果');
+      showCompletionPreview();
+    }catch(error){try{errorDetail(error,'补全失败')}catch{say('补全失败')}}
+  };
+  function showCompletionPreview(){
+    modal(`<h2>补全结果预览</h2>
+      <div class="note">只补缺失的一侧，原始行保持不变。取消勾选的行会按原样写入。</div>
+      <div style="padding:0 16px 4px">${pendingCompletion.map((row,index)=>`<div class="v45710-preview-row">
+        <label><input type="checkbox" class="v45710-accept" data-index="${index}" checked>写入这一行</label>
+        <div class="v45710-preview-line"><small>原始行</small>${E(row.raw)}</div>
+        <div class="v45710-preview-line filled"><small>补出${row.missing==='dst'?'译文':'原文'}</small>${E(row.filled)}</div>
+      </div>`).join('')}</div>
+      <div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="v45710ApplyCompletion()">写入所选</button></div>`);
+  }
+  window.v45710ApplyCompletion=function(){
+    const state=learningStore(),accepted=new Set([...document.querySelectorAll('.v45710-accept:checked')].map(node=>Number(node.dataset.index)));
+    const seen=new Set(state.v45710.lines.map(row=>S(row.src)+'\u0000'+S(row.dst)));
+    let added=0;
+    pendingCompletion.forEach((row,index)=>{
+      const src=row.missing==='src'?(accepted.has(index)?row.filled:''):row.src;
+      const dst=row.missing==='dst'?(accepted.has(index)?row.filled:''):row.dst;
+      const key=S(src)+'\u0000'+S(dst);if(seen.has(key))return;seen.add(key);
+      state.v45710.lines.push({id:ID('line'),src,dst,raw:row.raw,source:accepted.has(index)?'AI 补全':'行式录入',aiFilled:accepted.has(index)?row.missing:'',createdAt:NOW(),reviewCount:0});
+      added++;
+    });
+    /* Lines that were already complete in the draft still need writing. */
+    for(const row of parseDraft(state.v45710.draft).filter(row=>!row.missing)){
+      const key=S(row.src)+'\u0000'+S(row.dst);if(seen.has(key))continue;seen.add(key);
+      state.v45710.lines.push({id:ID('line'),src:row.src,dst:row.dst,raw:row.raw,source:'行式录入',createdAt:NOW(),reviewCount:0});
+      added++;
+    }
+    pendingCompletion=[];state.v45710.draft='';persist();closeModal();refreshLearning();
+    say(`已写入 ${added} 条；原始行保持不变`);
+  };
+  window.v45710CompleteOne=async function(id){
+    const state=learningStore(),row=state.v45710.lines.find(item=>S(item.id)===S(id));
+    if(!row)return;
+    if(row.src&&row.dst)return say('这一条已经两侧完整');
+    say('正在补全这一条…');
+    try{
+      const missing=row.src?'dst':'src';
+      const filled=await requestCompletion([{src:row.src,dst:row.dst,missing}],languageLabel());
+      const value=S(filled[0]?.filled).trim();if(!value)return say('没有得到可用的补全结果');
+      if(missing==='dst')row.dst=value;else row.src=value;
+      row.aiFilled=missing;row.updatedAt=NOW();persist();refreshLearning();say('已补全并写入');
+    }catch(error){try{errorDetail(error,'补全失败')}catch{say('补全失败')}}
+  };
+
+  /* Sentence drill: mask one side, or write the whole line from listening. */
+  window.v45710OpenDrill=function(){
+    const state=learningStore(),pool=state.v45710.lines.filter(row=>row.src&&row.dst);
+    if(!pool.length)return say('先录入至少一条两侧完整的句子');
+    const queue=L(state.v45710.queue).map(id=>pool.find(row=>S(row.id)===S(id))).filter(Boolean);
+    const rows=queue.length?queue:pool.slice(-20);
+    state.v45710.drillIndex=Math.min(Number(state.v45710.drillIndex)||0,rows.length-1);
+    renderDrill(rows);
+  };
+  function renderDrill(rows){
+    const state=learningStore(),mode=state.v45710.drillMode,index=Math.max(0,Math.min(Number(state.v45710.drillIndex)||0,rows.length-1)),row=rows[index];
+    if(!row)return say('没有可复习的句子');
+    const masked=(text,on)=>on?`<span class="v45710-mask" onclick="this.classList.toggle('show')">${E(text)}</span>`:E(text);
+    modal(`<h2>句子复习</h2>
+      <div class="v45710-drill-modes">
+        <button class="${mode==='dst'?'on':''}" onclick="v45710SetDrill('dst')">遮译文</button>
+        <button class="${mode==='src'?'on':''}" onclick="v45710SetDrill('src')">遮原文</button>
+        <button class="${mode==='write'?'on':''}" onclick="v45710SetDrill('write')">听写</button>
+      </div>
+      <div style="padding:0 16px">
+        <article class="v45710-line-entry">
+          <div class="src">${masked(row.src,mode==='src')}</div>
+          <div class="dst">${masked(row.dst,mode==='dst'||mode==='write')}</div>
+          <div class="v45710-lines-meta" style="margin-top:7px">${E(row.source||'行式录入')} · 已复习 ${Math.max(0,Number(row.reviewCount)||0)} 次 · 第 ${index+1} / ${rows.length} 条</div>
+        </article>
+        ${mode==='write'?`<div class="field" style="margin-top:9px"><label>写下你听到的句子</label><input id="v45710Dictation" placeholder="按听到的内容拼写…"></div><div class="v45710-lines-actions wide"><button onclick="v45710CheckDictation(${A(row.id)})">对照原句</button></div>`:''}
+      </div>
+      <div class="form-actions"><button onclick="v45710GradeDrill(${A(row.id)},'again')">再练一次</button><button onclick="v45710GradeDrill(${A(row.id)},'ok')">想起来了</button><button class="primary" onclick="v45710GradeDrill(${A(row.id)},'known')">熟练</button></div>`);
+    window.__v45710DrillRows=rows;
+  }
+  window.v45710SetDrill=function(mode){
+    const state=learningStore();
+    state.v45710.drillMode=['dst','src','write'].includes(mode)?mode:'dst';persist();
+    renderDrill(L(window.__v45710DrillRows));
+  };
+  window.v45710CheckDictation=function(id){
+    const state=learningStore(),row=state.v45710.lines.find(item=>S(item.id)===S(id)),typed=S(document.getElementById('v45710Dictation')?.value).trim();
+    if(!row)return;
+    if(!typed)return say('先写下你听到的内容');
+    const normalise=text=>S(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+    say(normalise(typed)===normalise(row.src)?'完全一致':`原句：${row.src}`);
+  };
+  window.v45710GradeDrill=function(id,grade){
+    const state=learningStore(),row=state.v45710.lines.find(item=>S(item.id)===S(id));
+    if(row){
+      row.reviewCount=Math.max(0,Number(row.reviewCount)||0)+1;
+      row.lastGrade=grade;row.lastReviewedAt=NOW();
+      if(grade==='known')state.v45710.queue=L(state.v45710.queue).filter(queued=>S(queued)!==S(id));
+    }
+    const rows=L(window.__v45710DrillRows);
+    state.v45710.drillIndex=((Number(state.v45710.drillIndex)||0)+1)%Math.max(1,rows.length);
+    persist();
+    if(rows.length)renderDrill(rows);else closeModal();
+  };
+
+  /* Character practice reuses the existing classroom; bound lines feed the prompt. */
+  const basePracticeLines=typeof window.v457StartLesson==='function'?window.v457StartLesson:null;
+  if(basePracticeLines&&!basePracticeLines.__v45710){
+    const wrapped=function(...args){
+      try{
+        const state=learningStore(),rows=state.v45710.lines.filter(row=>row.src&&row.dst).slice(-6);
+        state.v45710.practiceHint=rows.map(row=>`${row.src} / ${row.dst}`).join('\n');
+        persist();
+      }catch{}
+      return basePracticeLines.apply(this,args);
+    };
+    wrapped.__v45710=true;window.v457StartLesson=wrapped;try{v457StartLesson=wrapped}catch{}
+  }
+
+  setTimeout(()=>{try{learningStore();paintConversationBackground()}catch{}},0);
+})();
+
+/* =========================================================
+   V45.7.12 · 文游规则绑定改成四个独立平铺入口
+   世界书 / 预设 / 世界规则 / 正则，各自一行，直接显示已绑定内容。
+   替换 V45.7.10 那个靠注入按钮的做法。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiBindRows)return;
+  window.__pokejiBindRows=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+
+  const games=()=>{data.visualNovelsV4571=O(data.visualNovelsV4571);data.visualNovelsV4571.games=L(data.visualNovelsV4571.games);return data.visualNovelsV4571.games};
+  const gameById=id=>games().find(g=>S(g.id)===S(id))||null;
+
+  const TARGETS=[['ai','文游 AI 输出'],['narration','场景旁白'],['dialogue','角色对白'],['user','USER 输入']];
+  /* 老 WebView 可能没有 CSS.escape，这里自带一个够用的转义 */
+  const cssEsc=v=>{
+    const text=S(v);
+    return window.__pokejiCssEscape(text);
+  };
+
+  const SHORT={ai:'AI 输出',narration:'旁白',dialogue:'对白',user:'我的输入'};
+
+  const sourceWorlds=()=>L(data.worlds).filter(w=>w&&w.enabled!==false).map(w=>({id:S(w.id),name:S(w.name||'未命名世界书'),note:`${w.scope==='character'?'人物绑定':w.scope==='group'?'群聊绑定':'全局'} · ${w.activation==='trigger'?'命中触发':'常驻'}`,desc:S(w.desc||'')}));
+  const sourcePresets=()=>L(data.engine?.presetModules).filter(p=>p&&p.enabled!==false).map(p=>({id:S(p.id||p.name),name:S(p.name||'未命名预设'),note:S(p.kind||'自定义'),desc:S(p.content||'').slice(0,80)}));
+  const sourceRules=()=>L(data.engine?.worldRules).filter(r=>r&&r.enabled!==false).map(r=>({id:S(r.id||r.name),name:S(r.name||'未命名规则'),note:(r.activation||'persistent')==='trigger'?'命中触发':'常驻',desc:S(r.content||'').slice(0,80)}));
+  const sourceRegex=()=>L(data.engine?.regexRules).filter(r=>r&&r.enabled!==false).map(r=>({id:S(r.id||r.pattern),name:S(r.name||'未命名正则'),pattern:S(r.pattern||''),replace:S(r.replace??''),flags:S(r.flags||'g')}));
+  const SOURCE={world:sourceWorlds,preset:sourcePresets,rule:sourceRules};
+  const FIELD={world:'worldIds',preset:'presetIds',rule:'worldRuleIds'};
+  const META={
+    world:['书','世界书','选中的世界书会成为这部文游的独立设定来源。'],
+    preset:['预','预设','预设影响这部文游的叙述风格和结构，不影响主聊天。'],
+    rule:['则','世界规则','规则是硬约束，生成每一幕都会遵守。']
+  };
+
+  function binding(game){
+    if(!game)return null;
+    game.ruleBindings=O(game.ruleBindings);
+    for(const key of ['worldIds','presetIds','worldRuleIds','regexIds'])game.ruleBindings[key]=L(game.ruleBindings[key]).map(S);
+    game.ruleBindings.regexTargets=O(game.ruleBindings.regexTargets);
+    game.ruleSnapshot=O(game.ruleSnapshot);
+    for(const key of ['worlds','presets','worldRules','regex'])game.ruleSnapshot[key]=L(game.ruleSnapshot[key]);
+    return game.ruleBindings;
+  }
+  function snapshot(game){
+    const bind=binding(game);
+    const pick=(rows,ids)=>rows.filter(r=>ids.includes(r.id));
+    game.ruleSnapshot={
+      worlds:pick(sourceWorlds(),bind.worldIds),
+      presets:pick(sourcePresets(),bind.presetIds),
+      worldRules:pick(sourceRules(),bind.worldRuleIds),
+      regex:pick(sourceRegex(),bind.regexIds).map(r=>({...r,targets:L(bind.regexTargets[r.id]).length?bind.regexTargets[r.id]:['ai']})),
+      createdAt:NOW()
+    };
+    game.ruleBindingUpdatedAt=NOW();
+    persist();
+  }
+
+  /* ---------- 四行入口 ---------- */
+  function nameOf(kind,id){return SOURCE[kind]().find(r=>r.id===id)?.name||id}
+  function rowsMarkup(game){
+    const bind=binding(game),snap=game.ruleSnapshot;
+    const line=(kind,glyph,label,ids)=>{
+      const names=ids.map(id=>nameOf(kind,id));
+      return `<button class="v45712-bind-row ${ids.length?'is-bound':''}" onclick="v45712BindPick(${A(game.id)},'${kind}')">
+        <i>${glyph}</i><span><b>${label}</b><small>${ids.length?E(names.join(' · ')):'未绑定'}</small></span>
+        <em>${ids.length}</em><u>›</u></button>`;
+    };
+    const regexSummary=bind.regexIds.length
+      ?bind.regexIds.map(id=>{
+          const row=sourceRegex().find(r=>r.id===id);
+          const targets=L(bind.regexTargets[id]).length?bind.regexTargets[id]:['ai'];
+          return `${row?.name||id}（${targets.map(t=>SHORT[t]||t).join('、')}）`;
+        }).join(' · ')
+      :'未绑定 · 每条可单独选作用对象';
+    const total=bind.worldIds.length+bind.presetIds.length+bind.worldRuleIds.length+bind.regexIds.length;
+    return `<section class="v45712-bind">
+      <header><b>规则绑定</b><small>${total?`已绑定 ${total} 项`:'尚未绑定'}</small></header>
+      ${line('world','书','世界书',bind.worldIds)}
+      ${line('preset','预','预设',bind.presetIds)}
+      ${line('rule','则','世界规则',bind.worldRuleIds)}
+      <button class="v45712-bind-row ${bind.regexIds.length?'is-bound':''}" onclick="v45712BindRegex(${A(game.id)})">
+        <i>正</i><span><b>正则</b><small>${E(regexSummary)}</small></span>
+        <em>${bind.regexIds.length}</em><u>›</u></button>
+    </section>
+    <section class="v45712-bind">
+      <header><b>本部文游的快照</b><small>${snap.createdAt?`生成于 ${E(new Date(snap.createdAt).toLocaleString('zh-CN'))}`:'尚未生成'}</small></header>
+      <div class="v45712-bind-note">快照是绑定那一刻的独立副本。主线世界书改了、正则删了，这部文游照旧运行，不会中途变样。</div>
+      <div class="v45712-bind-two">
+        <button onclick="v45712BindResync(${A(game.id)})">跟进主线</button>
+        <button onclick="v45712BindSnapshot(${A(game.id)})">查看快照内容</button>
+      </div>
+    </section>`;
+  }
+  window.v45712BindRows=rowsMarkup;
+
+  window.v45712BindPick=function(gameId,kind){
+    const game=gameById(gameId);if(!game)return;
+    const bind=binding(game),rows=SOURCE[kind](),ids=bind[FIELD[kind]];
+    const [,label,note]=META[kind];
+    modal(`<div class="v45712-bind-sheet"><h2>绑定${label}</h2>
+      <div class="note">${note}绑定后会做一次快照；之后主线怎么改，这部文游都不会被悄悄改变。</div>
+      ${rows.length?`<div class="v45712-bind-list">${rows.map(r=>`<label class="v45712-bind-pick">
+        <input type="checkbox" class="v45712-bind-box" value="${AT(r.id)}" ${ids.includes(r.id)?'checked':''}>
+        <span>${E(r.name)}<em>${E(r.note)}${r.desc?` · ${E(r.desc)}`:''}</em></span></label>`).join('')}</div>`
+        :`<div class="v45712-bind-empty">规则页里还没有启用的${label}。</div>`}
+      <div class="form-actions"><button onclick="v45712BindBack(${A(gameId)})">返回</button><button class="primary" onclick="v45712BindSave(${A(gameId)},'${kind}')">保存并快照</button></div></div>`);
+  };
+  window.v45712BindSave=function(gameId,kind){
+    const game=gameById(gameId);if(!game)return;
+    const bind=binding(game);
+    bind[FIELD[kind]]=[...document.querySelectorAll('.v45712-bind-box:checked')].map(n=>S(n.value));
+    snapshot(game);
+    window.v45712BindBack(gameId);
+    say(`已保存并生成新快照：${META[kind][1]} ${bind[FIELD[kind]].length} 项`);
+  };
+
+  window.v45712BindRegex=function(gameId){
+    const game=gameById(gameId);if(!game)return;
+    const bind=binding(game),rows=sourceRegex();
+    modal(`<div class="v45712-bind-sheet"><h2>绑定正则</h2>
+      <div class="note">每条单独选作用对象：可以只处理文游 AI 的输出，也可以把场景旁白和角色对白分开控制，还能只清理你自己的输入。每条至少保留一个作用对象。</div>
+      ${rows.length?rows.map(r=>{
+        const on=bind.regexIds.includes(r.id);
+        const targets=L(bind.regexTargets[r.id]).length?bind.regexTargets[r.id]:['ai'];
+        return `<div class="v45712-bind-rx">
+          <div class="head"><b>${E(r.name)}</b><label><input type="checkbox" class="v45712-rx-box" value="${AT(r.id)}" ${on?'checked':''} onchange="v45712RxToggle(${A(r.id)},this.checked)">启用</label></div>
+          <div class="code">${E(r.pattern||'（未填写表达式）')}${r.replace?` → ${E(r.replace)}`:' → （删除）'}</div>
+          <div class="targets">${TARGETS.map(([t,text])=>`<label class="${on?'':'is-off'}"><input type="checkbox" class="v45712-rx-target" data-rx="${AT(r.id)}" value="${t}" ${targets.includes(t)?'checked':''} ${on?'':'disabled'} onchange="v45712RxGuard(${A(r.id)},'${t}',this)">${text}</label>`).join('')}</div>
+        </div>`;
+      }).join(''):'<div class="v45712-bind-empty">规则页里还没有启用的正则。</div>'}
+      <div class="form-actions"><button onclick="v45712BindBack(${A(gameId)})">返回</button><button class="primary" onclick="v45712RxSave(${A(gameId)})">保存并快照</button></div></div>`);
+  };
+  window.v45712RxToggle=function(rxId,on){
+    const boxes=[...document.querySelectorAll(`.v45712-rx-target[data-rx="${cssEsc(rxId)}"]`)];
+    for(const box of boxes){box.disabled=!on;box.closest('label')?.classList.toggle('is-off',!on)}
+    if(on&&!boxes.some(b=>b.checked)){const ai=boxes.find(b=>b.value==='ai');if(ai)ai.checked=true}
+  };
+  window.v45712RxGuard=function(rxId,target,node){
+    const boxes=[...document.querySelectorAll(`.v45712-rx-target[data-rx="${cssEsc(rxId)}"]`)];
+    if(!node.checked&&!boxes.some(b=>b.checked)){node.checked=true;say('每条正则至少保留一个作用对象')}
+  };
+  window.v45712RxSave=function(gameId){
+    const game=gameById(gameId);if(!game)return;
+    const bind=binding(game);
+    bind.regexIds=[...document.querySelectorAll('.v45712-rx-box:checked')].map(n=>S(n.value));
+    bind.regexTargets={};
+    for(const id of bind.regexIds){
+      const picked=[...document.querySelectorAll(`.v45712-rx-target[data-rx="${cssEsc(id)}"]:checked`)].map(n=>S(n.value));
+      bind.regexTargets[id]=picked.length?picked:['ai'];
+    }
+    snapshot(game);window.v45712BindBack(gameId);
+    say(`已保存并生成新快照：正则 ${bind.regexIds.length} 条`);
+  };
+  window.v45712BindResync=function(gameId){
+    const game=gameById(gameId);if(!game)return;
+    snapshot(game);window.v45712BindBack(gameId);
+    say('已按主线当前内容重新生成快照');
+  };
+  window.v45712BindSnapshot=function(gameId){
+    const game=gameById(gameId);if(!game)return;
+    const snap=O(game.ruleSnapshot);
+    const block=(label,rows)=>`<section class="v45712-bind"><header><b>${label}</b><small>${rows.length} 项</small></header>${rows.length?rows.map(t=>`<div class="v45712-bind-note">${E(t)}</div>`).join(''):'<div class="v45712-bind-empty">未绑定</div>'}</section>`;
+    modal(`<div class="v45712-bind-sheet"><h2>快照内容</h2>
+      <div class="note">${snap.createdAt?`生成于 ${E(new Date(snap.createdAt).toLocaleString('zh-CN'))}。`:''}这是绑定那一刻的独立副本，与主线当前内容无关。</div>
+      ${block('世界书',L(snap.worlds).map(r=>r.name))}
+      ${block('预设',L(snap.presets).map(r=>r.name))}
+      ${block('世界规则',L(snap.worldRules).map(r=>r.name))}
+      ${block('正则',L(snap.regex).map(r=>`${r.name} → 作用于 ${L(r.targets).map(t=>SHORT[t]||t).join('、')}`))}
+      <div class="form-actions"><button class="primary" onclick="v45712BindBack(${A(gameId)})">返回</button></div></div>`);
+  };
+  window.v45712BindBack=function(gameId){closeModal();setTimeout(()=>{try{v4571VNMenu(gameId)}catch{}},0)};
+})();
+
+/* =========================================================
+   V45.7.12 · 文游设置面板重排，容纳四个绑定入口
+   接管 v4571VNMenu 的呈现，保留它原有的三个动作。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiVNMenuRows)return;
+  window.__pokejiVNMenuRows=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+
+  const games=()=>{data.visualNovelsV4571=O(data.visualNovelsV4571);data.visualNovelsV4571.games=L(data.visualNovelsV4571.games);return data.visualNovelsV4571.games};
+  const gameById=id=>games().find(g=>S(g.id)===S(id))||null;
+  const person=id=>L(data.characters).find(c=>S(c.id)===S(id))||L(data.mpcs).find(c=>S(c.id)===S(id))||null;
+
+  const base=typeof window.v4571VNMenu==='function'?window.v4571VNMenu:null;
+  const wrapped=function(id){
+    const game=gameById(id);
+    if(!game)return base?base.call(this,id):undefined;
+    const stats=L(game.stage?.stats);
+    const items=L(game.stage?.items);
+    const saves=L(game.stage?.saves);
+    modal(`<div class="v45712-bind-sheet">
+      <h2>${E(game.title||'文游')}</h2>
+      <div class="note">这里的四个入口各自独立多选。绑定时会对所选内容做一次快照，之后主线怎么改都不影响这部文游。</div>
+      ${typeof window.v45712BindRows==='function'?window.v45712BindRows(game):''}
+      <section class="v45712-bind">
+        <header><b>这部文游</b><small>${L(game.scenes).length} 幕</small></header>
+        <div class="v45712-bind-plain"><span>游玩形式</span><b>${game.playMode==='companion'?`共同游玩 · ${E(person(game.companionId)?.name||'同伴')}`:'人物入戏'}</b></div>
+        <div class="v45712-bind-plain"><span>相处记忆</span><b>${game.contextMode==='linked'?'读取并带来源写回':'完全独立'}</b></div>
+        <div class="v45712-bind-plain"><span>画面</span><b>${game.imageEnabled?'开启':'关闭'}</b></div>
+        <div class="v45712-bind-plain"><span>数值条</span><b>${stats.length?E(stats.map(s=>s.name).join(' · ')):'纯剧情向 · 不使用'}</b></div>
+        <div class="v45712-bind-plain"><span>道具</span><b>${items.length?`${items.length} 件`:'暂无'}</b></div>
+        <div class="v45712-bind-plain"><span>存档</span><b>${saves.length?`${saves.length} / 4 槽位`:'尚未存档'}</b></div>
+      </section>
+      <div class="v45712-bind-two">
+        <button onclick="v45712VNStatSheet(${A(id)})">数值条设置</button>
+        <button onclick="v45712VNItems(${A(id)})">道具栏</button>
+      </div>
+      <div class="form-actions">
+        <button onclick="closeModal()">取消</button>
+        <button onclick="v4571RegenerateVNScene(${A(id)})">重做当前幕</button>
+        <button class="danger" onclick="v4571DeleteVN(${A(id)})">删除存档</button>
+      </div>
+    </div>`);
+  };
+  window.v4571VNMenu=wrapped;try{v4571VNMenu=wrapped}catch{}
+})();
+
+/* =========================================================
+   V45.7.12 · 文游改成视觉小说呈现
+   立绘＋背景＋底部对话框＋顶部数值条＋右上四按钮。
+   只替换呈现层与存档/道具/数值，生成逻辑仍用原 generateScene。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiVNStage)return;
+  window.__pokejiVNStage=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+  const img=v=>{try{return typeof safeImageSrc==='function'?safeImageSrc(v):S(v)}catch{return''}};
+
+  const games=()=>{data.visualNovelsV4571=O(data.visualNovelsV4571);data.visualNovelsV4571.games=L(data.visualNovelsV4571.games);return data.visualNovelsV4571.games};
+  const gameById=id=>games().find(g=>S(g.id)===S(id))||null;
+  const activeGame=()=>gameById(S(data.visualNovelsV4571?.activeId));
+  const person=id=>L(data.characters).find(c=>S(c.id)===S(id))||L(data.mpcs).find(c=>S(c.id)===S(id))||null;
+
+  const PRESETS={
+    classic:[{name:'生命值',cur:100,max:100,color:'#c96a5e'},{name:'精神值',cur:70,max:100,color:'#7d94c0'}],
+    emotion:[{name:'好感度',cur:20,max:100,color:'#c98ba0'},{name:'信任',cur:35,max:100,color:'#8fae95'},{name:'理智',cur:80,max:100,color:'#8b93b8'}],
+    survive:[{name:'体力',cur:80,max:100,color:'#c9a05e'},{name:'饱食',cur:60,max:100,color:'#a9b072'},{name:'警觉',cur:50,max:100,color:'#9d7fb0'}],
+    none:[]
+  };
+  const SWATCH=['#c96a5e','#7d94c0','#8fae95','#c9a05e','#9d7fb0','#c98ba0'];
+  const PRESET_LABEL={classic:'经典两条',emotion:'情感向',survive:'生存向',none:'不用数值'};
+
+  /* ---------- data shape ---------- */
+  function ensureStage(game){
+    if(!game||typeof game!=='object')return game;
+    const fresh=!game.stage;
+    game.stage=O(game.stage);
+    if(fresh&&!Array.isArray(game.stage.stats))game.stage.stats=PRESETS.classic.map(s=>({...s,id:ID('stat')}));
+    game.stage.stats=L(game.stage.stats).map(s=>({
+      id:S(s?.id)||ID('stat'),name:S(s?.name||'数值'),
+      max:Math.max(1,Number(s?.max)||100),
+      cur:Math.max(0,Math.min(Math.max(1,Number(s?.max)||100),Number(s?.cur)||0)),
+      color:S(s?.color)||SWATCH[0]
+    })).slice(0,4);
+    game.stage.items=L(game.stage.items);
+    game.stage.saves=L(game.stage.saves);
+    game.stage.statPreset=S(game.stage.statPreset||(game.stage.stats.length?'custom':'none'));
+    return game;
+  }
+  window.v45712VNStats=id=>ensureStage(gameById(id))?.stage?.stats||[];
+
+  /* ---------- stage ---------- */
+  function statsBar(game){
+    const stats=L(game.stage.stats);
+    if(!stats.length)return '';
+    return `<div class="v45712-vn-stats">${stats.map(s=>{
+      const pct=Math.max(0,Math.min(100,s.cur/Math.max(1,s.max)*100));
+      return `<div class="v45712-vn-stat"><div class="top"><b>${E(s.name)}</b><span>${s.cur}/${s.max}</span></div><div class="bar"><i style="width:${pct}%;background:${AT(s.color)}"></i></div></div>`;
+    }).join('')}</div>`;
+  }
+  function stageMarkup(game,scene){
+    const cast=L(game.participantIds).map(person).filter(Boolean);
+    const lead=cast[0];
+    const face=img(scene?.image)||img(game.cover);
+    const portrait=img(lead?.image);
+    return `<div class="v45712-vn-stage">
+      ${face?`<div class="v45712-vn-bg" style="background-image:url(${AT(face)})"></div>`:'<div class="v45712-vn-bg is-blank"></div>'}
+      <div class="v45712-vn-air"></div>
+      <div class="v45712-vn-figure">
+        ${portrait?`<img src="${AT(portrait)}" alt="">`:'<div class="v45712-vn-figure-body"></div>'}
+        <span class="v45712-vn-figure-tag">${E(lead?.name||'人物')}</span>
+      </div>
+      ${scene?.title?`<div class="v45712-vn-place">${E(scene.title)}</div>`:''}
+    </div>`;
+  }
+  function dialogueMarkup(scene){
+    const lines=L(scene?.dialogue).filter(x=>S(x?.text).trim());
+    if(!lines.length)return '';
+    const first=lines[0];
+    return `<div class="v45712-vn-speaker">${E(first.speaker||'')}</div>
+      <div class="v45712-vn-lines">${lines.map((line,i)=>`<p class="${i?'more':''}">${i?`<em>${E(line.speaker||'')}</em>`:''}${E(line.text)}</p>`).join('')}</div>`;
+  }
+  function stageRender(game,scene,busyNow){
+    ensureStage(game);
+    const step=`第 ${L(game.scenes).length} 幕`;
+    return `<section class="v45712-vn-shell">
+      ${statsBar(game)}
+      <div class="v45712-vn-menu">
+        <button onclick="v45712VNSaves(${A(game.id)})" aria-label="存档">▤</button>
+        <button onclick="v45712VNLoads(${A(game.id)})" aria-label="读档">▥</button>
+        <button onclick="v45712VNItems(${A(game.id)})" aria-label="道具">◈</button>
+        <button onclick="v45712VNStatSheet(${A(game.id)})" aria-label="数值设置">⚙</button>
+        <button onclick="v4571VNMenu(${A(game.id)})" aria-label="更多">⋯</button>
+      </div>
+      <button class="v45712-vn-back" onclick="v4571VNBack()" aria-label="返回">‹</button>
+      ${stageMarkup(game,scene)}
+      <div class="v45712-vn-box">
+        ${scene?.narration?`<p class="v45712-vn-narr">${E(scene.narration)}</p>`:''}
+        ${dialogueMarkup(scene)}
+        ${scene?.companionComment?`<div class="v45712-vn-aside"><small>${E(person(game.companionId)?.name||'同伴')}</small>${E(scene.companionComment)}</div>`:''}
+        <div class="v45712-vn-next"><span>${E(step)}</span><i>▾</i></div>
+        ${busyNow?'<div class="v45712-vn-wait"><i></i><span>正在生成下一幕…</span></div>':`
+          <div class="v45712-vn-choices">${L(scene?.choices).map(choice=>`<button onclick="v4571ChooseVN(${A(choice)})">${E(choice)}</button>`).join('')}</div>
+          <div class="v45712-vn-custom"><input id="v4571VNCustomChoice" placeholder="也可以自己写一个选择…"><button onclick="v4571CustomVNChoice()" aria-label="继续">↑</button></div>`}
+      </div>
+    </section>`;
+  }
+  /* 替换原 renderPlayer 的输出，但仍复用它的时机与状态 */
+  window.v45712VNStageMarkup=stageRender;
+
+  /* ---------- saves ---------- */
+  const SLOTS=4;
+  function slotRows(game,mode){
+    ensureStage(game);
+    const saves=L(game.stage.saves);
+    const rows=[];
+    for(let i=1;i<=SLOTS;i++){
+      const row=saves.find(s=>Number(s.slot)===i);
+      if(!row){
+        rows.push(`<button class="v45712-vn-slot is-empty" onclick="${mode==='save'?`v45712VNDoSave(${A(game.id)},${i})`:`v45712VNEmptySlot()`}">
+          <div class="thumb">空</div><div class="main"><b>槽位 ${i} · 空</b><p>${mode==='save'?'点这里存入当前进度':'没有可读取的存档'}</p></div></button>`);
+        continue;
+      }
+      rows.push(`<button class="v45712-vn-slot" onclick="${mode==='save'?`v45712VNDoSave(${A(game.id)},${i})`:`v45712VNDoLoad(${A(game.id)},${i})`}">
+        <div class="thumb">${row.image?`<img src="${AT(row.image)}" alt="">`:E(S(row.title||'幕').slice(0,3))}</div>
+        <div class="main">
+          <b>槽位 ${i} · ${E(row.title||`第 ${row.sceneCount} 幕`)}</b>
+          <p>${E(S(row.note).slice(0,72)||'没有摘要')}</p>
+          <small>${E(row.atText||'')} · ${E(row.statText||'未使用数值')}</small>
+        </div></button>`);
+    }
+    return rows.join('');
+  }
+  window.v45712VNSaves=function(id){
+    const game=ensureStage(gameById(id));if(!game)return;
+    modal(`<div class="v45712-vn-sheet"><h2>存档</h2>
+      <div class="note">每个槽位记住那一幕的完整状态：数值、道具和已经做过的选择。覆盖前会问一次。</div>
+      <div class="v45712-vn-slots">${slotRows(game,'save')}</div>
+      <div class="form-actions"><button onclick="closeModal()">关闭</button></div></div>`);
+  };
+  window.v45712VNLoads=function(id){
+    const game=ensureStage(gameById(id));if(!game)return;
+    modal(`<div class="v45712-vn-sheet"><h2>读档</h2>
+      <div class="note">读档会回到那一幕的开头。之后的进展仍然留在原来的槽位里，不会被清掉。</div>
+      <div class="v45712-vn-slots">${slotRows(game,'load')}</div>
+      <div class="form-actions"><button onclick="closeModal()">关闭</button></div></div>`);
+  };
+  window.v45712VNEmptySlot=function(){say('这个槽位还是空的')};
+  window.v45712VNDoSave=function(id,slot){
+    const game=ensureStage(gameById(id));if(!game)return;
+    const saves=L(game.stage.saves);
+    const exist=saves.find(s=>Number(s.slot)===Number(slot));
+    if(exist&&!confirm(`覆盖槽位 ${slot} 的存档？`))return;
+    const scene=L(game.scenes).at(-1);
+    const row={
+      slot:Number(slot),
+      sceneCount:L(game.scenes).length,
+      title:S(scene?.title||`第 ${L(game.scenes).length} 幕`),
+      note:S(scene?.narration||'').slice(0,120),
+      image:S(scene?.image||''),
+      atText:(()=>{try{return new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return''}})(),
+      statText:L(game.stage.stats).map(s=>`${s.name} ${s.cur}`).join(' · '),
+      stats:L(game.stage.stats).map(s=>({...s})),
+      items:L(game.stage.items).map(i=>({...i})),
+      scenes:L(game.scenes).map(s=>({...s})),
+      at:NOW()
+    };
+    game.stage.saves=[...saves.filter(s=>Number(s.slot)!==Number(slot)),row];
+    persist();closeModal();say(`已存入槽位 ${slot}`);
+  };
+  window.v45712VNDoLoad=function(id,slot){
+    const game=ensureStage(gameById(id));if(!game)return;
+    const row=L(game.stage.saves).find(s=>Number(s.slot)===Number(slot));
+    if(!row)return say('这个槽位还是空的');
+    if(!confirm(`读取槽位 ${slot}？当前进度会先自动存到「最近一次」，不会丢。`))return;
+    /* 读档前把当前进度落到一个保留槽，避免覆盖式丢失 */
+    game.stage.autoSave={
+      sceneCount:L(game.scenes).length,
+      stats:L(game.stage.stats).map(s=>({...s})),
+      items:L(game.stage.items).map(i=>({...i})),
+      scenes:L(game.scenes).map(s=>({...s})),
+      at:NOW()
+    };
+    game.scenes=L(row.scenes).map(s=>({...s}));
+    game.stage.stats=L(row.stats).map(s=>({...s}));
+    game.stage.items=L(row.items).map(i=>({...i}));
+    game.updatedAt=NOW();persist();closeModal();
+    try{v4571OpenVN(game.id)}catch{}
+    say(`已回到槽位 ${slot} 的那一幕，之后的进展仍留在原槽位`);
+  };
+})();
+
+/* =========================================================
+   V45.7.12 · 文游道具栏、数值条编辑，以及接进原播放器
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiVNStage2)return;
+  window.__pokejiVNStage2=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+
+  const games=()=>{data.visualNovelsV4571=O(data.visualNovelsV4571);data.visualNovelsV4571.games=L(data.visualNovelsV4571.games);return data.visualNovelsV4571.games};
+  const gameById=id=>games().find(g=>S(g.id)===S(id))||null;
+  const SWATCH=['#c96a5e','#7d94c0','#8fae95','#c9a05e','#9d7fb0','#c98ba0'];
+  const PRESETS={
+    classic:[{name:'生命值',cur:100,max:100,color:'#c96a5e'},{name:'精神值',cur:70,max:100,color:'#7d94c0'}],
+    emotion:[{name:'好感度',cur:20,max:100,color:'#c98ba0'},{name:'信任',cur:35,max:100,color:'#8fae95'},{name:'理智',cur:80,max:100,color:'#8b93b8'}],
+    survive:[{name:'体力',cur:80,max:100,color:'#c9a05e'},{name:'饱食',cur:60,max:100,color:'#a9b072'},{name:'警觉',cur:50,max:100,color:'#9d7fb0'}],
+    none:[]
+  };
+  const ensure=id=>{const g=gameById(id);if(g&&!g.stage)g.stage={stats:[],items:[],saves:[],statPreset:'none'};if(g){g.stage.stats=L(g.stage.stats);g.stage.items=L(g.stage.items);g.stage.saves=L(g.stage.saves)}return g};
+
+  /* ---------- 道具栏：格子式，说明＋使用 ---------- */
+  const CELLS=8;
+  window.v45712VNItems=function(id){
+    const game=ensure(id);if(!game)return;
+    const items=L(game.stage.items);
+    const cells=[];
+    for(let i=0;i<Math.max(CELLS,items.length);i++){
+      const it=items[i];
+      cells.push(it
+        ?`<button class="${it.usable===false?'is-locked':''}" onclick="v45712VNItemDetail(${A(id)},${A(it.id)})">
+            <span>${E(it.glyph||'◈')}</span>${E(S(it.name).slice(0,6))}${Number(it.count)>1?`<em>×${Number(it.count)}</em>`:''}</button>`
+        :'<button class="is-blank" onclick="v45712VNAddItem(\''+AT(id)+'\')" aria-label="空格子"><span>＋</span></button>');
+    }
+    modal(`<div class="v45712-vn-sheet"><h2>道具栏</h2>
+      <div class="note">故事里获得的东西会自动进这里。点一个看说明；灰掉的现在用不了。</div>
+      <div class="v45712-vn-inv">${cells.join('')}</div>
+      <div id="v45712VNItemDetail"><div class="note" style="margin-top:10px">点一个道具看说明。</div></div>
+      <div class="form-actions"><button onclick="closeModal()">关闭</button><button onclick="v45712VNAddItem(${A(id)})">手动添加</button></div></div>`);
+  };
+  window.v45712VNItemDetail=function(gameId,itemId){
+    const game=ensure(gameId);if(!game)return;
+    const it=L(game.stage.items).find(x=>S(x.id)===S(itemId));if(!it)return;
+    const box=document.getElementById('v45712VNItemDetail');if(!box)return;
+    box.innerHTML=`<div class="v45712-vn-item">
+        <span>${E(it.glyph||'◈')}</span>
+        <div><b>${E(it.name)}${Number(it.count)>1?` ×${Number(it.count)}`:''}</b><p>${E(it.desc||'没有写说明。')}</p></div>
+      </div>
+      <div class="v45712-vn-item-tools">
+        ${it.usable===false?'<button disabled>现在用不了</button>':`<button onclick="v45712VNUseItem(${A(gameId)},${A(itemId)})">在这一幕使用</button>`}
+        <button onclick="v45712VNEditItem(${A(gameId)},${A(itemId)})">编辑</button>
+        <button class="danger" onclick="v45712VNDropItem(${A(gameId)},${A(itemId)})">丢掉</button>
+      </div>`;
+  };
+  window.v45712VNUseItem=function(gameId,itemId){
+    const game=ensure(gameId);if(!game)return;
+    const it=L(game.stage.items).find(x=>S(x.id)===S(itemId));if(!it)return;
+    closeModal();
+    const text=`我使用了「${it.name}」${it.desc?`（${it.desc}）`:''}`;
+    try{v4571ChooseVN(text)}catch{say('无法在这一幕使用')}
+    say(`已使用「${it.name}」，这一幕会因此改变`);
+  };
+  window.v45712VNAddItem=function(gameId){
+    const game=ensure(gameId);if(!game)return;
+    modal(`<div class="v45712-vn-sheet"><h2>添加道具</h2>
+      <div class="field"><label>名称</label><input id="v45712ItemName" placeholder="例如：她的折伞"></div>
+      <div class="field"><label>符号</label><input id="v45712ItemGlyph" value="◈" maxlength="2"></div>
+      <div class="field"><label>说明</label><textarea id="v45712ItemDesc" placeholder="它是什么、从哪来、为什么留着"></textarea></div>
+      <div class="field"><label>数量</label><input id="v45712ItemCount" type="number" min="1" value="1"></div>
+      <label class="v45712-vn-check"><input type="checkbox" id="v45712ItemUsable" checked><span>现在可以使用</span></label>
+      <div class="form-actions"><button onclick="v45712VNItems(${A(gameId)})">返回</button><button class="primary" onclick="v45712VNSaveItem(${A(gameId)},'')">保存</button></div></div>`);
+  };
+  window.v45712VNEditItem=function(gameId,itemId){
+    const game=ensure(gameId);if(!game)return;
+    const it=L(game.stage.items).find(x=>S(x.id)===S(itemId));if(!it)return;
+    modal(`<div class="v45712-vn-sheet"><h2>编辑道具</h2>
+      <div class="field"><label>名称</label><input id="v45712ItemName" value="${AT(it.name)}"></div>
+      <div class="field"><label>符号</label><input id="v45712ItemGlyph" value="${AT(it.glyph||'◈')}" maxlength="2"></div>
+      <div class="field"><label>说明</label><textarea id="v45712ItemDesc">${E(it.desc||'')}</textarea></div>
+      <div class="field"><label>数量</label><input id="v45712ItemCount" type="number" min="1" value="${Number(it.count)||1}"></div>
+      <label class="v45712-vn-check"><input type="checkbox" id="v45712ItemUsable" ${it.usable===false?'':'checked'}><span>现在可以使用</span></label>
+      <div class="form-actions"><button onclick="v45712VNItems(${A(gameId)})">返回</button><button class="primary" onclick="v45712VNSaveItem(${A(gameId)},${A(itemId)})">保存</button></div></div>`);
+  };
+  window.v45712VNSaveItem=function(gameId,itemId){
+    const game=ensure(gameId);if(!game)return;
+    const name=S(document.getElementById('v45712ItemName')?.value).trim();
+    if(!name)return say('请填写道具名称');
+    const row={
+      id:S(itemId)||ID('vnitem'),
+      name,glyph:S(document.getElementById('v45712ItemGlyph')?.value||'◈').slice(0,2),
+      desc:S(document.getElementById('v45712ItemDesc')?.value).trim(),
+      count:Math.max(1,Number(document.getElementById('v45712ItemCount')?.value)||1),
+      usable:document.getElementById('v45712ItemUsable')?.checked!==false,
+      at:NOW()
+    };
+    game.stage.items=itemId
+      ?L(game.stage.items).map(x=>S(x.id)===S(itemId)?row:x)
+      :[...L(game.stage.items),row];
+    persist();window.v45712VNItems(gameId);say(itemId?'道具已更新':'道具已添加');
+  };
+  window.v45712VNDropItem=function(gameId,itemId){
+    const game=ensure(gameId);if(!game)return;
+    const it=L(game.stage.items).find(x=>S(x.id)===S(itemId));if(!it)return;
+    if(!confirm(`丢掉「${it.name}」？`))return;
+    game.stage.items=L(game.stage.items).filter(x=>S(x.id)!==S(itemId));
+    persist();window.v45712VNItems(gameId);say('已丢掉');
+  };
+
+  /* ---------- 数值条：预设或完全自定义，允许一条都不留 ---------- */
+  window.v45712VNStatSheet=function(id){
+    const game=ensure(id);if(!game)return;
+    modal(`<div class="v45712-vn-sheet"><h2>数值条</h2>
+      <div class="note">可以直接用预设，也可以完全自己定义。故事推进时由 AI 按剧情增减，跨过阈值可能触发不同分支。一条都不留也可以，那这部文游就是纯剧情向，顶部不显示任何条。</div>
+      <div class="v45712-vn-presets">
+        ${Object.entries({classic:['经典两条','生命值 · 精神值'],emotion:['情感向','好感度 · 信任 · 理智'],survive:['生存向','体力 · 饱食 · 警觉'],none:['不用数值','纯剧情，隐藏顶部条']})
+          .map(([key,[title,sub]])=>`<button onclick="v45712VNApplyPreset(${A(id)},'${key}')"><b>${title}</b><small>${sub}</small></button>`).join('')}
+      </div>
+      <div id="v45712VNStatEditor">${statEditor(game)}</div>
+      <div class="form-actions"><button onclick="v45712VNAddStat(${A(id)})">＋ 新增一条</button><button class="primary" onclick="closeModal()">完成</button></div></div>`);
+  };
+  function statEditor(game){
+    const stats=L(game.stage.stats);
+    if(!stats.length)return '<div class="note">当前没有数值条。这部文游会是纯剧情向，顶部不显示任何条。</div>';
+    return stats.map((s,i)=>`<div class="v45712-vn-stat-edit">
+      <div class="head"><i style="background:${AT(s.color)}"></i>
+        <input value="${AT(s.name)}" placeholder="数值名称" oninput="v45712VNStatField(${A(game.id)},${i},'name',this.value)">
+        <button onclick="v45712VNRemoveStat(${A(game.id)},${i})" aria-label="删除">×</button></div>
+      <div class="fields">
+        <label><span>当前值</span><input type="number" value="${s.cur}" oninput="v45712VNStatField(${A(game.id)},${i},'cur',this.value)"></label>
+        <label><span>上限</span><input type="number" value="${s.max}" oninput="v45712VNStatField(${A(game.id)},${i},'max',this.value)"></label>
+      </div>
+      <div class="swatches">${SWATCH.map(c=>`<button class="${c===s.color?'on':''}" style="background:${c}" onclick="v45712VNStatField(${A(game.id)},${i},'color','${c}')" aria-label="颜色"></button>`).join('')}</div>
+    </div>`).join('');
+  }
+  function refreshStatEditor(game){
+    const box=document.getElementById('v45712VNStatEditor');
+    if(box)box.innerHTML=statEditor(game);
+    try{if(typeof window.v45712VNRepaint==='function')window.v45712VNRepaint()}catch{}
+  }
+  window.v45712VNStatField=function(id,index,field,value){
+    const game=ensure(id);if(!game)return;
+    const s=L(game.stage.stats)[index];if(!s)return;
+    if(field==='name')s.name=S(value);
+    else if(field==='color'){s.color=S(value);}
+    else{
+      const n=Number(value)||0;
+      if(field==='max')s.max=Math.max(1,n);
+      else s.cur=n;
+      s.max=Math.max(1,Number(s.max)||100);
+      s.cur=Math.max(0,Math.min(s.max,Number(s.cur)||0));
+    }
+    game.stage.statPreset='custom';persist();
+    if(field==='color'||field==='max')refreshStatEditor(game);
+    else try{window.v45712VNRepaint?.()}catch{}
+  };
+  window.v45712VNAddStat=function(id){
+    const game=ensure(id);if(!game)return;
+    if(L(game.stage.stats).length>=4)return say('最多四条，再多顶部会挤');
+    game.stage.stats=[...L(game.stage.stats),{id:ID('stat'),name:'新数值',cur:50,max:100,color:SWATCH[L(game.stage.stats).length%SWATCH.length]}];
+    game.stage.statPreset='custom';persist();refreshStatEditor(game);
+  };
+  window.v45712VNRemoveStat=function(id,index){
+    const game=ensure(id);if(!game)return;
+    game.stage.stats=L(game.stage.stats).filter((_,i)=>i!==index);
+    game.stage.statPreset=L(game.stage.stats).length?'custom':'none';
+    persist();refreshStatEditor(game);
+  };
+  window.v45712VNApplyPreset=function(id,key){
+    const game=ensure(id);if(!game)return;
+    game.stage.stats=L(PRESETS[key]).map(s=>({...s,id:ID('stat')}));
+    game.stage.statPreset=key;persist();refreshStatEditor(game);
+    say(key==='none'?'已关闭数值条，顶部不再显示':`已套用预设：${game.stage.stats.map(s=>s.name).join(' · ')}`);
+  };
+
+  /* ---------- AI 按剧情推数值 ---------- */
+  window.v45712VNApplyDelta=function(game,deltas){
+    if(!game?.stage)return[];
+    const moved=[];
+    for(const row of L(deltas)){
+      const name=S(row?.name).trim(),delta=Number(row?.delta);
+      if(!name||!Number.isFinite(delta)||!delta)continue;
+      const stat=L(game.stage.stats).find(s=>S(s.name).trim()===name);
+      if(!stat)continue;
+      const before=stat.cur;
+      stat.cur=Math.max(0,Math.min(Math.max(1,Number(stat.max)||100),before+delta));
+      if(stat.cur!==before)moved.push(`${stat.name} ${delta>0?'+':''}${stat.cur-before}`);
+    }
+    return moved;
+  };
+  window.v45712VNGrantItems=function(game,rows){
+    if(!game?.stage)return[];
+    const added=[];
+    for(const row of L(rows)){
+      const name=S(row?.name).trim();if(!name)continue;
+      const exist=L(game.stage.items).find(x=>S(x.name).trim()===name);
+      if(exist){exist.count=Math.max(1,(Number(exist.count)||1)+(Number(row?.count)||1));added.push(`${name} ×${Number(row?.count)||1}`);continue}
+      game.stage.items=[...L(game.stage.items),{
+        id:ID('vnitem'),name,glyph:S(row?.glyph||'◈').slice(0,2),
+        desc:S(row?.desc).trim(),count:Math.max(1,Number(row?.count)||1),
+        usable:row?.usable!==false,at:NOW()
+      }];
+      added.push(name);
+    }
+    return added;
+  };
+})();
+
+/* =========================================================
+   V45.7.12 · 把视觉小说舞台接到原播放器上
+   原 renderPlayer 负责时机与状态，这里只换掉它画出来的东西。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiVNStage3)return;
+  window.__pokejiVNStage3=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+
+  const games=()=>{data.visualNovelsV4571=O(data.visualNovelsV4571);data.visualNovelsV4571.games=L(data.visualNovelsV4571.games);return data.visualNovelsV4571.games};
+  const gameById=id=>games().find(g=>S(g.id)===S(id))||null;
+  const activeGame=()=>gameById(S(data.visualNovelsV4571?.activeId));
+
+  /* 舞台重画：原播放器每次改状态都会重设 root().innerHTML，
+     我们在它之后立刻替换成视觉小说版式。 */
+  function repaint(){
+    const root=document.getElementById('v4571VNRoot');
+    const game=activeGame();
+    if(!root||!game)return false;
+    /* 库列表页不接管 */
+    if(root.querySelector('.v4571-vn-library'))return false;
+    const scene=L(game.scenes).at(-1)||null;
+    const busyNow=!!root.querySelector('.v4571-vn-generating,.v4571-vn-loading');
+    if(typeof window.v45712VNStageMarkup!=='function')return false;
+    const keep=document.getElementById('v4571VNCustomChoice')?.value||'';
+    root.innerHTML=window.v45712VNStageMarkup(game,scene,busyNow);
+    const input=document.getElementById('v4571VNCustomChoice');
+    if(input&&keep)input.value=keep;
+    return true;
+  }
+  window.v45712VNRepaint=repaint;
+
+  /* 观察 root 的变化，原播放器一重画我们就跟着换版式 */
+  let queued=false;
+  const observer=new MutationObserver(()=>{
+    if(queued)return;queued=true;
+    queueMicrotask(()=>{queued=false;
+      const root=document.getElementById('v4571VNRoot');
+      if(!root)return;
+      if(root.querySelector('.v45712-vn-shell'))return;   /* 已是新版式 */
+      repaint();
+    });
+  });
+  function watch(){
+    const view=document.getElementById('visualNovel');
+    if(!view)return;
+    try{observer.observe(view,{childList:true,subtree:true})}catch{}
+  }
+  const baseOpen=typeof window.openVisualNovel==='function'?window.openVisualNovel:null;
+  if(baseOpen&&!baseOpen.__stage){
+    const wrapped=function(...args){const r=baseOpen.apply(this,args);setTimeout(watch,0);return r};
+    wrapped.__stage=true;window.openVisualNovel=wrapped;try{openVisualNovel=wrapped}catch{}
+  }
+  const baseOpenVN=typeof window.v4571OpenVN==='function'?window.v4571OpenVN:null;
+  if(baseOpenVN&&!baseOpenVN.__stage){
+    const wrapped=function(...args){const r=baseOpenVN.apply(this,args);setTimeout(()=>{watch();repaint()},0);return r};
+    wrapped.__stage=true;window.v4571OpenVN=wrapped;try{v4571OpenVN=wrapped}catch{}
+  }
+  setTimeout(watch,0);
+
+  /* ---------- 让 AI 真的会推数值和给道具 ---------- */
+  const baseInvoke=typeof window.invokeModel==='function'?window.invokeModel:null;
+  if(baseInvoke&&!baseInvoke.__vnStage){
+    const wrapped=async function(kind,options={}){
+      if(options?.activityArea!=='文游')return baseInvoke.call(this,kind,options);
+      const game=activeGame();
+      const stats=L(game?.stage?.stats);
+      const items=L(game?.stage?.items);
+      let enhanced=options;
+      if(game){
+        const statText=stats.length
+          ?`本作使用这些数值条，当前值如下：${stats.map(s=>`${s.name} ${s.cur}/${s.max}`).join('，')}。\n请在 JSON 里额外给出 "stats":[{"name":"数值名","delta":整数,"why":"一句原因"}]，只填真正该变化的项，名称必须完全一致；没有变化就给空数组。变化要由本幕实际发生的事推动，不要每幕都动，也不要凭空归零或拉满。`
+          :'本作不使用数值条，不要输出 stats 字段，也不要在正文里编造血条、精神值之类的数字。';
+        const itemText=items.length
+          ?`${persona()}目前持有：${items.map(i=>`${i.name}${Number(i.count)>1?`×${i.count}`:''}`).join('，')}。若本幕确实得到新东西，用 "items":[{"name":"","glyph":"一个符号","desc":"它是什么","count":1}]。`
+          :'若本幕确实得到可以留下的东西，用 "items":[{"name":"","glyph":"一个符号","desc":"它是什么","count":1}]。';
+        enhanced={...options,system:`${S(options.system)}\n${statText}\n${itemText}`};
+      }
+      const raw=await baseInvoke.call(this,kind,enhanced);
+      if(!game)return raw;
+      try{
+        const text=S(raw),start=text.indexOf('{'),end=text.lastIndexOf('}');
+        if(start>=0&&end>start){
+          const row=O(JSON.parse(text.slice(start,end+1)));
+          const moved=window.v45712VNApplyDelta?.(game,row.stats)||[];
+          const added=window.v45712VNGrantItems?.(game,row.items)||[];
+          if(moved.length||added.length){
+            persist();
+            setTimeout(()=>{
+              repaint();
+              const parts=[];
+              if(moved.length)parts.push(moved.join('，'));
+              if(added.length)parts.push(`获得 ${added.join('、')}`);
+              say(parts.join(' · '));
+            },30);
+          }
+        }
+      }catch{}
+      return raw;
+    };
+    wrapped.__vnStage=true;window.invokeModel=wrapped;try{invokeModel=wrapped}catch{}
+  }
+  function persona(){
+    try{return activePersonaFor(typeof currentChat!=='undefined'?currentChat:'')?.name||'你'}catch{return'你'}
+  }
+})();
+
+/* =========================================================
+   V45.7.12 · 手机购物应用真实结构
+   首页瀑布流 → 商品详情 → 购物清单 → 购物车 → 订单物流。
+   清单与购物车保持两个独立入口。
+   只接管 market 一个应用；桌面、顶栏、图标一律不动。
+   状态与数据都放在 window.__pokejiShopState / __pokejiShopStore，
+   动作段与视图段共用同一份，不各自持有副本。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiShopViewsReady)return;
+  window.__pokejiShopViewsReady=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+  const money=n=>Number(n||0).toFixed(2);
+  const V=()=>window.V455||null;
+
+  const TINT=['linear-gradient(150deg,#5c6b7a,#39424d)','linear-gradient(150deg,#7a6a5c,#4d423a)','linear-gradient(150deg,#6a7a68,#3d4a3c)','linear-gradient(150deg,#7a5c6a,#4d3a42)','linear-gradient(150deg,#5c5c7a,#3a3a4d)','linear-gradient(150deg,#7a745c,#4a463a)'];
+  const tint=i=>TINT[Math.abs(Number(i)||0)%TINT.length];
+  const state=()=>window.__pokejiShopState||{owner:'user',route:'home',goodId:'',specIndex:0,orderTab:'全部'};
+  const store=()=>window.__pokejiShopStore?.()||{goods:[],list:[],cart:[],orders:[],favorites:[]};
+
+  /* ---------- 首次进入时铺一份可用的商品与记录 ---------- */
+  window.v45712ShopSeed=function(){
+    const base=store();
+    if(!base.seeded){
+      base.goods=[
+        {id:ID('good'),name:'长柄自动伞 · 加固十骨 抗风暴雨',price:89,was:139,sold:'2.4万',rate:'98%',shop:'雨具官方旗舰店',tags:['包邮','7天无理由'],specs:['藏青 / 长柄','雅灰 / 长柄','米白 / 长柄'],height:132,tone:0,desc:'伞骨十根，风大也不容易翻。收起来偏重。'},
+        {id:ID('good'),name:'纯棉短袖 T 恤 宽松基础款 三色可选',price:59,was:99,sold:'8.7万',rate:'97%',shop:'棉纺工坊',tags:['满2件减20'],specs:['白 / L','雾灰 / L','墨绿 / L'],height:158,tone:1,desc:'纯棉，洗后略缩。宽松版型。'},
+        {id:ID('good'),name:'机械键盘 87 键 客制化轴体 白光',price:329,was:459,sold:'6231',rate:'99%',shop:'键盘实验室',tags:['分期免息'],specs:['红轴','茶轴','静音轴'],height:120,tone:2,desc:'热插拔轴座，可自行换轴。'},
+        {id:ID('good'),name:'保温杯 500ml 316 不锈钢 长效锁温',price:79,was:128,sold:'1.9万',rate:'98%',shop:'家用好物',tags:['包邮'],specs:['雾白 / 500ml','石墨 / 500ml'],height:146,tone:3,desc:'六小时后仍然烫口。杯口偏窄。'},
+        {id:ID('good'),name:'降噪耳机 主动降噪 长续航 通话清晰',price:249,was:399,sold:'3.2万',rate:'96%',shop:'声学旗舰店',tags:['限时直降'],specs:['夜黑','珠白'],height:126,tone:4,desc:'地铁里能压掉大部分低频。'},
+        {id:ID('good'),name:'笔记本 A5 硬壳 方格内页 两本装',price:26,was:45,sold:'5.6万',rate:'99%',shop:'文具铺子',tags:['凑单神器'],specs:['方格','横线','空白'],height:152,tone:5,desc:'纸张偏厚，钢笔不透。'}
+      ];
+      base.list=[
+        {id:ID('sl'),name:'长柄自动伞',note:'雨季前要买',price:89,done:false,tone:0,createdAt:NOW()},
+        {id:ID('sl'),name:'保温杯 500ml',note:'旧的漏水了',price:79,done:false,tone:3,createdAt:NOW()}
+      ];
+      base.orders=[{
+        id:ID('order'),no:String(Date.now()).slice(-13),status:'待收货',
+        name:base.goods[3].name,spec:base.goods[3].specs[0],price:base.goods[3].price,qty:1,tone:3,
+        address:'（未填写收件信息）',
+        track:[{text:'已签收',at:'',done:false},{text:'派送中 · 骑手已取件',at:'今天 09:12',done:true},{text:'到达本市转运中心',at:'今天 04:40',done:true},{text:'已从仓库发出',at:'昨天 21:08',done:true},{text:'商家已接单',at:'昨天 19:55',done:true}],
+        createdAt:NOW()
+      }];
+      base.seeded=true;persist();
+    }
+    /* 旧的 realApps.market.orders 不丢，合并成真实订单 */
+    if(!base.legacyMerged){
+      try{
+        const real=V()?.ownerStore?.(state().owner);
+        const legacy=L(real?.realApps?.market?.orders||real?.market?.orders);
+        for(const row of legacy){
+          if(!row||base.orders.some(o=>S(o.legacyId)===S(row.id)))continue;
+          const status=S(row.status);
+          base.orders.push({
+            id:ID('order'),legacyId:S(row.id),
+            no:String(row.id||'').slice(-13)||String(Date.now()).slice(-13),
+            status:status==='运输中'?'待收货':['待付款','已完成','退款'].includes(status)?status:'已完成',
+            name:S(row.product||'旧订单'),spec:'',price:Number(row.amount)||0,
+            qty:Math.max(1,Number(row.quantity)||1),tone:2,address:S(row.address||''),
+            track:S(row.logistics)?[{text:S(row.logistics),at:'',done:true}]:[],
+            createdAt:S(row.createdAt||NOW())
+          });
+        }
+      }catch{}
+      base.legacyMerged=true;persist();
+    }
+  };
+
+  /* ---------- 外壳 ---------- */
+  function paint(html){
+    try{V()?.setPhoneContent?.(`<div class="vphone vphone-app v455-phone-shell v45712-shop">${html}</div>`)}catch{}
+    setTimeout(()=>{try{window.v453ShieldTextFields?.(document.querySelector('.v455-phone-shell'))}catch{}},0);
+  }
+  function topBar(hint,back){
+    const count=store().cart.reduce((n,l)=>n+(Number(l.qty)||1),0);
+    return `<div class="v45712-shop-top">
+      <button class="back" onclick="${back?`v45712ShopGo('${back}')`:`v43PhoneDesktop(${A(state().owner)})`}" aria-label="返回">‹</button>
+      <div class="search"><i>⌕</i><span>${E(hint)}</span></div>
+      <button class="cart" onclick="v45712ShopGo('cart')" aria-label="购物车">⛬${count?`<b>${count}</b>`:''}</button>
+    </div>`;
+  }
+  function tabs(current){
+    const rows=[['home','推荐'],['list','清单'],['cart','购物车'],['orders','订单'],['fav','收藏']];
+    return `<div class="v45712-shop-tabs">${rows.map(([key,label])=>
+      `<button class="${key===current?'on':''}" onclick="v45712ShopGo('${key}')">${label}</button>`).join('')}</div>`;
+  }
+  window.v45712ShopGo=function(next){
+    if(next==='fav'){
+      const favs=store().favorites.length;
+      return say(favs?`收藏夹里有 ${favs} 件，稍后开放独立页面`:'还没有收藏任何商品');
+    }
+    state().route=S(next);window.v45712ShopRepaint();
+    const body=document.querySelector('.v45712-shop-body');if(body)body.scrollTop=0;
+  };
+  window.v45712ShopOpen=function(id){const s=state();s.goodId=S(id);s.specIndex=0;s.route='detail';window.v45712ShopRepaint()};
+  window.v45712ShopSpec=function(i){state().specIndex=Number(i)||0;window.v45712ShopRepaint()};
+
+  window.v45712ShopRepaint=function(){
+    const s=state(),base=store(),views=window.__pokejiShopViews||{};
+    if(s.route==='detail')return paint(detailView());
+    if(s.route==='list')return paint(views.list?.(base,topBar,tabs,tint)||'');
+    if(s.route==='cart')return paint(views.cart?.(base,topBar,tabs,tint)||'');
+    if(s.route==='orders')return paint(views.orders?.(base,topBar,tabs,tint,s.orderTab)||'');
+    return paint(homeView());
+  };
+
+  function homeView(){
+    const base=store();
+    return `${topBar('搜索商品、店铺')}${tabs('home')}
+    <main class="vphone-app-body v45712-shop-body">
+      <div class="v45712-shop-banner"><div><b>雨季必备专场</b><small>伞具、防水鞋套、除湿盒 最高直降 40%</small></div><span>去看看</span></div>
+      ${base.goods.length?`<div class="v45712-shop-goods">${base.goods.map(g=>`
+        <button class="v45712-good" onclick="v45712ShopOpen(${A(g.id)})">
+          <div class="img" style="height:${Number(g.height)||130}px;background:${tint(g.tone)}">商品图</div>
+          <div class="body">
+            <p class="title">${E(g.name)}</p>
+            ${L(g.tags).length?`<div class="tags">${g.tags.map(t=>`<span>${E(t)}</span>`).join('')}</div>`:''}
+            <div class="price"><b><i>¥</i>${Number(g.price)}</b>${g.was?`<del>¥${Number(g.was)}</del>`:''}</div>
+            <div class="foot"><span>${E(g.sold||'')}人已买</span><span>好评 ${E(g.rate||'')}</span></div>
+          </div>
+        </button>`).join('')}</div>`:'<div class="v45712-shop-empty"><b>还没有商品</b><small>这部手机的购物应用是空的。</small></div>'}
+    </main>`;
+  }
+  function detailView(){
+    const base=store(),s=state();
+    const g=base.goods.find(x=>S(x.id)===S(s.goodId))||base.goods[0];
+    if(!g)return homeView();
+    const specs=L(g.specs).length?g.specs:['默认'];
+    const index=Math.min(s.specIndex,specs.length-1);
+    const faved=base.favorites.includes(S(g.id));
+    return `${topBar('搜索店内商品','home')}
+    <main class="vphone-app-body v45712-shop-body is-detail">
+      <div class="v45712-detail-hero" style="background:${tint(g.tone)}">商品主图<em>1 / 6</em></div>
+      <div class="v45712-detail-price">
+        <div class="main"><b><i>¥</i>${Number(g.price)}</b>${g.was?`<del>¥${Number(g.was)}</del>`:''}<span>限时</span></div>
+        <small>已有 ${E(g.sold||'')} 人购买 · 好评率 ${E(g.rate||'')}</small>
+      </div>
+      <div class="v45712-detail-block">
+        <p class="name">${E(g.name)}</p>
+        <p class="sub">${L(g.tags).join(' · ')}${g.desc?` · ${E(g.desc)}`:''}</p>
+        <div class="specs">${specs.map((row,i)=>`<button class="${i===index?'on':''}" onclick="v45712ShopSpec(${i})">${E(row)}</button>`).join('')}</div>
+      </div>
+      <div class="v45712-detail-block">
+        <div class="rows">
+          <div><i>规格</i><span>${E(specs[index])}</span></div>
+          <div><i>配送</i><span>预计明天送达 · 免运费</span></div>
+          <div><i>服务</i><span>7天无理由 · 坏损包退</span></div>
+          <div><i>店铺</i><span>${E(g.shop||'')}</span></div>
+        </div>
+      </div>
+      <div class="v45712-detail-block">
+        <div class="review-head"><b>评价</b><small>好评 ${E(g.rate||'')}</small></div>
+        <div class="review"><div class="top"><span>${E(S(g.shop).slice(0,1)||'买')}</span><b>匿名买家</b><small>本周</small></div><p>${E(g.desc||'和描述一致。')}</p></div>
+      </div>
+    </main>
+    <div class="v45712-shop-bar">
+      <button class="ico" onclick="v45712ShopToList(${A(g.id)})"><span>☰</span>加清单</button>
+      <button class="ico ${faved?'is-on':''}" onclick="v45712ShopFav(${A(g.id)})"><span>${faved?'♥':'♡'}</span>${faved?'已收藏':'收藏'}</button>
+      <div class="buy">
+        <button class="cartbtn" onclick="v45712ShopToCart(${A(g.id)})">加入购物车</button>
+        <button class="now" onclick="v45712ShopBuyNow(${A(g.id)})">立即购买</button>
+      </div>
+    </div>`;
+  }
+})();
+
+/* =========================================================
+   V45.7.12 · 购物应用：清单、购物车、订单，以及全部动作
+   清单与购物车保持两个独立入口。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiShopApp2)return;
+  window.__pokejiShopApp2=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+  const money=n=>Number(n||0).toFixed(2);
+
+  /* 与前一段共用同一份状态，通过 window 暴露的桥接函数取 */
+  const bridge=()=>window.__pokejiShopBridge||null;
+
+  window.__pokejiShopViews={
+    list(shop,topBar,tabs,tint){
+      const pending=shop.list.filter(l=>!l.done);
+      const total=pending.reduce((n,l)=>n+(Number(l.price)||0),0);
+      return `${topBar('搜索清单里的东西','home')}${tabs('list')}
+      <main class="vphone-app-body v45712-shop-body">
+        <div class="v45712-list-head">
+          <div><b>购物清单</b><small>勾掉表示已经买了 · ${pending.length} 项待买</small></div>
+          <em><i>¥</i>${money(total)}</em>
+        </div>
+        ${shop.list.length?shop.list.map(l=>`<div class="v45712-list-item ${l.done?'is-done':''}">
+          <input type="checkbox" ${l.done?'checked':''} onchange="v45712ShopListDone(${A(l.id)},this.checked)" aria-label="已买">
+          <div class="thumb" style="background:${tint(l.tone)}">图</div>
+          <div><b>${E(l.name)}</b><small>${E(l.note||'')}</small></div>
+          <strong>${Number(l.price)?`¥${Number(l.price)}`:'—'}</strong>
+          <button onclick="v45712ShopListRemove(${A(l.id)})" aria-label="删除">×</button>
+        </div>`).join(''):'<div class="v45712-shop-empty"><b>清单还是空的</b><small>看到想买的，在商品页点「加清单」，或者直接在下面写一行。</small></div>'}
+        <div class="v45712-list-add">
+          <input id="v45712ListInput" placeholder="想买什么，直接写一行…" onkeydown="if(event.key==='Enter'){event.preventDefault();v45712ShopListAdd()}">
+          <button onclick="v45712ShopListAdd()">添加</button>
+        </div>
+        <div class="v45712-shop-note">清单只记你想买的东西，不会自动下单。勾掉的会留在下面，方便回头看买过什么。</div>
+      </main>`;
+    },
+    cart(shop,topBar,tabs,tint){
+      const groups=[];
+      for(const line of shop.cart){
+        const key=S(line.shop||'其他');
+        let group=groups.find(g=>g.shop===key);
+        if(!group){group={shop:key,lines:[]};groups.push(group)}
+        group.lines.push(line);
+      }
+      const checked=shop.cart.filter(l=>l.checked!==false);
+      const total=checked.reduce((n,l)=>n+(Number(l.price)||0)*(Number(l.qty)||1),0);
+      let cut=0;
+      for(const group of groups){
+        const rows=group.lines.filter(l=>l.checked!==false);
+        const sum=rows.reduce((n,l)=>n+(Number(l.price)||0)*(Number(l.qty)||1),0);
+        const qty=rows.reduce((n,l)=>n+(Number(l.qty)||1),0);
+        if(sum>=99)cut+=15;
+        else if(qty>=2)cut+=20;
+      }
+      return `${topBar('搜索购物车','home')}${tabs('cart')}
+      <main class="vphone-app-body v45712-shop-body">
+        ${groups.length?groups.map(group=>`<div class="v45712-cart-shop">
+          <div class="head"><i>▣</i><span>${E(group.shop)}</span></div>
+          ${group.lines.map(l=>`<div class="v45712-cart-line">
+            <input type="checkbox" ${l.checked!==false?'checked':''} onchange="v45712ShopCartCheck(${A(l.id)},this.checked)" aria-label="选择">
+            <div class="thumb" style="background:${tint(l.tone)}">图</div>
+            <div>
+              <b>${E(l.name)}</b>
+              ${l.spec?`<small>${E(l.spec)}</small>`:''}
+              <div class="foot"><strong>¥${money(l.price)}</strong>
+                <div class="stepper">
+                  <button onclick="v45712ShopCartQty(${A(l.id)},-1)" aria-label="减少">−</button>
+                  <span>${Number(l.qty)||1}</span>
+                  <button onclick="v45712ShopCartQty(${A(l.id)},1)" aria-label="增加">＋</button>
+                </div>
+                <button class="drop" onclick="v45712ShopCartRemove(${A(l.id)})" aria-label="移除">×</button>
+              </div>
+            </div>
+          </div>`).join('')}
+        </div>`).join(''):'<div class="v45712-shop-empty"><b>购物车是空的</b><small>在商品页点「加入购物车」。</small></div>'}
+        ${cut?`<div class="v45712-shop-cut">店铺优惠已减 ¥${money(cut)}</div>`:''}
+      </main>
+      <div class="v45712-cart-total">
+        <div><b><i>合计 ¥</i>${money(Math.max(0,total-cut))}</b><small>已选 ${checked.reduce((n,l)=>n+(Number(l.qty)||1),0)} 件${cut?` · 已优惠 ¥${money(cut)}`:''}</small></div>
+        <button onclick="v45712ShopCheckout()">结算</button>
+      </div>`;
+    },
+    orders(shop,topBar,tabs,tint,orderTab){
+      const tabsRow=['全部','待付款','待发货','待收货','已完成'];
+      const rows=shop.orders.filter(o=>orderTab==='全部'||S(o.status)===orderTab);
+      return `${topBar('搜索订单','home')}
+      <div class="v45712-order-tabs">${tabsRow.map(t=>`<button class="${t===orderTab?'on':''}" onclick="v45712ShopOrderTab('${t}')">${t}</button>`).join('')}</div>
+      <main class="vphone-app-body v45712-shop-body">
+        ${rows.length?rows.map(o=>`<div class="v45712-order">
+          <div class="head"><b>订单号 ${E(o.no)}</b><em>${E(o.status)}</em></div>
+          <div class="goods">
+            <div class="thumb" style="background:${tint(o.tone)}">图</div>
+            <div><b>${E(o.name)}</b><small>${E(o.spec||'')}${o.spec?' · ':''}×${Number(o.qty)||1}</small></div>
+            <strong>¥${money((Number(o.price)||0)*(Number(o.qty)||1))}</strong>
+          </div>
+          ${L(o.track).length?`<div class="v45712-track">${o.track.map(t=>`<div class="step ${t.done?'is-on':''}"><b>${E(t.text)}</b>${t.at?`<small>${E(t.at)}</small>`:''}</div>`).join('')}</div>`:''}
+          <div class="foot">
+            ${o.status==='待付款'?`<button class="primary" onclick="v45712ShopPay(${A(o.id)})">付款</button>`:''}
+            ${o.status==='待收货'?`<button onclick="v45712ShopNudge(${A(o.id)})">催一下</button><button class="primary" onclick="v45712ShopReceive(${A(o.id)})">确认收货</button>`:''}
+            ${o.status==='已完成'?`<button onclick="v45712ShopAgain(${A(o.id)})">再买一次</button>`:''}
+            <button class="drop" onclick="v45712ShopOrderRemove(${A(o.id)})">删除</button>
+          </div>
+        </div>`).join(''):'<div class="v45712-shop-empty"><b>这个状态下还没有订单</b><small>换个状态看看。</small></div>'}
+      </main>`;
+    }
+  };
+})();
+
+/* =========================================================
+   V45.7.12 · 购物应用动作与接管入口
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiShopApp3)return;
+  window.__pokejiShopApp3=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const NOW=()=>new Date().toISOString();
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+  const money=n=>Number(n||0).toFixed(2);
+  const V=()=>window.V455||null;
+  const TINT=['linear-gradient(150deg,#5c6b7a,#39424d)','linear-gradient(150deg,#7a6a5c,#4d423a)','linear-gradient(150deg,#6a7a68,#3d4a3c)','linear-gradient(150deg,#7a5c6a,#4d3a42)','linear-gradient(150deg,#5c5c7a,#3a3a4d)','linear-gradient(150deg,#7a745c,#4a463a)'];
+  const tint=i=>TINT[Math.abs(Number(i)||0)%TINT.length];
+
+  const state={owner:'user',route:'home',goodId:'',specIndex:0,orderTab:'全部'};
+  window.__pokejiShopState=state;
+
+  function shopStore(){
+    const helper=V();
+    let base=null;
+    try{base=helper?.ownerStore?.(state.owner)||null}catch{}
+    if(base){base.shopV45712=O(base.shopV45712);base=base.shopV45712}
+    else{
+      data.shopV45712=O(data.shopV45712);
+      data.shopV45712[state.owner]=O(data.shopV45712[state.owner]);
+      base=data.shopV45712[state.owner];
+    }
+    base.goods=L(base.goods);base.list=L(base.list);base.cart=L(base.cart);
+    base.orders=L(base.orders);base.favorites=L(base.favorites);
+    return base;
+  }
+  window.__pokejiShopStore=shopStore;
+
+  function canEdit(){
+    try{
+      const session=V()?.phoneSession?.();
+      if(!session||session.mode==='browse')return true;
+      return V()?.permissionAtLeast?.(session.permission,'edit')!==false;
+    }catch{return true}
+  }
+  function requireEdit(){if(canEdit())return true;say('当前连接权限只能查看，不能改动');return false}
+  const repaint=()=>{try{window.v45712ShopRepaint?.()}catch{}};
+
+  /* ---------- 清单 ---------- */
+  window.v45712ShopListDone=function(id,done){
+    if(!requireEdit())return repaint();
+    const row=shopStore().list.find(l=>S(l.id)===S(id));if(!row)return;
+    row.done=done===true;row.updatedAt=NOW();persist();repaint();
+  };
+  window.v45712ShopListRemove=function(id){
+    if(!requireEdit())return;
+    const store=shopStore(),row=store.list.find(l=>S(l.id)===S(id));if(!row)return;
+    if(!confirm(`从清单里删掉「${row.name}」？`))return;
+    store.list=store.list.filter(l=>S(l.id)!==S(id));persist();repaint();say('已从清单删除');
+  };
+  window.v45712ShopListAdd=function(){
+    if(!requireEdit())return;
+    const input=document.getElementById('v45712ListInput');
+    const value=S(input?.value).trim();
+    if(!value)return say('先写一行想买的东西');
+    const store=shopStore();
+    store.list.unshift({id:ID('sl'),name:value,note:'手动添加',price:0,done:false,tone:store.list.length,createdAt:NOW()});
+    persist();repaint();say('已加入清单');
+  };
+  window.v45712ShopToList=function(goodId){
+    if(!requireEdit())return;
+    const store=shopStore(),good=store.goods.find(g=>S(g.id)===S(goodId));if(!good)return;
+    if(store.list.some(l=>S(l.name)===S(good.name)))return say('清单里已经有它了');
+    store.list.unshift({id:ID('sl'),name:S(good.name),note:'从商品页加入',price:Number(good.price)||0,done:false,tone:Number(good.tone)||0,createdAt:NOW()});
+    persist();say('已加入购物清单');
+  };
+  window.v45712ShopFav=function(goodId){
+    if(!requireEdit())return;
+    const store=shopStore();
+    if(store.favorites.includes(S(goodId))){store.favorites=store.favorites.filter(x=>x!==S(goodId));persist();return say('已取消收藏')}
+    store.favorites.push(S(goodId));persist();say('已收藏');
+  };
+
+  /* ---------- 购物车 ---------- */
+  window.v45712ShopToCart=function(goodId){
+    if(!requireEdit())return;
+    const store=shopStore(),good=store.goods.find(g=>S(g.id)===S(goodId));if(!good)return;
+    const specs=L(good.specs).length?good.specs:['默认'];
+    const spec=specs[Math.min(state.specIndex,specs.length-1)];
+    const exist=store.cart.find(l=>S(l.goodId)===S(goodId)&&S(l.spec)===S(spec));
+    if(exist)exist.qty=(Number(exist.qty)||1)+1;
+    else store.cart.push({id:ID('ci'),goodId:S(goodId),name:S(good.name),spec:S(spec),price:Number(good.price)||0,qty:1,checked:true,shop:S(good.shop),tone:Number(good.tone)||0,createdAt:NOW()});
+    persist();repaint();say('已加入购物车');
+  };
+  window.v45712ShopCartQty=function(id,delta){
+    if(!requireEdit())return repaint();
+    const row=shopStore().cart.find(l=>S(l.id)===S(id));if(!row)return;
+    row.qty=Math.max(1,(Number(row.qty)||1)+Number(delta));persist();repaint();
+  };
+  window.v45712ShopCartCheck=function(id,checked){
+    if(!requireEdit())return repaint();
+    const row=shopStore().cart.find(l=>S(l.id)===S(id));if(!row)return;
+    row.checked=checked===true;persist();repaint();
+  };
+  window.v45712ShopCartRemove=function(id){
+    if(!requireEdit())return;
+    const store=shopStore(),row=store.cart.find(l=>S(l.id)===S(id));if(!row)return;
+    if(!confirm(`把「${row.name}」移出购物车？`))return;
+    store.cart=store.cart.filter(l=>S(l.id)!==S(id));persist();repaint();say('已移出购物车');
+  };
+  window.v45712ShopCheckout=function(){
+    if(!requireEdit())return;
+    const store=shopStore();
+    const rows=store.cart.filter(l=>l.checked!==false);
+    if(!rows.length)return say('先选中要结算的商品');
+    for(const row of rows){
+      store.orders.unshift({
+        id:ID('order'),no:String(Date.now()).slice(-13),status:'待发货',
+        name:S(row.name),spec:S(row.spec),price:Number(row.price)||0,qty:Number(row.qty)||1,tone:Number(row.tone)||0,
+        address:'（未填写收件信息）',
+        track:[{text:'商家已接单',at:'刚刚',done:true}],
+        createdAt:NOW()
+      });
+    }
+    store.cart=store.cart.filter(l=>l.checked===false);
+    persist();state.route='orders';state.orderTab='全部';repaint();
+    say(`已下单 ${rows.length} 笔，可在订单里看状态`);
+  };
+
+  /* ---------- 订单 ---------- */
+  window.v45712ShopOrderTab=function(tab){state.orderTab=S(tab);repaint()};
+  window.v45712ShopBuyNow=function(goodId){
+    if(!requireEdit())return;
+    const store=shopStore(),good=store.goods.find(g=>S(g.id)===S(goodId));if(!good)return;
+    const specs=L(good.specs).length?good.specs:['默认'];
+    store.orders.unshift({
+      id:ID('order'),no:String(Date.now()).slice(-13),status:'待付款',
+      name:S(good.name),spec:S(specs[Math.min(state.specIndex,specs.length-1)]),
+      price:Number(good.price)||0,qty:1,tone:Number(good.tone)||0,
+      address:'（未填写收件信息）',track:[],createdAt:NOW()
+    });
+    persist();state.route='orders';state.orderTab='待付款';repaint();say('已创建订单，待付款');
+  };
+  window.v45712ShopPay=function(id){
+    if(!requireEdit())return;
+    const row=shopStore().orders.find(o=>S(o.id)===S(id));if(!row)return;
+    row.status='待发货';row.track=[{text:'商家已接单',at:'刚刚',done:true}];
+    persist();repaint();say(`已付款 ¥${money((Number(row.price)||0)*(Number(row.qty)||1))}`);
+  };
+  window.v45712ShopNudge=function(id){
+    const row=shopStore().orders.find(o=>S(o.id)===S(id));if(!row)return;
+    say('已催一下，物流那边不一定会快');
+  };
+  window.v45712ShopReceive=function(id){
+    if(!requireEdit())return;
+    const row=shopStore().orders.find(o=>S(o.id)===S(id));if(!row)return;
+    row.status='已完成';
+    row.track=[{text:'已签收',at:'刚刚',done:true},...L(row.track).map(t=>({...t,done:true}))];
+    persist();repaint();say('已确认收货');
+  };
+  window.v45712ShopAgain=function(id){
+    if(!requireEdit())return;
+    const store=shopStore(),row=store.orders.find(o=>S(o.id)===S(id));if(!row)return;
+    const good=store.goods.find(g=>S(g.name)===S(row.name));
+    store.cart.push({id:ID('ci'),goodId:S(good?.id||''),name:S(row.name),spec:S(row.spec),price:Number(row.price)||0,qty:1,checked:true,shop:S(good?.shop||'店铺'),tone:Number(row.tone)||0,createdAt:NOW()});
+    persist();state.route='cart';repaint();say('已加入购物车');
+  };
+  window.v45712ShopOrderRemove=function(id){
+    if(!requireEdit())return;
+    const store=shopStore(),row=store.orders.find(o=>S(o.id)===S(id));if(!row)return;
+    if(!confirm(`删除订单「${row.name}」？`))return;
+    store.orders=store.orders.filter(o=>S(o.id)!==S(id));persist();repaint();say('订单已删除');
+  };
+
+  /* ---------- 只拦截 market，不碰桌面 ---------- */
+  const baseOpenApp=typeof window.v43OpenPhoneApp==='function'?window.v43OpenPhoneApp:null;
+  if(baseOpenApp&&!baseOpenApp.__shop){
+    const wrapped=function(nextOwner,key,...rest){
+      if(S(key)!=='market')return baseOpenApp.call(this,nextOwner,key,...rest);
+      state.owner=S(nextOwner||'user');state.route='home';state.goodId='';state.specIndex=0;state.orderTab='全部';
+      try{v43ActivePhoneOwner=state.owner}catch{}
+      window.v45712ShopSeed?.();
+      window.v45712ShopRepaint?.();
+    };
+    wrapped.__shop=true;
+    window.v43OpenPhoneApp=wrapped;window.openSimPhoneApp=wrapped;
+    try{v43OpenPhoneApp=wrapped;openSimPhoneApp=wrapped}catch{}
+  }
+})();
+
+/* =========================================================
+   V45.7.12 · 幻梦馆
+   梦来自角色自己。观梦只读旁观，入梦以 USER 自身进入。
+   两种方式角色都不知道 USER 来过；入梦结束时由 USER 决定
+   角色自己还记不记得这场梦的内容。默认非正史，只做快照。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiDreamHall)return;
+  window.__pokejiDreamHall=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+  const img=v=>{try{return typeof safeImageSrc==='function'?safeImageSrc(v):S(v)}catch{return''}};
+
+  function store(){
+    data.dreamHallV45712=O(data.dreamHallV45712);
+    data.dreamHallV45712.dreams=L(data.dreamHallV45712.dreams);
+    return data.dreamHallV45712;
+  }
+  function dreamById(id){return store().dreams.find(d=>S(d.id)===S(id))||null}
+  function person(id){
+    return L(data.characters).find(c=>S(c.id)===S(id))||L(data.mpcs).find(c=>S(c.id)===S(id))||null;
+  }
+  function personaNow(){
+    try{return activePersonaFor(typeof currentChat!=='undefined'?currentChat:'')}
+    catch{return L(data.personas).find(p=>S(p.id)===S(data.activePersonaId))||L(data.personas)[0]||null}
+  }
+  let busy=false,active='',mode='watch',revealed=1;
+
+  /* ---------- view host ---------- */
+  function ensureView(){
+    let view=document.getElementById('dreamHall');
+    if(view)return view;
+    view=document.createElement('section');
+    view.id='dreamHall';view.className='view v45712-dream-view';
+    view.innerHTML='<div id="dreamHallRoot"></div>';
+    document.getElementById('screen')?.appendChild(view);
+    return view;
+  }
+  function root(){ensureView();return document.getElementById('dreamHallRoot')}
+
+  window.openDreamHall=function(){ensureView();try{show('dreamHall')}catch{}renderHall()};
+  try{HOME_APP_CATALOG.dreamHall={label:'幻梦馆',view:'dreamHall',glyph:'☾',rank:'D',suit:'♠'}}catch{}
+  const baseOpenView=typeof window.openView==='function'?window.openView:null;
+  if(baseOpenView&&!baseOpenView.__dream){
+    const wrapped=function(id,...rest){if(id==='dreamHall')return window.openDreamHall();return baseOpenView.call(this,id,...rest)};
+    wrapped.__dream=true;window.openView=wrapped;try{openView=wrapped}catch{}
+  }
+
+  /* ---------- hall ---------- */
+  function whenText(d){
+    const stamp=S(d.worldTimeText)||(()=>{try{return new Date(d.createdAt).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return''}})();
+    return `${stamp} · ${E(person(d.characterId)?.name||d.characterName||'某人')}自己做的梦`;
+  }
+  function renderHall(){
+    active='';
+    const dreams=store().dreams.slice().sort((a,b)=>S(b.createdAt).localeCompare(S(a.createdAt)));
+    root().innerHTML=`<section class="v45712-dream-hall">
+      <header class="v45712-dream-head">
+        <button onclick="openView('home')" aria-label="返回">‹</button>
+        <div><small>DREAM PAVILION</small><b>幻梦馆</b></div>
+        <button onclick="v45712NewDream()" aria-label="生成新的梦">＋</button>
+      </header>
+      <main>
+        <section class="v45712-dream-lead">
+          <small>THEIR OWN DREAMS</small>
+          <h1>他们自己做的梦</h1>
+          <p>这里的梦都由角色自己生成，来自他们的经历、心结和没说出口的东西。你可以走进去，也可以只在外面看。两种方式他们事后都不会知道你来过。</p>
+        </section>
+        ${dreams.length?`<div class="v45712-dream-list">${dreams.map(dreamCard).join('')}</div>`
+          :`<div class="v45712-dream-empty"><span>☾</span><b>还没有记录到梦</b><p>选一个人物，让他做一场自己的梦。梦会取材于你们相处过的事和他自己的心结。</p><button onclick="v45712NewDream()">让谁做一场梦</button></div>`}
+        <div class="v45712-dream-foot">梦默认不算正史，只单独做快照，不会写进主聊天、动态或手机。要让它真的影响主线，需要在梦里单独确认一次。</div>
+      </main>
+    </section>`;
+  }
+  function dreamCard(d){
+    const who=person(d.characterId),face=img(who?.image);
+    return `<article class="v45712-dream-card">
+      <div class="v45712-dream-card-top">
+        <i>${face?`<img src="${AT(face)}" alt="">`:E(S(who?.name||'梦').trim().slice(0,1)||'梦')}</i>
+        <div><b>${E(who?.name||d.characterName||'某人')}的梦</b><small>${whenText(d)}</small></div>
+        <button onclick="v45712DeleteDream(${A(d.id)})" aria-label="删除这场梦">×</button>
+      </div>
+      <p>${E(S(d.gist).slice(0,180))}</p>
+      ${L(d.tags).length?`<div class="v45712-dream-tags">${d.tags.slice(0,5).map(t=>`<span>${E(t)}</span>`).join('')}</div>`:''}
+      ${d.visitedEnter||d.visitedWatch?`<div class="v45712-dream-seen">${d.visitedEnter?'你进过这场梦':'你看过这场梦'}${d.rememberMode?` · ${{full:'他记得内容',fragment:'他只记得片段',none:'他完全不记得'}[d.rememberMode]||''}`:''}</div>`:''}
+      <div class="v45712-dream-modes">
+        <button class="enter" onclick="v45712Enter(${A(d.id)})"><b>入梦</b><small>以你自己的身份进去，能说话能行动</small></button>
+        <button class="watch" onclick="v45712Watch(${A(d.id)})"><b>观梦</b><small>只在外面看，不能干预</small></button>
+      </div>
+    </article>`;
+  }
+
+  /* ---------- create ---------- */
+  window.v45712NewDream=function(){
+    const people=[...L(data.characters),...L(data.mpcs)].filter(c=>c&&c.id);
+    if(!people.length)return say('先创建一个人物');
+    modal(`<div class="v45712-dream-create">
+      <h2>让谁做一场梦</h2>
+      <div class="note">梦由这个人物自己做，取材于他的经历、你们相处过的事和他自己的心结。他不会知道这场梦被记录下来。</div>
+      <div class="field"><label>做梦的人</label><select id="v45712DreamWho">${people.map(c=>`<option value="${AT(c.id)}">${E(c.name||'未命名')}</option>`).join('')}</select></div>
+      <div class="field"><label>梦的方向（可留空）</label><textarea id="v45712DreamSeed" placeholder="想让这场梦围绕什么：某件旧事、某种恐惧、某个反复出现的画面。留空则由他自己的处境决定。"></textarea></div>
+      <div class="field"><label>梦的气质</label><select id="v45712DreamTone">
+        <option value="natural">照他自己的状态来</option>
+        <option value="uneasy">不安 · 压抑</option>
+        <option value="warm">温和 · 眷恋</option>
+        <option value="absurd">荒诞 · 错位</option>
+        <option value="grief">失落 · 告别</option>
+      </select></div>
+      <div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="v45712GenerateDream()">生成这场梦</button></div>
+    </div>`);
+  };
+  window.v45712GenerateDream=async function(){
+    if(busy)return say('正在生成，请稍候');
+    const characterId=S(document.getElementById('v45712DreamWho')?.value);
+    const seed=S(document.getElementById('v45712DreamSeed')?.value).trim();
+    const tone=S(document.getElementById('v45712DreamTone')?.value||'natural');
+    const who=person(characterId);
+    if(!who)return say('请选择做梦的人');
+    if(typeof validModel==='function'&&!validModel('chat'))return say('请先配置主聊天线路');
+    closeModal();busy=true;say(`正在等${who.name}入睡…`);
+    const controller=typeof withTimeout==='function'?withTimeout(Math.max(60000,Number(data.settings?.timeout)||60000)):null;
+    try{
+      const toneText={natural:'按他此刻真实的状态，不刻意加强任何情绪',uneasy:'不安、压抑，有说不清的威胁感',warm:'温和、眷恋，但仍有梦特有的失真',absurd:'荒诞、错位，逻辑不连贯却有内在情绪',grief:'失落、告别，某样东西已经不在了'}[tone];
+      const raw=await invokeModel('chat',{
+        characterId,activityArea:'幻梦馆',
+        system:`你要写的是${who.name}自己做的一场梦，梦的主人就是他本人。梦遵循梦的逻辑：场景可以突变，因果可以断裂，但情绪必须始终连贯，并且指向他真实的心结。\n严格禁止：把梦写成他清醒时的自述；出现任何观察者、系统、界面或"有人在看这场梦"的暗示；替${personaNow()?.name||'USER'}行动或让他知道有人会进入这场梦。\n气质要求：${toneText}。\n只输出 JSON：{"gist":"120 字以内的梦境概述，第三人称","tags":["3 到 5 个短标签，如 反复出现 / 积水 / 醒来后哭过"],"scenes":["4 到 6 段梦境正文，每段 60 到 140 字，按梦的推进顺序，最后一段是梦断掉或他醒来的瞬间"],"knot":"这场梦真正指向的心结，一句话，不写进正文"}`,
+        history:[{role:'user',content:`【做梦的人】\n${typeof characterContext==='function'?characterContext(who):JSON.stringify({name:who.name,persona:who.persona||who.desc||''})}\n【梦的方向】\n${seed||'由他自己的处境决定'}\n【他与${personaNow()?.name||'USER'}的相处】\n${recentContext(characterId)}`}],
+        temperature:.95,maxTokens:1800,signal:controller?.signal
+      });
+      const text=S(raw),start=text.indexOf('{'),end=text.lastIndexOf('}');
+      const row=start>=0&&end>start?O(JSON.parse(text.slice(start,end+1))):{};
+      const scenes=L(row.scenes).map(S).map(s=>s.trim()).filter(Boolean);
+      if(!scenes.length)throw Error('这场梦没有生成出内容，请重试');
+      const dream={
+        id:ID('dream'),characterId,characterName:S(who.name),
+        gist:S(row.gist).trim()||scenes[0].slice(0,120),
+        tags:L(row.tags).map(S).filter(Boolean).slice(0,5),
+        knot:S(row.knot).trim(),
+        scenes,turns:[],
+        canon:false,rememberMode:'',visitedWatch:false,visitedEnter:false,
+        personaId:S(personaNow()?.id||data.activePersonaId),
+        worldTimeText:(()=>{try{return typeof v454WorldTimeText==='function'?v454WorldTimeText():''}catch{return''}})(),
+        createdAt:NOW()
+      };
+      store().dreams.unshift(dream);persist();renderHall();
+      say(`${who.name}做了一场梦`);
+    }catch(error){
+      try{errorDetail(error,'梦境生成失败')}catch{say('梦境生成失败')}
+    }finally{busy=false;try{releaseController?.(controller)}catch{}}
+  };
+  function recentContext(characterId){
+    try{
+      const persona=personaNow();
+      const chatId=typeof directChatId==='function'?directChatId(characterId,persona?.id):'';
+      const rows=L(data.chats?.[chatId]).filter(m=>m&&m.text&&!m.phoneEvent).slice(-14);
+      if(!rows.length)return '还没有明显的相处记录。';
+      return rows.map(m=>`${m.role==='user'?(persona?.name||'我'):(person(characterId)?.name||'他')}：${S(m.text).slice(0,120)}`).join('\n').slice(0,2200);
+    }catch{return '还没有明显的相处记录。'}
+  }
+  window.v45712DeleteDream=function(id){
+    const d=dreamById(id);if(!d)return;
+    if(!confirm('删除这场梦？相关的快照也会一起删除。'))return;
+    store().dreams=store().dreams.filter(row=>S(row.id)!==S(id));
+    persist();renderHall();say('这场梦已删除');
+  };
+})();
+
+/* =========================================================
+   V45.7.12 · 幻梦馆 · 观梦与入梦
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiDreamModes)return;
+  window.__pokejiDreamModes=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const persist=()=>{try{save()}catch{}};
+  const say=t=>{try{toast(t)}catch{}};
+  const img=v=>{try{return typeof safeImageSrc==='function'?safeImageSrc(v):S(v)}catch{return''}};
+
+  const store=()=>{data.dreamHallV45712=O(data.dreamHallV45712);data.dreamHallV45712.dreams=L(data.dreamHallV45712.dreams);return data.dreamHallV45712};
+  const dreamById=id=>store().dreams.find(d=>S(d.id)===S(id))||null;
+  const person=id=>L(data.characters).find(c=>S(c.id)===S(id))||L(data.mpcs).find(c=>S(c.id)===S(id))||null;
+  function personaNow(){
+    try{return activePersonaFor(typeof currentChat!=='undefined'?currentChat:'')}
+    catch{return L(data.personas).find(p=>S(p.id)===S(data.activePersonaId))||L(data.personas)[0]||null}
+  }
+  const root=()=>document.getElementById('dreamHallRoot');
+  let active='',revealed=1,busy=false;
+
+  /* ---------- 观梦：只读，无输入框，色调更冷 ---------- */
+  window.v45712Watch=function(id){
+    const d=dreamById(id);if(!d)return;
+    active=S(id);revealed=1;
+    if(!d.visitedWatch){d.visitedWatch=true;persist()}
+    renderWatch();
+  };
+  function renderWatch(){
+    const d=dreamById(active);if(!d)return;
+    const who=person(d.characterId);
+    const total=L(d.scenes).length;
+    const done=revealed>=total;
+    root().innerHTML=`<section class="v45712-dream-scene is-watch">
+      <div class="v45712-dream-band">
+        <i>◌</i><span>观梦 · 你只是旁观者，无法干预，也不会留下任何痕迹</span>
+        <button onclick="v45712LeaveDream()" aria-label="离开">×</button>
+      </div>
+      <div class="v45712-dream-view" id="v45712DreamView">
+        <p class="v45712-dream-meta">${E(who?.name||d.characterName||'某人')}的梦 · 第 ${Math.min(revealed,total)} / ${total} 段</p>
+        ${L(d.scenes).slice(0,revealed).map(text=>`<p class="v45712-dream-para">${E(text)}</p>`).join('')}
+        ${done?`<p class="v45712-dream-end">梦断在这里。${E(who?.name||'他')}醒了，不会知道有人看过。</p>`:''}
+      </div>
+      <div class="v45712-dream-foot">
+        <div class="v45712-dream-only">
+          <span>这场梦不接受你的介入。<br>${done?'你只是看完了它。':'你只能继续看下去。'}</span>
+          <button onclick="${done?'v45712LeaveDream()':'v45712WatchNext()'}">${done?'看完了':'继续看'}</button>
+        </div>
+      </div>
+    </section>`;
+  }
+  window.v45712WatchNext=function(){
+    const d=dreamById(active);if(!d)return;
+    if(revealed<L(d.scenes).length)revealed++;
+    renderWatch();
+    const view=document.getElementById('v45712DreamView');
+    if(view)view.scrollTop=view.scrollHeight;
+  };
+  window.v45712LeaveDream=function(){active='';try{window.openDreamHall()}catch{}};
+
+  /* ---------- 入梦：USER 以自身进入，可说话可行动 ---------- */
+  window.v45712Enter=function(id){
+    const d=dreamById(id);if(!d)return;
+    active=S(id);
+    d.turns=L(d.turns);
+    if(!d.visitedEnter){d.visitedEnter=true;persist()}
+    if(!d.turns.length){
+      /* 第一段由梦本身的开头承接，USER 的到来写成一段旁白 */
+      d.turns.push({id:ID('turn'),kind:'narration',text:L(d.scenes)[0]||'',at:NOW()});
+      d.turns.push({id:ID('turn'),kind:'narration',text:`你进来的时候，梦还在继续。${E(person(d.characterId)?.name||'他')}抬头，看见的是你——在梦里，这件事并不需要解释。`,at:NOW()});
+      persist();
+    }
+    renderEnter();
+  };
+  function turnMarkup(turn){
+    if(turn.kind==='mine')return `<p class="v45712-dream-para is-mine">${E(turn.text)}</p>`;
+    if(turn.kind==='said')return `<p class="v45712-dream-para is-said">${E(turn.text)}</p>`;
+    return `<p class="v45712-dream-para">${E(turn.text)}</p>`;
+  }
+  function renderEnter(){
+    const d=dreamById(active);if(!d)return;
+    const who=person(d.characterId);
+    root().innerHTML=`<section class="v45712-dream-scene is-enter">
+      <div class="v45712-dream-band">
+        <i>◍</i><span>入梦 · 你以自己的身份在梦里，说的话和做的事${E(who?.name||'他')}都会回应</span>
+        <button onclick="v45712LeaveDream()" aria-label="离开">×</button>
+      </div>
+      <div class="v45712-dream-view" id="v45712DreamView">
+        <p class="v45712-dream-meta">你进入了${E(who?.name||d.characterName||'某人')}的梦${d.knot?` · 梦的底色：${E(d.knot)}`:''}</p>
+        ${L(d.turns).map(turnMarkup).join('')}
+        ${busy?'<p class="v45712-dream-waiting"><i></i>梦在往下走…</p>':''}
+      </div>
+      <div class="v45712-dream-foot">
+        <div class="v45712-dream-tools">
+          <button onclick="v45712AddNarration()">加旁白</button>
+          <button onclick="v45712EndDream()">结束这场梦</button>
+          <button onclick="v45712LeaveDream()">离开</button>
+        </div>
+        <div class="v45712-dream-input">
+          <input id="v45712DreamSay" placeholder="说一句话，或写下你的动作…" onkeydown="if(event.key==='Enter'){event.preventDefault();v45712Say()}">
+          <button onclick="v45712Say()" aria-label="发送">↑</button>
+        </div>
+      </div>
+    </section>`;
+    const view=document.getElementById('v45712DreamView');
+    if(view)view.scrollTop=view.scrollHeight;
+  }
+  window.v45712AddNarration=function(){
+    const d=dreamById(active);if(!d)return;
+    const text=prompt('写一段旁白，描述梦里此刻的环境或你的动作：');
+    if(!S(text).trim())return;
+    d.turns.push({id:ID('turn'),kind:'narration',text:S(text).trim(),at:NOW()});
+    persist();renderEnter();
+  };
+  window.v45712Say=async function(){
+    if(busy)return say('梦还在往下走');
+    const d=dreamById(active);if(!d)return;
+    const input=document.getElementById('v45712DreamSay');
+    const value=S(input?.value).trim();
+    if(!value)return say('说一句话，或写下你的动作');
+    if(typeof validModel==='function'&&!validModel('chat'))return say('请先配置主聊天线路');
+    if(input)input.value='';
+    d.turns.push({id:ID('turn'),kind:'mine',text:value,at:NOW()});
+    persist();busy=true;renderEnter();
+    const who=person(d.characterId),me=personaNow()?.name||'我';
+    const controller=typeof withTimeout==='function'?withTimeout(Math.max(60000,Number(data.settings?.timeout)||60000)):null;
+    try{
+      const raw=await invokeModel('chat',{
+        characterId:d.characterId,activityArea:'幻梦馆',
+        system:`这是${who?.name||'他'}自己的梦，梦的主人是他。${me}此刻以自己的身份出现在这场梦里，${who?.name||'他'}能看见他、能与他说话。\n梦的逻辑：场景可以突变，因果可以断裂，情绪必须连贯，并始终指向他的心结「${d.knot||'未明说的东西'}」。\n严格禁止：让${who?.name||'他'}意识到这是被观看的梦、意识到有系统或界面、或说出"你进入了我的梦"这类元叙述；不得替${me}说话或行动；不得把梦写成清醒时的谈话。\n只输出 JSON：{"narration":"梦里此刻的环境与动作，60 到 140 字","reply":"${who?.name||'他'}的台词，可为空字符串"}`,
+        history:[
+          ...L(d.scenes).slice(0,2).map(text=>({role:'assistant',content:text})),
+          ...L(d.turns).slice(-10).map(t=>({role:t.kind==='mine'?'user':'assistant',content:S(t.text)}))
+        ],
+        temperature:.92,maxTokens:900,signal:controller?.signal
+      });
+      const text=S(raw),start=text.indexOf('{'),end=text.lastIndexOf('}');
+      const row=start>=0&&end>start?O(JSON.parse(text.slice(start,end+1))):{};
+      const narration=S(row.narration).trim(),reply=S(row.reply).trim();
+      if(narration)d.turns.push({id:ID('turn'),kind:'narration',text:narration,at:NOW()});
+      if(reply)d.turns.push({id:ID('turn'),kind:'said',text:reply,at:NOW()});
+      if(!narration&&!reply)d.turns.push({id:ID('turn'),kind:'narration',text:S(text).replace(/[{}"]/g,'').trim().slice(0,300)||'梦沉了一下，什么也没有发生。',at:NOW()});
+      d.updatedAt=NOW();persist();
+    }catch(error){
+      try{errorDetail(error,'梦里的回应失败')}catch{say('梦里的回应失败')}
+    }finally{busy=false;renderEnter();try{releaseController?.(controller)}catch{}}
+  };
+
+  /* ---------- 结束入梦：由 USER 决定角色自己记不记得 ---------- */
+  window.v45712EndDream=function(){
+    const d=dreamById(active);if(!d)return;
+    const who=person(d.characterId),name=E(who?.name||'他');
+    modal(`<div class="v45712-dream-wake">
+      <h2>${name}醒来之后</h2>
+      <div class="note">不管你选哪个，${name}都<b>不会</b>知道你进过这场梦。你决定的只是：这场梦的内容他自己还记不记得。</div>
+      <label class="v45712-dream-pick"><input type="radio" name="v45712Remember" value="full" checked><div><b>${name}记得这场梦</b><small>醒来后带着梦里的情绪和印象，之后可能提起「做了个奇怪的梦」，但梦里那个人是谁他说不清。</small></div></label>
+      <label class="v45712-dream-pick"><input type="radio" name="v45712Remember" value="fragment"><div><b>只记得片段</b><small>记得几个画面和一种说不出的感觉，具体发生什么想不起来。</small></div></label>
+      <label class="v45712-dream-pick"><input type="radio" name="v45712Remember" value="none"><div><b>${name}完全不记得</b><small>醒来一片空白，这场梦只留在你这边。</small></div></label>
+      <div class="v45712-dream-warn">这场梦默认不算正史，只做快照保存。要让它真的影响主线，请勾下面这一项。</div>
+      <label class="v45712-dream-pick"><input type="checkbox" id="v45712DreamCanon"><div><b>纳入正史</b><small>这场梦会成为已发生的事实，写入他的记忆并可能影响之后的相处。不勾就只是快照。</small></div></label>
+      <div class="form-actions"><button onclick="closeModal()">再待一会</button><button class="primary" onclick="v45712SaveWake()">结束并保存</button></div>
+    </div>`);
+  };
+  window.v45712SaveWake=function(){
+    const d=dreamById(active);if(!d)return;
+    const pick=S(document.querySelector('input[name="v45712Remember"]:checked')?.value||'full');
+    const canon=document.getElementById('v45712DreamCanon')?.checked===true;
+    d.rememberMode=pick;d.canon=canon;d.endedAt=NOW();
+    d.snapshot={turns:L(d.turns).length,rememberMode:pick,canon,at:NOW()};
+    if(pick!=='none')writeDreamMemory(d,pick,canon);
+    persist();closeModal();
+    const who=person(d.characterId),name=who?.name||'他';
+    const label={full:`${name}会记得这场梦的内容`,fragment:`${name}只记得片段`,none:`${name}完全不记得`}[pick];
+    active='';try{window.openDreamHall()}catch{}
+    say(`已保存${canon?'并纳入正史':'快照'} · ${label}；他不会知道你进过他的梦`);
+  };
+  /* 写记忆时必须标注来源是梦，且不能包含"有人进来过"这件事 */
+  function writeDreamMemory(dream,pick,canon){
+    try{
+      data.memories=L(data.memories);
+      const who=person(dream.characterId);
+      const detail=pick==='fragment'
+        ?`只记得几个画面：${L(dream.tags).slice(0,3).join('、')||S(dream.gist).slice(0,60)}；醒来后说不清具体发生了什么。`
+        :`${S(dream.gist)}\n梦里出现过一个人，${who?.name||'他'}醒来后想不起那是谁。`;
+      const row={
+        id:ID('memory'),scope:'character',characterId:dream.characterId,
+        personaId:dream.personaId,source:'dream-hall',sourceDreamId:dream.id,
+        title:`一场自己做的梦${canon?'':'（未纳入正史）'}`,
+        text:`${detail}\n这是${who?.name||'他'}自己做的梦，不是真实发生的事。他不知道有任何人看过或进入过这场梦。`,
+        canon,createdAt:NOW()
+      };
+      data.memories.unshift(row);
+    }catch(error){console.warn('V45.7.12 梦境记忆写入失败',error)}
+  }
+})();
+
+/* =========================================================
+   V45.7.12 · 幻梦馆桌面入口
+   按桌面上真实存在的图标判断，不用"已添加过"标记，
+   避免和文游图标当初一样被排列重置清掉后再也补不回来。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiDreamEntry)return;
+  window.__pokejiDreamEntry=true;
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  function addEntry(){
+    try{
+      if(typeof normalizeHomeDesktop!=='function')return;
+      data.homeDesktop=normalizeHomeDesktop(data.homeDesktop);
+      const items=Array.isArray(data.homeDesktop.items)?data.homeDesktop.items:[];
+      if(items.some(item=>item&&item.kind==='app'&&item.app==='dreamHall'))return;
+      data.homeDesktop.pageCount=Math.max(2,Number(data.homeDesktop.pageCount)||2);
+      let slot=null;
+      const order=[1,0,...Array.from({length:data.homeDesktop.pageCount},(_,i)=>i)];
+      for(const page of order){
+        if(slot)break;
+        const used=new Set(items.filter(item=>item&&item.page===page).map(item=>`${item.x}:${item.y}`));
+        for(let y=0;y<4&&!slot;y++)for(let x=0;x<4;x++)if(!used.has(`${x}:${y}`)){slot={page,x,y};break}
+      }
+      if(!slot){
+        data.homeDesktop.pageCount=Math.min(12,data.homeDesktop.pageCount+1);
+        slot={page:data.homeDesktop.pageCount-1,x:0,y:0};
+      }
+      data.homeDesktop.items.push({id:ID('app_dreamHall'),kind:'app',app:'dreamHall',page:slot.page,x:slot.x,y:slot.y,w:1,h:1});
+      try{save()}catch{}
+      try{renderHomeDesktop?.()}catch{}
+    }catch(error){console.warn('V45.7.12 幻梦馆桌面入口添加失败',error)}
+  }
+  setTimeout(addEntry,0);
+})();

@@ -24,6 +24,7 @@
     square:'<rect x="5" y="5" width="9" height="9" rx="2"/><rect x="18" y="5" width="9" height="9" rx="2"/><rect x="5" y="18" width="9" height="9" rx="2"/><rect x="18" y="18" width="9" height="9" rx="2"/><path d="M16 8v16M8 16h16" opacity=".35"/>',
     sideStories:'<path d="M7 5h14l4 4v18H7z"/><path d="M21 5v5h5M11 14h10M11 18h10M11 22h6"/>',
     visualNovel:'<path d="m16 4 10 7-10 7L6 11l10-7Z"/><path d="M16 18v9M9 22h14"/><circle cx="9" cy="22" r="2"/><circle cx="23" cy="22" r="2"/>',
+  dreamHall:'<path d="M21 6a10 10 0 1 0 5 12 8 8 0 0 1-5-12Z"/><circle cx="10" cy="9" r="1"/><circle cx="7" cy="14" r="1"/><circle cx="12" cy="20" r="1"/>',
     notifications:'<path d="M8 23h16l-2-3v-5a6 6 0 0 0-12 0v5l-2 3Z"/><path d="M13 26h6"/>',
     dataCenter:'<path d="M7 6h18v20H7z"/><path d="M11 11h10M11 16h10M11 21h6"/>'
   };
