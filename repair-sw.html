@@ -6,23 +6,23 @@
 <meta name="robots" content="noindex,nofollow">
 <title>扑克机 · V45 离线服务修复</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0d0d0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}body{display:grid;place-items:center;padding:24px}.box{width:min(420px,100%);padding:22px;border-radius:18px;background:#19191c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 20px 50px #0008}.mark{width:43px;height:43px;border-radius:13px;background:#eee;color:#202023;display:grid;place-items:center;font-size:20px}h1{margin:15px 0 8px;font-size:19px}p{margin:0;color:#aaa;font-size:12px;line-height:1.7}.status{margin-top:15px;padding:12px;border-radius:12px;background:#101012;color:#d3d3d0;font-size:11px;line-height:1.7;white-space:pre-wrap}.ok{color:#a9c3ad}.bad{color:#dfa0a6}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.actions button,.actions a{min-height:42px;margin:0;padding:9px;border:1px solid #343438;border-radius:11px;background:#26262a;color:#eee;display:grid;place-items:center;text-align:center;text-decoration:none;font:inherit;font-size:11px}.actions .primary{grid-column:1/-1;background:#eee;color:#171719;font-weight:650}.actions [hidden]{display:none}.actions button:disabled{opacity:.5}small{display:block;margin-top:12px;color:#85858a;line-height:1.6}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0d0d0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}body{display:grid;place-items:center;padding:24px}.box{width:min(420px,100%);padding:22px;border-radius:18px;background:#19191c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 20px 50px #0008}.mark{width:43px;height:43px;border-radius:13px;background:#eee;color:#202023;display:grid;place-items:center;font-size:20px}h1{margin:15px 0 4px;font-size:19px}.buildstamp{margin-bottom:9px;color:#85858a;font-size:9px;letter-spacing:.2px}p{margin:0;color:#aaa;font-size:12px;line-height:1.7}.status{margin-top:15px;padding:12px;border-radius:12px;background:#101012;color:#d3d3d0;font-size:11px;line-height:1.7;white-space:pre-wrap}.ok{color:#a9c3ad}.bad{color:#dfa0a6}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.actions button,.actions a{min-height:42px;margin:0;padding:9px;border:1px solid #343438;border-radius:11px;background:#26262a;color:#eee;display:grid;place-items:center;text-align:center;text-decoration:none;font:inherit;font-size:11px}.actions .primary{grid-column:1/-1;background:#eee;color:#171719;font-weight:650}.actions [hidden]{display:none}.actions button:disabled{opacity:.5}small{display:block;margin-top:12px;color:#85858a;line-height:1.6}
 </style>
 </head>
 <body>
 <main class="box">
- <div class="mark">♠</div><h1>安全修复离线更新</h1>
+ <div class="mark">♠</div><h1>安全修复离线更新</h1><div class="buildstamp">V45.7.6 · 2026-08-29 17:05:14 北京时间</div>
  <p>只注销旧离线服务并删除扑克机 Cache Storage；不操作保存人物、聊天、设置和接口配置的本机资料。</p>
  <div id="status" class="status">等待开始。整个过程最多等待 6 秒；即使浏览器接口没有回应，也会自动结束等待。</div>
  <div class="actions">
   <button id="startRepair" class="primary" onclick="repair()">开始安全修复</button>
-  <a id="leaveRepair" href="/index.html?no-sw=1&amp;leave-repair=45.7.5">无离线服务打开</a>
-  <a href="/startup-repair.html?v=45.7.5">启动诊断</a>
+  <a id="leaveRepair" href="/index.html?no-sw=1&amp;leave-repair=45.7.6">无离线服务打开</a>
+  <a href="/startup-repair.html?v=45.7.6">启动诊断</a>
  </div>
  <small id="afterNote">修复完成后不会自动跳转。请完全关闭这个页面和已安装的扑克机，再从 Chrome 重新打开，避免旧离线服务继续控制本次跳转。</small>
 </main>
 <script>
-const BUILD='45.7.5';
+const BUILD='45.7.6';
 let running=false,finished=false,timeoutCount=0,errorCount=0,repairRun=0;
 function limited(task,ms,fallback){
  return new Promise(resolve=>{let settled=false;const timer=setTimeout(()=>{if(settled)return;settled=true;timeoutCount++;resolve(fallback)},ms);Promise.resolve(task).then(value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value)}).catch(()=>{if(settled)return;settled=true;clearTimeout(timer);errorCount++;resolve(fallback)})});
