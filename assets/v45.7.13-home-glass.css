@@ -1,0 +1,140 @@
+/* =========================================================
+   POKEJI V45.7.13 · 主界面一体化毛玻璃
+   作用范围：只有 #home 这两页桌面。
+   全部选择器以 #home 打头，物理上不可能影响其他页面。
+   其余页面由 v45.7.13-plain.css 统一成白底黑字。
+
+   设计要点
+   一 没有边界：零 border、零描边环，元素靠柔和投影与亮度差分层
+   二 没有颗粒：通透只靠 blur + saturate + brightness，不用纹理
+   三 白金反光：上缘一道宽而柔的暖白光带，0→38% 淡出，不是描边
+   四 没有金字：所有文字中性墨色，金只存在于反光带
+   五 玻璃中间最亮（50%→62%→40%），避免被读成内阴影
+   ========================================================= */
+
+#home{
+ --hg-1:rgba(255,255,255,.5);
+ --hg-2:rgba(255,255,255,.62);
+ --hg-3:rgba(255,255,255,.4);
+ --hg-pt-hi:rgba(255,252,244,.72);
+ --hg-pt-lo:rgba(196,186,166,.16);
+ --hg-near:0 1px 3px rgba(52,54,60,.05);
+ --hg-lift:0 2px 6px rgba(52,54,60,.06),0 14px 34px rgba(52,54,60,.09);
+ --hg-ink:#23262b;
+ --hg-ink-2:#4c5057;
+ --hg-ink-3:#74787f;
+ --hg-ink-4:#9ea2a9;
+ background:#fbfbfc;
+}
+
+/* ---------- 背景：纯白起，浅灰止，没有烟 ---------- */
+#home .p12-home{
+ background:linear-gradient(178deg,
+  #ffffff 0%,#fbfbfc 18%,#f4f5f6 40%,#eceef0 62%,#e2e4e7 82%,#d6d9dd 100%);
+}
+/* 顶部一道极柔的暖白天光，给玻璃提供反光来源。原本这里画斜条纹 */
+#home .p12-home:after{
+ content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:1;
+ background:
+  radial-gradient(130% 46% at 50% -12%,rgba(255,252,244,.7),transparent 60%),
+  radial-gradient(90% 34% at 50% 108%,rgba(150,156,166,.1),transparent 58%);
+ animation:none;
+}
+#home .p12-home:before{color:rgba(35,38,43,.16)}
+#home .p12-statusbar{color:var(--hg-ink-2)}
+#home .p12-island{border:0;--island-accent:#f4f5f6;box-shadow:0 2px 10px rgba(52,54,60,.18)}
+
+/* ---------- 桌面图标：一体化玻璃 ---------- */
+#home .home-app-icon{
+ position:relative;border:0;border-radius:18px;overflow:hidden;
+ background:linear-gradient(180deg,var(--hg-1) 0%,var(--hg-2) 46%,var(--hg-3) 100%);
+ box-shadow:var(--hg-lift);
+ -webkit-backdrop-filter:blur(22px) saturate(180%) brightness(1.06);
+ backdrop-filter:blur(22px) saturate(180%) brightness(1.06);
+}
+#home .home-app-icon:before{
+ content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;
+ background:
+  linear-gradient(180deg,var(--hg-pt-hi) 0%,rgba(255,252,244,.18) 18%,transparent 38%),
+  linear-gradient(0deg,var(--hg-pt-lo) 0%,transparent 22%);
+}
+#home .home-app-glyph svg,#home .home-app-glyph b{position:relative;z-index:2}
+#home .home-app-glyph svg{
+ stroke:var(--hg-ink);stroke-width:1.8;
+ stroke-linecap:round;stroke-linejoin:round;fill:none}
+#home .home-app-glyph svg .icon-fill{fill:var(--hg-ink);stroke:none}
+#home .home-app-glyph b{color:var(--hg-ink);font-weight:600}
+#home .home-app-glyph:before,#home .home-app-glyph:after{color:rgba(35,38,43,.26);font-weight:600;z-index:2}
+#home .home-app-image img{position:relative;z-index:2;border-radius:inherit}
+#home .home-app-label{font-size:10px;color:var(--hg-ink-2);font-weight:500;letter-spacing:.2px;text-shadow:none}
+
+/* ---------- Dock ---------- */
+#home .p12-dock{
+ position:relative;border:0;border-radius:28px;overflow:hidden;
+ background:linear-gradient(180deg,rgba(255,255,255,.48) 0%,rgba(255,255,255,.6) 46%,rgba(255,255,255,.38) 100%);
+ box-shadow:0 2px 8px rgba(52,54,60,.06),0 16px 38px rgba(52,54,60,.1);
+ -webkit-backdrop-filter:blur(26px) saturate(180%) brightness(1.06);
+ backdrop-filter:blur(26px) saturate(180%) brightness(1.06)}
+#home .p12-dock:before{
+ content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;
+ background:
+  linear-gradient(180deg,var(--hg-pt-hi) 0%,rgba(255,252,244,.16) 14%,transparent 32%),
+  linear-gradient(0deg,var(--hg-pt-lo) 0%,transparent 18%)}
+#home .p12-dock>*{position:relative;z-index:2}
+#home .p12-dock .dock-icon{background:none;box-shadow:none}
+#home .p12-dock .dock-icon svg{stroke:var(--hg-ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#home .p12-dock i{color:rgba(35,38,43,.24)}
+
+/* ---------- 桌面组件 ---------- */
+#home .p12-small-widget,#home .home-widget{
+ position:relative;border:0;border-radius:22px;overflow:hidden;
+ background:linear-gradient(180deg,var(--hg-1) 0%,var(--hg-2) 46%,var(--hg-3) 100%);
+ box-shadow:var(--hg-lift);
+ -webkit-backdrop-filter:blur(22px) saturate(180%) brightness(1.06);
+ backdrop-filter:blur(22px) saturate(180%) brightness(1.06)}
+#home .home-widget:before{
+ content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;
+ background:
+  linear-gradient(180deg,var(--hg-pt-hi) 0%,rgba(255,252,244,.16) 16%,transparent 34%),
+  linear-gradient(0deg,var(--hg-pt-lo) 0%,transparent 20%)}
+#home .home-widget>*{position:relative;z-index:2}
+#home .home-cd-head,#home .home-cd-head i,#home .home-cd-foot,
+#home .home-cd-foot em,#home .home-cd-foot small{color:var(--hg-ink-3)}
+#home .home-cd-foot b{color:var(--hg-ink)}
+#home .home-record{border:0;box-shadow:0 2px 8px rgba(52,54,60,.14)}
+#home .home-record i{color:var(--hg-ink-3)}
+#home .home-photo-code{color:var(--hg-ink-3)}
+#home .home-photo-action b{color:var(--hg-ink)}
+#home .home-photo-action em{color:var(--hg-ink-3)}
+#home .home-photo-empty{box-shadow:none;border:0}
+#home .home-edit-badge{background:var(--hg-ink);color:#fff;box-shadow:none;border:0;z-index:3}
+#home .home-grid-guide i{border:0;background:rgba(255,255,255,.22)}
+
+/* ---------- 时钟与页码 ---------- */
+#home .home-clockline .p12-clock strong{color:#22252a;font-weight:200;letter-spacing:-4.5px;text-shadow:none}
+#home .home-clockline .p12-clock span{color:var(--hg-ink-3)}
+#home .home-clockline .p12-brand b{color:var(--hg-ink-2);font-weight:400}
+#home .home-clockline .p12-brand small{color:var(--hg-ink-4)}
+#home .home-clock-profile{border:0;color:var(--hg-ink-2);background:rgba(255,255,255,.68);
+ box-shadow:var(--hg-near),0 6px 16px rgba(52,54,60,.08)}
+#home .p12-dots{color:rgba(35,38,43,.18)}
+#home .p12-dots b{color:var(--hg-ink-2)}
+
+/* ---------- 桌面编辑层：跟着白底走，不然会突然变深色 ---------- */
+#home .p12-editor{background:rgba(251,251,252,.94)}
+#home .p12-editor h2{color:var(--hg-ink)}
+#home .p12-editor p{color:var(--hg-ink-3)}
+#home .p12-editor-section{color:var(--hg-ink-4)}
+#home .p12-editor-row{border:0;background:rgba(255,255,255,.72);
+ box-shadow:var(--hg-near),0 6px 16px rgba(52,54,60,.06)}
+#home .p12-editor-row b{color:var(--hg-ink)}
+#home .p12-editor-row button{border:0;color:var(--hg-ink-2);background:rgba(255,255,255,.8);
+ box-shadow:var(--hg-near)}
+#home .p12-editor-close{border:0;color:var(--hg-ink-2);background:rgba(255,255,255,.8);
+ box-shadow:var(--hg-near)}
+
+/* 不支持 backdrop-filter 时给实心，图标不会消失 */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+ #home .home-app-icon,#home .p12-dock,#home .home-widget,#home .p12-small-widget{
+  background:rgba(255,255,255,.9)}
+}
