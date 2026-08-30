@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.7.17';
+const VERSION='45.7.21';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -338,7 +338,7 @@ async function installPWA(){
 function applyHomeBackground(){
   const home=document.querySelector('#home .p12-home');
   if(!home)return;
-  /* V45.7.17 keeps wallpaper data and controls, but the requested global
+  /* V45.7.21 keeps wallpaper data and controls, but the requested global
      monochrome presentation never paints an image or an overlay. */
   home.style.removeProperty('background-image');
   home.style.removeProperty('background-size');
@@ -395,7 +395,7 @@ function applyChatBackground(){
   const chat=document.getElementById('chat');
   if(!chat)return;
   /* Keep the saved conversation background data intact while honoring the
-     V45.7.17 plain-white presentation. */
+     V45.7.21 plain-white presentation. */
   chat.style.removeProperty('background-image');
   chat.style.removeProperty('background-size');
   chat.style.removeProperty('background-position');
@@ -1159,7 +1159,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V44_SW_URL='/sw-v44.js?build=45.7.17';
+const V44_SW_URL='/sw-v44.js?build=45.7.21';
 function isV44WorkerUrl(url){return /\/sw-v44\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v(?:38|42|43)\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1466,7 +1466,7 @@ async function generateProactiveMessage(character){
   let system=buildSystemPrompt(character,'',chatId);
   const summary=data.chatSummaries?.[chatId]?.text;if(summary)system+=`\n\n【自动记忆摘要】\n${summary}`;
   system+=`\n\n【主动说话任务｜内部状态，不可显示】\n现在到了角色按自己的生活节奏主动开口的时点。先理解最近对话停在何处、现实或世界时间经过多久、双方关系与角色此刻可能在做什么，再决定一句或数条真正会发出的线上消息。内容必须像角色主动想说，而不是提醒、签到、客服问候或催促 USER 回复；不得复述上一轮、机械提问、凭空推进重大剧情，也不得提及任务、计时器、频率、系统或应用。只输出角色真正发送的内容，不替 USER 回答。`;
-  const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(message=>({role:message.role==='assistant'?'assistant':'user',content:`[这条消息发生时的会话时间：${message.worldTimeText||message.timeContext?.text||message.time||'时间未记录'}；时间模式：${message.timelineMode||message.timeContext?.mode||'未记录'}] `+(message.kind==='narration'?'[旁白] ':'')+message.text}));
+  const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map((message,index,rows)=>({role:message.role==='assistant'?'assistant':'user',content:(typeof v45721TimeLabel==='function'?v45721TimeLabel(message,index,rows):'')+(message.kind==='narration'?'[旁白] ':'')+message.text}));
   history.push({role:'user',content:'【内部触发】请现在以角色身份主动发来一条自然的线上消息。'});
   backgroundTaskId='proactive_'+v44UUID();
   const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:`pokeji_chat_${activePersonaFor(chatId).id}_online_${character.id}`,signal:controller.signal,background:true,backgroundTaskId,backgroundMeta:{operation:'proactive',chatId,speakerId:character.id,groupId:'',mode:'online',sceneMode:'direct',notificationName:character.name,showNotification:shouldUseBackgroundNotification(),startedAt:new Date().toISOString()}});
@@ -1536,9 +1536,13 @@ async function sendMessage(payload=null){
    if(eventError?.name==='AbortError')throw eventError;
    console.warn(redactSensitive(`随机事件已跳过：${eventError?.message||eventError}`));
   }
-  const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>{
+  const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map((m,i,arr)=>{
    const modeLabel=!group&&m.mode==='offline'?`[此前处于面对面场景${m.sceneMode==='story'?'，含现场旁白':''}] `:(!group&&m.mode==='online'?'[此前通过私信交流] ':'');
-   const timeLabel=`[这条消息发送/生成时的会话时间：${m.worldTimeText||m.timeContext?.text||m.time||'时间未记录'}；时间模式：${m.timelineMode||m.timeContext?.mode||'未记录'}] `;
+   /* V45.7.21：时间只在确实相关时才进上下文。
+      旧版每条历史都带完整时间前缀，模型于是句句报时、说话生硬。
+      现在由 v45721TimeLabel 判断跨日、长间隔、模式切换和最后一条，其余留空；
+      完整时刻仍然保存在消息本体里，随时可查。 */
+   const timeLabel=typeof v45721TimeLabel==='function'?v45721TimeLabel(m,i,arr):`[这条消息发送/生成时的会话时间：${m.worldTimeText||m.timeContext?.text||m.time||'时间未记录'}] `;
    if(m.role==='user')return{role:'user',content:timeLabel+modeLabel+(m.kind==='sticker'?`[USER 表情包：${m.text}]`:m.kind==='image'?`[USER 发送图片；画面描述：${m.text}]`:m.kind==='phoneEvent'?`[网站模拟手机授权] ${m.text}`:m.text)};
    if(group){const spk=data.characters.find(x=>x.id===m.speaker);return{role:'assistant',content:timeLabel+`[${spk?spk.name:'角色'}] ${m.text}`}}
    return{role:'assistant',content:timeLabel+modeLabel+(m.kind==='narration'?'[旁白] ':m.kind==='thought'?'[角色未说出口的内心话] ':m.kind==='sticker'?'[角色表情包] ':m.kind==='phoneEvent'?'[角色查看模拟手机] ':'')+m.text};
@@ -2238,7 +2242,7 @@ async function v43FetchWorkerScript(){
  const response=await fetch('/sw-v44.js?build=45.7.9&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v45.7.17"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v45.7.21"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
@@ -2423,7 +2427,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 /* V44.1 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.17')}
+function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.21')}
 async function v43FetchWorkerScript(){
  const expected=v435ExpectedBuild(),response=await fetch(`/sw-v44.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
@@ -2521,7 +2525,14 @@ function v438DefaultTimeline(){const now=Date.now();return{mode:'real',virtualTi
 function v438Timeline(chatId=currentChat){chatId=canonicalChatId(chatId);data.chatTimelines=data.chatTimelines&&typeof data.chatTimelines==='object'&&!Array.isArray(data.chatTimelines)?data.chatTimelines:{};const raw=data.chatTimelines[chatId]&&typeof data.chatTimelines[chatId]==='object'?data.chatTimelines[chatId]:{};const timeline=data.chatTimelines[chatId]={...v438DefaultTimeline(),...raw};timeline.mode=timeline.mode==='virtual'?'virtual':'real';timeline.virtualTimeMs=Number(timeline.virtualTimeMs)||Date.now();timeline.totalElapsedSeconds=Math.max(0,Number(timeline.totalElapsedSeconds)||0);timeline.lastElapsedSeconds=Math.max(0,Number(timeline.lastElapsedSeconds)||0);return timeline}
 function v438Duration(seconds){seconds=Math.max(0,Math.floor(Number(seconds)||0));const days=Math.floor(seconds/86400);seconds%=86400;const hours=Math.floor(seconds/3600);seconds%=3600;const minutes=Math.floor(seconds/60),secs=seconds%60;return[days&&`${days}天`,hours&&`${hours}小时`,minutes&&`${minutes}分钟`,`${secs}秒`].filter(Boolean).join('')}
 function v438DateText(ms){const date=new Date(Number(ms)||Date.now()),zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'本地时区';return`${date.toLocaleString('zh-CN',{hour12:false,year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',second:'2-digit'})} · ${zone}`}
-function v438TimeContext(chatId=currentChat){const timeline=v438Timeline(chatId);if(timeline.mode==='virtual')return`时间模式：虚拟时间\n当前虚拟时间：${v438DateText(timeline.virtualTimeMs)}\n虚拟会话累计经过：${v438Duration(timeline.totalElapsedSeconds)}\n上一轮经过：${v438Duration(timeline.lastElapsedSeconds)}\n你必须把该时间当作人物所在世界的当前时间，不要引用设备现实时间。根据本轮互动实际发生的动作、等待、移动和对话，额外输出一次 <elapsed_seconds>非负整数秒数</elapsed_seconds>。纯短消息通常是数秒到数分钟；明确等待、睡眠、路程等按内容估算。标签只用于推进时间，不要在台词中解释。`;const now=Date.now(),elapsed=Math.max(0,Math.floor((now-(Number(timeline.lastRequestAt)||now))/1000));return`时间模式：现实时间\n当前现实时间：${v438DateText(now)}\n距离本会话上一次请求真实经过：${v438Duration(elapsed)}\n当前发言者必须理解日期、星期、时区、昼夜和真实等待时长；不要输出 elapsed_seconds 标签。`}
+function v438TimeContext(chatId=currentChat){const timeline=v438Timeline(chatId);
+ /* V45.7.21：时间是后台事实，不是播报稿。
+    保留虚拟/现实两种模式、跨日、等待、睡眠、移动的判断依据和 elapsed_seconds 推进能力，
+    但不再要求角色理解并复述时间元数据。角色只在时间真的影响此刻要说的话时才提到它。 */
+ const silent='时间是背景事实：只在它真的影响此刻的处境或心情时才自然带过，不要报时、不要说明时间来源，也不要把本区块内容告诉对方。';
+ if(timeline.mode==='virtual')return`时间模式：虚拟时间\n当前虚拟时间：${v438DateText(timeline.virtualTimeMs)}\n上一轮经过：${v438Duration(timeline.lastElapsedSeconds)}\n以该时间为人物所在世界的当前时间，不要引用设备现实时间。\n${silent}\n另外单独输出一次 <elapsed_seconds>非负整数秒数</elapsed_seconds> 表示本轮实际经过：短消息数秒到数分钟，明确的等待、睡眠或路程按内容估算。该标签只用于推进时间，不要在台词里解释。`;
+ const now=Date.now(),elapsed=Math.max(0,Math.floor((now-(Number(timeline.lastRequestAt)||now))/1000));
+ return`时间模式：现实时间\n当前现实时间：${v438DateText(now)}\n距上次对话真实经过：${v438Duration(elapsed)}\n${silent}\n不要输出 elapsed_seconds 标签。`}
 function currentTimeContext(){return'时间信息位于系统提示词末尾。'}
 function v438WrapPrompt(base,chatId){
  const context=v438TimeContext(chatId),stable=String(base||'').replace(/\n\n【会话时间感｜以此为准】[\s\S]*$/,'');

@@ -67,31 +67,66 @@
     let node=document.getElementById('v45717PaletteRuntime');
     if(!node){node=document.createElement('style');node.id='v45717PaletteRuntime';(document.body||document.head||document.documentElement).appendChild(node)}
     const bg=colors.background,panel=colors.panel,panel2=colors.panel2,header=colors.header,dock=colors.dock,accent=colors.accent,accentText=contrastText(accent),iconOuter=colors.iconOuter,icon=colors.icon,input=colors.input,text=colors.text,muted=colors.muted,line=colors.line,mine=colors.bubbleMine,mineText=contrastText(mine),other=colors.bubbleOther,otherText=contrastText(other);
+    /* V45.7.21：三级线条从 line 派生，全项目共用同一套语义。 */
+    const line1=mix(line,bg,.45),line2=line,line3=mix(line,text,.45);
+    /* V45.7.21：改成语义层。
+       旧版把 .card / .row / .setting / button 当成同一种面，一律刷 panel，
+       结果是行被画成卡片、布局父层出现白块、图标外容器和 SVG 分不开。
+       现在按「画布 / 布局父层 / 内容面 / 提升面 / 内嵌面 / 图标外容器 / SVG」分层给色。 */
+    const A='html[data-pokeji-colors="active"] ';
+    const view=A+'#phone .view:not(#home) ',modal=A+'#modalContent ',home=A+'#phone #screen #home ';
+    const both=(sel)=>view+sel+','+modal+sel;
     node.textContent=[
-      'html[data-pokeji-colors="active"],html[data-pokeji-colors="active"] body{background-color:'+bg+'!important;color:'+text+'!important}',
-      'html[data-pokeji-colors="active"] #phone,html[data-pokeji-colors="active"] #screen,html[data-pokeji-colors="active"] #phone .view,html[data-pokeji-colors="active"] #phone .view>.scroll,html[data-pokeji-colors="active"] #modal>.sheet,html[data-pokeji-colors="active"] #modalContent{background-color:'+bg+'!important;color:'+text+'!important}',
-      'html[data-pokeji-colors="active"] #phone .view:not(#home) .card,html[data-pokeji-colors="active"] #phone .view:not(#home) .group,html[data-pokeji-colors="active"] #phone .view:not(#home) .engine-card,html[data-pokeji-colors="active"] #phone .view:not(#home) [class*="-card"],html[data-pokeji-colors="active"] #phone .view:not(#home) [class*="-panel"],html[data-pokeji-colors="active"] #modalContent .card,html[data-pokeji-colors="active"] #modalContent [class*="-card"],html[data-pokeji-colors="active"] #modalContent [class*="-panel"]{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone .view:not(#home) .row,html[data-pokeji-colors="active"] #phone .view:not(#home) .setting,html[data-pokeji-colors="active"] #phone .view:not(#home) [class*="-row"],html[data-pokeji-colors="active"] #modalContent .row,html[data-pokeji-colors="active"] #modalContent .setting,html[data-pokeji-colors="active"] #modalContent [class*="-row"]{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone .view:not(#home) .header,html[data-pokeji-colors="active"] #chat .chat-head,html[data-pokeji-colors="active"] #chat .composer,html[data-pokeji-colors="active"] #modalContent [class*="-head"]{background-color:'+header+'!important;color:'+contrastText(header)+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone .view:not(#home) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),html[data-pokeji-colors="active"] #phone .view:not(#home) textarea,html[data-pokeji-colors="active"] #phone .view:not(#home) select,html[data-pokeji-colors="active"] #modalContent input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),html[data-pokeji-colors="active"] #modalContent textarea,html[data-pokeji-colors="active"] #modalContent select{background-color:'+input+'!important;color:'+contrastText(input)+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone .view:not(#home) button,html[data-pokeji-colors="active"] #modalContent button{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone .view:not(#home) button.primary,html[data-pokeji-colors="active"] #phone .view:not(#home) .primary,html[data-pokeji-colors="active"] #phone .view:not(#home) .send,html[data-pokeji-colors="active"] #modalContent button.primary,html[data-pokeji-colors="active"] #modalContent .primary{background-color:'+accent+'!important;color:'+accentText+'!important;border-color:'+accent+'!important}',
-      'html[data-pokeji-colors="active"] #phone .view:not(#home) small,html[data-pokeji-colors="active"] #phone .view:not(#home) time,html[data-pokeji-colors="active"] #phone .view:not(#home) em,html[data-pokeji-colors="active"] #phone .view:not(#home) .muted,html[data-pokeji-colors="active"] #modalContent small,html[data-pokeji-colors="active"] #modalContent time,html[data-pokeji-colors="active"] #modalContent em,html[data-pokeji-colors="active"] #modalContent .muted{color:'+muted+'!important}',
-      'html[data-pokeji-colors="active"] #phone .view:not(#home) svg,html[data-pokeji-colors="active"] #phone .view:not(#home) svg *,html[data-pokeji-colors="active"] #modalContent svg,html[data-pokeji-colors="active"] #modalContent svg *{color:'+icon+'!important;stroke:'+icon+'!important}',
-      'html[data-pokeji-colors="active"] #phone #chat .bubble,html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="thread-bubble"]{background-color:'+other+'!important;color:'+otherText+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone #chat .msg-group.me .bubble,html[data-pokeji-colors="active"] #phone #chat .msg.me .bubble,html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="thread-msg"][class*="out"] [class*="thread-bubble"],html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="thread-msg"][class*="mine"] [class*="thread-bubble"]{background-color:'+mine+'!important;color:'+mineText+'!important;border-color:'+mine+'!important}',
-      'html[data-pokeji-colors="active"] #phone #screen #home,html[data-pokeji-colors="active"] #phone #screen #home .p12-home,html[data-pokeji-colors="active"] #phone #screen #home .p12-pages,html[data-pokeji-colors="active"] #phone #screen #home .p12-page,html[data-pokeji-colors="active"] #phone #screen #home .p12-editor{background-color:'+bg+'!important;color:'+text+'!important}',
-      'html[data-pokeji-colors="active"] #phone #screen #home .home-widget,html[data-pokeji-colors="active"] #phone #screen #home .home-photo-empty,html[data-pokeji-colors="active"] #phone #screen #home .home-record,html[data-pokeji-colors="active"] #phone #screen #home .p12-editor-row{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone #screen #home .p12-dock{background-color:'+dock+'!important;color:'+contrastText(dock)+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone #screen #home .home-app-icon:not(.home-app-image),html[data-pokeji-colors="active"] #phone #screen #home .dock-icon{background-color:'+iconOuter+'!important;color:'+icon+'!important;border-color:'+line+'!important}',
-      'html[data-pokeji-colors="active"] #phone #screen #home .home-app-icon:not(.home-app-image) svg,html[data-pokeji-colors="active"] #phone #screen #home .dock-icon svg{color:'+icon+'!important;stroke:'+icon+'!important}',
-      'html[data-pokeji-colors="active"] #phone #screen #home .home-app-label,html[data-pokeji-colors="active"] #phone #screen #home .p12-clock strong,html[data-pokeji-colors="active"] #phone #screen #home .p12-clock span{color:'+text+'!important}'
+      /* 画布 */
+      A.trim()+',html[data-pokeji-colors="active"] body{background-color:'+bg+'!important;color:'+text+'!important}',
+      A+'#phone,'+A+'#screen,'+A+'#phone .view,'+A+'#phone .view>.scroll,'+A+'#modal>.sheet,'+A+'#modalContent{background-color:'+bg+'!important;color:'+text+'!important}',
+      /* 布局父层：透明，不制造白块 */
+      both('.section')+','+both('.group')+','+both('.list')+','+both('.grid')+','+both('.editor-grid')+','+both('.actions')+','+both('.form-actions')+','+modal+'[class*="-grid"],'+modal+'[class*="-actions"]{background-color:transparent!important}',
+      /* 内容面：真正的卡片、面板、模块 */
+      both('.card')+','+both('.row.card')+','+both('.engine-card')+','+both('.data-panel')+','+both('.note')+','+both('[class*="-card"]')+','+both('[class*="-panel"]')+'{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line2+'!important}',
+      /* 提升面：浮层、菜单、选择器 */
+      both('[class*="-menu"]')+','+both('[class*="-picker"]')+','+both('[class*="-popover"]')+','+A+'#modal>.sheet{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line2+'!important}',
+      /* 列表行：不做卡片化，只有弱分隔线 */
+      both('.row:not(.card)')+','+both('.setting')+','+both('.module')+','+modal+'[class*="-row"]{background-color:transparent!important;color:'+text+'!important;border-color:'+line1+'!important}',
+      /* 次级面：只给真正需要抬高的次级内容 */
+      both('.panel2')+','+both('.subcard')+','+both('[class*="-subcard"]')+'{background-color:'+panel2+'!important;color:'+text+'!important;border-color:'+line2+'!important}',
+      /* 顶部栏与输入条 */
+      view+'.header,'+A+'#chat .chat-head,'+A+'#chat .composer,'+modal+'[class*="-head"]{background-color:'+header+'!important;color:'+contrastText(header)+'!important;border-color:'+line2+'!important}',
+      /* 内嵌面：输入区 */
+      both('input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"])')+','+both('textarea')+','+both('select')+','+both('[contenteditable="true"]')+','+both('[contenteditable="plaintext-only"]')+'{background-color:'+input+'!important;color:'+contrastText(input)+'!important;border-color:'+line2+'!important}',
+      /* 聚焦与选中：强调线 */
+      both('input:focus')+','+both('textarea:focus')+','+both('select:focus')+','+both('[contenteditable]:focus')+','+both('.tab.active')+','+both('.selected')+','+both('[aria-selected="true"]')+'{border-color:'+line3+'!important}',
+      /* 按钮：普通按钮用组件面，强调按钮用强调色 */
+      both('button:not(.primary):not(.danger)')+'{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line2+'!important}',
+      both('button.primary')+','+both('.primary')+','+view+'.send{background-color:'+accent+'!important;color:'+accentText+'!important;border-color:'+accent+'!important}',
+      /* 文字层级 */
+      both('small')+','+both('time')+','+both('em')+','+both('.muted')+'{color:'+muted+'!important}',
+      both('.danger')+','+both('button.danger')+'{color:#a33a32!important}',
+      /* 图标外容器与 SVG 内容各自独立：SVG 本身透明 */
+      both('.tool-svg')+','+both('.data-row-icon')+','+A+'#modal .vphone-icon>button{background-color:'+iconOuter+'!important;color:'+icon+'!important;border-color:'+line2+'!important}',
+      A+'#phone svg,'+A+'#modalContent svg{background-color:transparent!important}',
+      A+'#phone svg,'+A+'#phone svg *,'+A+'#modalContent svg,'+A+'#modalContent svg *{color:'+icon+'!important;stroke:'+icon+'!important}',
+      A+'#phone svg .icon-fill,'+A+'#modalContent svg .icon-fill{fill:'+icon+'!important;stroke:none!important}',
+      /* 气泡 */
+      A+'#phone #chat .bubble,'+A+'#modal.phone-fullscreen [class*="thread-bubble"]{background-color:'+other+'!important;color:'+otherText+'!important;border-color:'+line2+'!important}',
+      A+'#phone #chat .msg-group.me .bubble,'+A+'#phone #chat .msg.me .bubble,'+A+'#modal.phone-fullscreen [class*="thread-msg"][class*="out"] [class*="thread-bubble"],'+A+'#modal.phone-fullscreen [class*="thread-msg"][class*="mine"] [class*="thread-bubble"]{background-color:'+mine+'!important;color:'+mineText+'!important;border-color:'+mine+'!important}',
+      /* 桌面：画布 + 布局父层透明 + 组件面 + 图标外容器 */
+      home.trim()+','+home+'.p12-home{background-color:'+bg+'!important;color:'+text+'!important}',
+      home+'.p12-pages,'+home+'.p12-page,'+home+'.p12-app,'+home+'.p12-clock{background-color:transparent!important}',
+      home+'.home-widget,'+home+'.home-photo-empty,'+home+'.home-record,'+home+'.p12-editor-row,'+home+'.p12-small-widget{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line2+'!important}',
+      home+'.p12-dock{background-color:'+dock+'!important;color:'+contrastText(dock)+'!important;border-color:'+line2+'!important}',
+      home+'.home-app-icon:not(.home-app-image),'+home+'.dock-icon,'+home+'.p12-tile,'+home+'.p12-tile-mini{background-color:'+iconOuter+'!important;color:'+icon+'!important;border-color:'+line2+'!important}',
+      /* 纯色 SVG 模式下 .home-app-glyph 就是外容器本身，只让内部 svg 透明。 */
+      home+'.home-app-icon.v4579-home-svg,'+home+'.home-app-icon.home-app-glyph:not(.home-app-image){background-color:'+iconOuter+'!important;color:'+icon+'!important;border-color:'+line2+'!important}',
+      home+'.home-app-icon.home-app-image{background-color:transparent!important;border-color:transparent!important}',
+      home+'.home-app-icon svg,'+home+'.dock-icon svg{background-color:transparent!important;color:'+icon+'!important;stroke:'+icon+'!important}',
+      home+'.home-app-label,'+home+'.p12-clock strong,'+home+'.p12-clock span{background-color:transparent!important;color:'+text+'!important}'
     ].join('\n');
   }
   function applyColors(colors=resolvedColors()){
     const surfaceText=colors.text,mutedText=colors.muted,headerText=contrastText(colors.header),dockText=contrastText(colors.dock),accentText=contrastText(colors.accent),iconOuterText=contrastText(colors.iconOuter),inputText=contrastText(colors.input),mineText=contrastText(colors.bubbleMine),otherText=contrastText(colors.bubbleOther);
     const variables={
-      '--pk-background':colors.background,'--pk-background-text':surfaceText,'--pk-panel':colors.panel,'--pk-panel-text':surfaceText,'--pk-panel-2':colors.panel2,'--pk-panel-2-text':surfaceText,'--pk-header':colors.header,'--pk-header-text':headerText,'--pk-dock':colors.dock,'--pk-dock-text':dockText,'--pk-accent':colors.accent,'--pk-accent-text':accentText,'--pk-icon-outer':colors.iconOuter,'--pk-icon-outer-text':iconOuterText,'--pk-icon':colors.icon,'--pk-input':colors.input,'--pk-input-text':inputText,'--pk-text':surfaceText,'--pk-muted':mutedText,'--pk-line':colors.line,'--pk-bubble-mine':colors.bubbleMine,'--pk-bubble-mine-text':mineText,'--pk-bubble-other':colors.bubbleOther,'--pk-bubble-other-text':otherText,
+      '--pk-background':colors.background,'--pk-background-text':surfaceText,'--pk-panel':colors.panel,'--pk-panel-text':surfaceText,'--pk-panel-2':colors.panel2,'--pk-panel-2-text':surfaceText,'--pk-header':colors.header,'--pk-header-text':headerText,'--pk-dock':colors.dock,'--pk-dock-text':dockText,'--pk-accent':colors.accent,'--pk-accent-text':accentText,'--pk-icon-outer':colors.iconOuter,'--pk-icon-outer-text':iconOuterText,'--pk-icon':colors.icon,'--pk-input':colors.input,'--pk-input-text':inputText,'--pk-text':surfaceText,'--pk-muted':mutedText,'--pk-line':colors.line,'--pk-line-1':mix(colors.line,colors.background,.45),'--pk-line-2':colors.line,'--pk-line-3':mix(colors.line,colors.text,.45),'--pk-danger':'#a33a32','--pk-disabled':mix(colors.panel,colors.text,.06),'--pk-disabled-text':mix(colors.muted,colors.background,.38),'--pk-bubble-mine':colors.bubbleMine,'--pk-bubble-mine-text':mineText,'--pk-bubble-other':colors.bubbleOther,'--pk-bubble-other-text':otherText,
       '--v472-bg':colors.background,'--v472-bg-text':surfaceText,'--v472-bg-muted':mutedText,
       '--v472-panel':colors.panel,'--v472-panel-text':surfaceText,'--v472-panel-muted':mutedText,
       '--v472-panel-2':colors.panel2,'--v472-panel-2-text':surfaceText,'--v472-panel-2-muted':mutedText,

@@ -84,15 +84,25 @@
       if(iconRow)iconRow.before(fragment);else editor.appendChild(fragment);
     }
   }
+  /* V45.7.21：图标模式标记必须先写到桌面根节点。
+     旧版把 home.dataset.homeIconMode 放在本函数最后一行，一旦前面任一处
+     （编辑器控件、预览小图）抛错，纯色 SVG 图标就拿不到
+     #homeDesk[data-home-icon-mode="svg"] 那条规则，外容器色和主题色都不会变。
+     现在先落标记再做界面部分，标记不再依赖编辑器是否打开或渲染是否全部成功。 */
+  function markIconMode(mode){
+    const home=document.getElementById('homeDesk');
+    if(home&&home.dataset.homeIconMode!==mode)home.dataset.homeIconMode=mode;
+  }
   function updateEditorControl(){
-    installEditorControl();const mode=currentMode(),imageButton=document.getElementById('v4579ImageMode'),svgButton=document.getElementById('v4579SvgMode');
+    const currentModeValue=currentMode();markIconMode(currentModeValue);
+    installEditorControl();const mode=currentModeValue,imageButton=document.getElementById('v4579ImageMode'),svgButton=document.getElementById('v4579SvgMode');
     imageButton?.classList.toggle('on',mode===IMAGE_MODE);svgButton?.classList.toggle('on',mode===SVG_MODE);
     imageButton?.setAttribute('aria-pressed',String(mode===IMAGE_MODE));svgButton?.setAttribute('aria-pressed',String(mode===SVG_MODE));
     setText(document.getElementById('v4579IconModeStatus'),mode===SVG_MODE?'纯色 SVG':'图片图标');
     const copy=document.getElementById('v4579IconModeCopy'),copyMode=copy?.dataset.mode;
     if(copy&&copyMode!==mode){copy.dataset.mode=mode;copy.innerHTML=mode===SVG_MODE?'<b>全部桌面应用统一显示内置 SVG。</b>颜色跟随当前主题，四张图片和自定义上传仍然保留。':'<b>有图片时优先显示图片。</b>没有配置图片的应用继续使用内置 SVG。'}
     const preview=document.getElementById('v4579IconModePreview');if(preview&&preview.dataset.mode!==mode){preview.dataset.mode=mode;preview.innerHTML=['chats','contacts','groups','feed'].map(key=>miniIcon(key,mode)).join('')}
-    const home=document.getElementById('homeDesk');if(home)home.dataset.homeIconMode=mode;
+    markIconMode(mode);
   }
 
   window.v4579SetHomeIconMode=function(mode){
@@ -110,7 +120,7 @@
   }
   const baseRenderHomeDesktop=typeof renderHomeDesktop==='function'?renderHomeDesktop:null;
   if(baseRenderHomeDesktop){
-    const wrappedRender=function(...args){const result=baseRenderHomeDesktop.apply(this,args);updateEditorControl();return result};
+    const wrappedRender=function(...args){const result=baseRenderHomeDesktop.apply(this,args);try{markIconMode(currentMode())}catch{}try{updateEditorControl()}catch(error){console.warn('桌面图标模式界面刷新失败',error)}return result};
     renderHomeDesktop=wrappedRender;window.renderHomeDesktop=wrappedRender;
   }
 

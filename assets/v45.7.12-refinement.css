@@ -517,3 +517,24 @@
  .v45712-dream-modes{grid-template-columns:1fr}
  .v45712-dream-tools{grid-template-columns:1fr 1fr}
 }
+
+/* V45.7.21 · 世界书导入入口：沿用现有 .icon-btn 尺寸与位置，只把原生文件框藏起来。
+   input 保持可聚焦（不是 display:none），键盘和读屏都能用。 */
+.v45721-world-import{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.v45721-world-import>input[type="file"]{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  cursor:pointer;
+}
+.v45721-world-import:focus-within{
+  border-color:var(--pk-line-3)!important;
+}

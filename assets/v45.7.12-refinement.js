@@ -2353,20 +2353,63 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
     const rows=ledger.map(entry=>{const message=byId.get(S(entry.messageId));return{entry,message}});
     return rows.slice(-Math.max(1,Math.min(160,Number(limit)||100)));
   }
-  function buildTemporalContext(chatId=currentChat,{limit=100,maxChars=14500}={}){
-    const rows=temporalRows(chatId,limit);if(!rows.length)return'';
+  /* V45.7.21：时间线降噪。
+     时间仍然全量保存在 chatTimeHistory / 消息本体里，跨日、等待、睡眠、移动、
+     自定义世界历法的判断能力一个都不减；只是不再把每条历史都铺进提示词。
+     判定「有意义的时间节点」：跨日、间隔≥20 分钟、时间模式切换、线上线下切换、
+     以及最近两条。其余消息由普通历史承担，时间不重复出现。 */
+  const V45721_GAP_MS=20*60*1000;
+  function dayKey(ms){const value=finite(ms);if(value===null||value===undefined)return'';const date=new Date(value);return`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`}
+  function significantRows(rows){
+    const marks=new Set();
+    for(let index=0;index<rows.length;index++){
+      const cur=rows[index],prev=index>0?rows[index-1]:null;
+      if(!prev){marks.add(index);continue}
+      if(index>=rows.length-2){marks.add(index);continue}
+      const curMs=finite(cur.message?.timeMs)??finite(cur.entry?.timeMs),prevMs=finite(prev.message?.timeMs)??finite(prev.entry?.timeMs);
+      if(curMs!==null&&curMs!==undefined&&prevMs!==null&&prevMs!==undefined){
+        if(Math.abs(curMs-prevMs)>=V45721_GAP_MS){marks.add(index);continue}
+        if(dayKey(curMs)&&dayKey(curMs)!==dayKey(prevMs)){marks.add(index);continue}
+      }
+      const curMode=S(cur.message?.timelineMode||cur.entry?.timelineMode),prevMode=S(prev.message?.timelineMode||prev.entry?.timelineMode);
+      if(curMode&&prevMode&&curMode!==prevMode){marks.add(index);continue}
+      const curScene=S(cur.entry?.mode||''),prevScene=S(prev.entry?.mode||'');
+      if(curScene&&prevScene&&curScene!==prevScene)marks.add(index);
+    }
+    return rows.filter((_,index)=>marks.has(index));
+  }
+  /* 供 app.js 历史映射使用：只在需要时给出一行短标签，其余返回空串。 */
+  window.v45721TimeLabel=function(message,index,rows){
+    try{
+      const list=L(rows);if(!list.length)return'';
+      const time=S(message?.worldTimeText||message?.timeContext?.text||message?.time||'');
+      if(!time)return'';
+      if(index>=list.length-2)return`[${time}] `;
+      const prev=list[index-1];if(!prev)return`[${time}] `;
+      const curMs=finite(message?.timeMs),prevMs=finite(prev?.timeMs);
+      if(curMs!==null&&curMs!==undefined&&prevMs!==null&&prevMs!==undefined){
+        if(Math.abs(curMs-prevMs)>=V45721_GAP_MS)return`[${time}] `;
+        if(dayKey(curMs)&&dayKey(curMs)!==dayKey(prevMs))return`[${time}] `;
+        return'';
+      }
+      const curMode=S(message?.timelineMode||message?.timeContext?.mode),prevMode=S(prev?.timelineMode||prev?.timeContext?.mode);
+      if(curMode&&prevMode&&curMode!==prevMode)return`[${time}] `;
+      return'';
+    }catch{return''}
+  };
+  function buildTemporalContext(chatId=currentChat,{limit=100,maxChars=3200}={}){
+    const rows=significantRows(temporalRows(chatId,limit));if(!rows.length)return'';
     const selected=[];let used=0;
     for(let index=rows.length-1;index>=0;index--){
       const {entry,message}=rows[index],time=S(message?.worldTimeText||message?.timeContext?.text||entry.worldTimeText||'时间未记录');
       const role=message?speakerFor(chatId,message):(entry.role==='user'?'USER':entry.speaker||'角色');
-      const mode=message?modeFor(message,chatId):S(entry.mode||'线上');
-      const text=excerpt(message?.text??entry.text,300)||'（非文字记录）';
-      const line=`- ${time} · ${mode} · ${role}：${text}`;
+      const text=excerpt(message?.text??entry.text,80)||'（非文字记录）';
+      const line=`- ${time} ${role}：${text}`;
       if(used+line.length>maxChars){if(selected.length)break;continue}selected.unshift(line);used+=line.length+1;
     }
     if(!selected.length)return'';
-    return`【历史会话时间线｜持久记录】
-以下是同一条会话中已经保存的消息时刻，按发生顺序排列。每条消息括号外的时间是它发送/生成时的会话世界时间，不是本轮请求时间；自定义世界时间文本也必须原样保留。请先比较相邻时间与时间间隔，再解释“刚才、昨晚、睡觉、等了几小时”等相对关系。较早的状态不能在没有时间依据时自动延续到现在；如果 USER 在上一节点说要睡觉，而后续时间已经过去数小时，应把它理解为历史事实并据当前节点判断是否已经醒来或发生了变化。不要把本区块复述给 USER，也不要输出技术说明。
+    return`【时间节点｜后台事实，不要复述】
+只列出间隔较大或跨日的节点，用来判断“刚才、昨晚、睡了一觉、等了几小时”这类相对关系。旧状态不会自动延续到现在。不要向对方报时或解释这份记录。
 ${selected.join('\n')}`;
   }
   window.v45717BuildTemporalContext=buildTemporalContext;
@@ -2382,7 +2425,7 @@ ${selected.join('\n')}`;
   window.v45717FormatMessageTime=function(message,chatId){applyMessageTime(message,chatId);return S(message?.worldTimeText||message?.timeContext?.text||message?.time||'时间未记录')};
 
   function injectTemporalPrompt(base,chatId){
-    const text=S(base),block=buildTemporalContext(chatId);if(!block||text.includes('【历史会话时间线｜持久记录】'))return text;
+    const text=S(base),block=buildTemporalContext(chatId);if(!block||text.includes('【时间节点｜后台事实，不要复述】'))return text;
     const insertion=['\n\n【会话时间｜','\n\n【会话时间感｜','\n\n【执行原则】'].map(item=>text.indexOf(item)).filter(index=>index>=0);
     const at=insertion.length?Math.min(...insertion):text.length;
     return text.slice(0,at)+'\n\n'+block+text.slice(at);
@@ -2397,7 +2440,7 @@ ${selected.join('\n')}`;
       const result=baseEngine.apply(this,args),chatId=args[2]||currentChat;
       if(result&&typeof result==='object'){
         const block=buildTemporalContext(chatId);let inPrompt=false;try{inPrompt=Boolean(v438PromptChatId)}catch{}
-        if(block){result.temporal=block;if(!inPrompt&&!S(result.state).includes('【历史会话时间线｜持久记录】'))result.state=`${S(result.state)}\n\n${block}`}
+        if(block){result.temporal=block;if(!inPrompt&&!S(result.state).includes('【时间节点｜后台事实，不要复述】'))result.state=`${S(result.state)}\n\n${block}`}
       }
       return result;
     };
@@ -2444,4 +2487,233 @@ ${selected.join('\n')}`;
   }
 
   syncAllTemporalHistory();
+})();
+
+/* =========================================================
+   POKEJI V45.7.21 · 世界书 DOCX / TXT 本地导入
+   世界书是小手机自己的活人感 / 网聊感资料系统，只有它支持文件导入。
+   世界规则页面不加任何导入入口，也不共用这里的数据。
+
+   规则（用户已确认）：
+   - 整份文件生成一个新的世界书条目；
+   - 默认草稿 / 停用，由用户自己决定关键词、触发方式和绑定；
+   - DOCX 只读取正文段落与标题层级，不读表格、图片；
+   - TXT 保留正文换行与空行结构；
+   - 不自动编造关键词、触发条件或绑定对象；
+   - 全部本地解析，不上传文件，不调用任何 API；
+   - 解析失败明确报错，绝不显示“导入成功”。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiV45721WorldImport)return;
+  window.__pokejiV45721WorldImport=true;
+
+  const S=(value,fallback='')=>String(value??fallback);
+  const say=(text)=>{try{if(typeof toast==='function')return toast(text)}catch{}try{console.log(text)}catch{}};
+
+  /* 部分老 WebView 没有 TextDecoder（和当年缺 CSS.escape 一样）。
+     这里给一个手写 UTF-8 解码兜底，保证导入不会因为环境缺失直接失败。 */
+  const hasDecoder=(()=>{try{return typeof TextDecoder==='function'&&!!new TextDecoder('utf-8')}catch{return false}})();
+  function decodeUtf8Manual(bytes){
+    const view=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
+    let out='',index=0;
+    while(index<view.length){
+      const byte=view[index++];
+      if(byte<0x80){out+=String.fromCharCode(byte);continue}
+      if(byte>=0xc0&&byte<0xe0&&index<view.length){
+        out+=String.fromCharCode(((byte&0x1f)<<6)|(view[index++]&0x3f));continue;
+      }
+      if(byte>=0xe0&&byte<0xf0&&index+1<view.length){
+        out+=String.fromCharCode(((byte&0x0f)<<12)|((view[index++]&0x3f)<<6)|(view[index++]&0x3f));continue;
+      }
+      if(byte>=0xf0&&index+2<view.length){
+        const code=((byte&0x07)<<18)|((view[index++]&0x3f)<<12)|((view[index++]&0x3f)<<6)|(view[index++]&0x3f);
+        const offset=code-0x10000;
+        out+=String.fromCharCode(0xd800+(offset>>10),0xdc00+(offset&0x3ff));continue;
+      }
+      out+='\uFFFD';
+    }
+    return out;
+  }
+  function decodeWith(label,bytes,fatal){
+    if(!hasDecoder){
+      if(label&&!/^utf-?8$/i.test(label))throw Error('当前浏览器只能按 UTF-8 读取，请把文件另存为 UTF-8');
+      return decodeUtf8Manual(bytes);
+    }
+    return new TextDecoder(label||'utf-8',fatal?{fatal:true}:undefined).decode(bytes);
+  }
+
+  /* ---------- TXT：UTF-8 / BOM 优先，失败再试常见中文编码 ---------- */
+  function decodeText(bytes){
+    const view=new Uint8Array(bytes);
+    let body=view;
+    if(view.length>=3&&view[0]===0xEF&&view[1]===0xBB&&view[2]===0xBF)body=view.subarray(3);
+    if(view.length>=2&&view[0]===0xFF&&view[1]===0xFE)return decodeWith('utf-16le',view.subarray(2)).replace(/\r\n?/g,'\n');
+    if(view.length>=2&&view[0]===0xFE&&view[1]===0xFF)return decodeWith('utf-16be',view.subarray(2)).replace(/\r\n?/g,'\n');
+    let text='';
+    try{text=decodeWith('utf-8',body,true)}
+    catch{
+      for(const label of ['gb18030','gbk','big5']){
+        try{const attempt=decodeWith(label,body);if(attempt&&!/\uFFFD/.test(attempt.slice(0,4000))){text=attempt;break}}catch{}
+      }
+      if(!text)text=decodeWith('utf-8',body);
+    }
+    /* 统一换行，保留空行结构 */
+    return text.replace(/\r\n?/g,'\n').replace(/\u0000/g,'');
+  }
+
+  /* ---------- DOCX：本地读 ZIP 中央目录，只取 word/document.xml ---------- */
+  const u16=(view,at)=>view.getUint16(at,true);
+  const u32=(view,at)=>view.getUint32(at,true);
+
+  async function inflateRaw(bytes){
+    if(window.pako&&typeof window.pako.inflateRaw==='function')return new Uint8Array(window.pako.inflateRaw(bytes));
+    if(typeof DecompressionStream==='function'){
+      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+    throw Error('当前浏览器无法解压 DOCX，请改用 TXT');
+  }
+
+  async function readDocumentXml(buffer){
+    const bytes=new Uint8Array(buffer),view=new DataView(buffer);
+    if(bytes.length<22||u32(view,0)!==0x04034b50)throw Error('这不是有效的 DOCX 文件');
+    /* 找 End of central directory */
+    let eocd=-1;
+    for(let at=bytes.length-22;at>=0&&at>bytes.length-66000;at--){if(u32(view,at)===0x06054b50){eocd=at;break}}
+    if(eocd<0)throw Error('DOCX 结构损坏，找不到目录');
+    let cursor=u32(view,eocd+16);
+    const count=u16(view,eocd+10);
+    for(let index=0;index<count;index++){
+      if(cursor+46>bytes.length||u32(view,cursor)!==0x02014b50)break;
+      const flags=u16(view,cursor+8),method=u16(view,cursor+10),compressedSize=u32(view,cursor+20),
+            nameLength=u16(view,cursor+28),extraLength=u16(view,cursor+30),commentLength=u16(view,cursor+32),
+            localOffset=u32(view,cursor+42),name=decodeWith('utf-8',bytes.slice(cursor+46,cursor+46+nameLength));
+      cursor+=46+nameLength+extraLength+commentLength;
+      if(name!=='word/document.xml')continue;
+      if(flags&1)throw Error('DOCX 有密码保护，无法导入');
+      if(localOffset+30>bytes.length||u32(view,localOffset)!==0x04034b50)throw Error('DOCX 正文条目损坏');
+      const localNameLength=u16(view,localOffset+26),localExtraLength=u16(view,localOffset+28),
+            start=localOffset+30+localNameLength+localExtraLength,raw=bytes.slice(start,start+compressedSize);
+      if(raw.length>32*1024*1024)throw Error('DOCX 正文超过 32MB，请拆分后导入');
+      const content=method===0?raw:method===8?await inflateRaw(raw):null;
+      if(!content)throw Error('DOCX 使用了不支持的压缩方式');
+      return decodeWith('utf-8',content);
+    }
+    throw Error('DOCX 里找不到正文 word/document.xml');
+  }
+
+  function unescapeXml(text){
+    return S(text).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"')
+      .replace(/&apos;/g,"'").replace(/&#(\d+);/g,(_,code)=>String.fromCharCode(Number(code)))
+      .replace(/&amp;/g,'&');
+  }
+
+  /* 只取正文段落与标题层级；表格与图片按规则跳过。 */
+  function parseDocx(xml){
+    const bodyMatch=S(xml).match(/<w:body[\s\S]*?<\/w:body>/);
+    let body=bodyMatch?bodyMatch[0]:S(xml);
+    /* 去掉表格块：不读取表格 */
+    body=body.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g,'');
+    const lines=[];
+    const paragraphs=body.match(/<w:p\b[^>]*\/>|<w:p\b[^>]*>[\s\S]*?<\/w:p>/g)||[];
+    for(const paragraph of paragraphs){
+      const style=(paragraph.match(/<w:pStyle[^>]*w:val="([^"]*)"/)||[])[1]||'';
+      let level=0;
+      const heading=S(style).match(/^(?:Heading|heading|标题\s*)(\d)/)||S(style).match(/^[Hh](\d)$/);
+      if(heading)level=Math.max(1,Math.min(6,Number(heading[1])||1));
+      else if(/^(Title|标题)$/i.test(style))level=1;
+      else if(/^Subtitle$/i.test(style))level=2;
+      let text='';
+      const chunks=paragraph.match(/<w:t(?:\s[^>]*)?>[\s\S]*?<\/w:t>|<w:tab\b[^>]*\/>|<w:br\b[^>]*\/>/g)||[];
+      for(const chunk of chunks){
+        if(/^<w:tab/.test(chunk)){text+='\t';continue}
+        if(/^<w:br/.test(chunk)){text+='\n';continue}
+        text+=unescapeXml(chunk.replace(/^<w:t(?:\s[^>]*)?>/,'').replace(/<\/w:t>$/,''));
+      }
+      text=text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').trimEnd();
+      if(!text.trim()){lines.push('');continue}
+      lines.push(level?`${'#'.repeat(level)} ${text.trim()}`:text);
+    }
+    /* 合并多余空行，但保留段落之间的一个空行 */
+    const out=[];
+    for(const line of lines){
+      if(!line&&!out.length)continue;
+      if(!line&&!out[out.length-1])continue;
+      out.push(line);
+    }
+    while(out.length&&!out[out.length-1])out.pop();
+    return out.join('\n');
+  }
+
+  function baseName(name){return S(name).replace(/\.[^.]+$/,'').trim()||'导入的世界书'}
+
+  /* ---------- 写入世界书数据（不碰 data.engine.worldRules） ---------- */
+  function addWorldEntry(name,content,sourceLabel){
+    const entry={
+      id:'w_'+(typeof v44UUID==='function'?v44UUID():Date.now().toString(36)),
+      name:S(name).slice(0,80),
+      desc:content,
+      mode:'all',
+      scope:'global',
+      targetIds:[],
+      activation:'persistent',
+      trigger:'',
+      enabled:false,          /* 默认草稿 / 停用：由用户自己决定关键词、触发与绑定后再启用 */
+      importedFrom:sourceLabel,
+      importedAt:new Date().toISOString()
+    };
+    if(!Array.isArray(data.worlds))data.worlds=[];
+    data.worlds.push(entry);
+    try{save()}catch{}
+    try{if(typeof renderWorld==='function')renderWorld()}catch{}
+    return entry;
+  }
+
+  window.v45721ImportWorldFile=async function(event){
+    const input=event?.target,file=input?.files&&input.files[0];
+    if(!file)return;
+    const name=S(file.name),extension=(name.match(/\.([^.]+)$/)||[])[1]?.toLowerCase()||'';
+    try{
+      if(file.size>40*1024*1024)throw Error('文件超过 40MB，请拆分后导入');
+      let content='',label='';
+      if(extension==='txt'){content=decodeText(await file.arrayBuffer());label='TXT'}
+      else if(extension==='docx'){content=parseDocx(await readDocumentXml(await file.arrayBuffer()));label='DOCX'}
+      else throw Error('只支持 .docx 和 .txt');
+      if(!S(content).trim())throw Error(`${label} 里没有可读正文，未创建条目`);
+      const entry=addWorldEntry(baseName(name),content,label);
+      say(`已导入《${entry.name}》：${label} 正文 ${content.length} 字，默认停用`);
+      if(typeof modal==='function'&&typeof editWorld==='function')editWorld(entry.id);
+    }catch(error){
+      const detail=S(error&&error.message||error)||'未知原因';
+      say(`导入失败：${detail}`);
+      try{console.warn('世界书导入失败：'+detail)}catch{}
+    }finally{
+      if(input)input.value='';
+    }
+  };
+
+  /* ---------- 只在现有「世界书」页面顶部加一个小入口 ---------- */
+  function mountEntry(){
+    const view=document.getElementById('world');if(!view)return;
+    const actions=view.querySelector('.header .actions');if(!actions)return;
+    if(actions.querySelector('.v45721-world-import'))return;
+    const label=document.createElement('label');
+    label.className='icon-btn v45721-world-import';
+    label.title='导入 DOCX / TXT 到世界书';
+    label.setAttribute('aria-label','导入 DOCX 或 TXT 文件到世界书');
+    label.innerHTML='⇧<input type="file" accept=".docx,.txt,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onchange="v45721ImportWorldFile(event)">';
+    actions.insertBefore(label,actions.firstChild);
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountEntry,{once:true});
+  else mountEntry();
+  /* 视图重绘后补挂，只做存在性检查，不重排页面。
+     用微任务合并，避免 V45.7.10 那种「观察者与写入互喂」的高频回调。 */
+  let pending=false;
+  const observer=new MutationObserver(()=>{
+    if(pending)return;pending=true;
+    queueMicrotask(()=>{pending=false;try{mountEntry()}catch{}});
+  });
+  try{observer.observe(document.body||document.documentElement,{childList:true,subtree:true})}catch{}
 })();
