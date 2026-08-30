@@ -6,14 +6,14 @@
 <meta name="theme-color" content="#0c0c0e">
 <meta name="description" content="API 驱动的沉浸式互动空间">
 <meta name="application-name" content="扑克机">
-<meta name="pokeji-build" content="V45.7.14-20260830-CST">
+<meta name="pokeji-build" content="V45.7.15-20260830-CST">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>扑克机 · 沉浸互动空间 · V45.7.14</title>
+<title>扑克机 · 沉浸互动空间 · V45.7.15</title>
 <script>
 (function(){
-  var BUILD='45.7.14',finished=false,watchdog=0,absoluteTimer=0;
+  var BUILD='45.7.15',finished=false,watchdog=0,absoluteTimer=0;
   function node(id){return document.getElementById(id)}
   function removeNode(target){if(!target)return;if(target.remove)target.remove();else if(target.parentNode)target.parentNode.removeChild(target)}
   function messageFor(kind){
@@ -49,10 +49,10 @@
   try{if(sessionStorage.getItem('pokeji_skip_boot_once')==='1'){sessionStorage.removeItem('pokeji_skip_boot_once');document.addEventListener('DOMContentLoaded',function(){hideBootOnly()})}}catch(error){}
 })();
 </script>
-<link rel="manifest" href="/manifest.webmanifest?v=45.7.14">
-<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.7.14">
-<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.7.14">
-<link rel="stylesheet" href="/assets/app.css?v=45.7.14">
+<link rel="manifest" href="/manifest.webmanifest?v=45.7.15">
+<link rel="apple-touch-icon" id="appleTouchIcon" sizes="192x192" href="/assets/icon-192.png?v=45.7.15">
+<link rel="icon" id="appFavicon" type="image/png" sizes="192x192" href="/assets/icon-192.png?v=45.7.15">
+<link rel="stylesheet" href="/assets/app.css?v=45.7.15">
 </head>
 <body>
 
@@ -70,9 +70,9 @@
     <div id="bootRecovery" class="boot-recovery" hidden>
       <b>启动没有完成</b>
       <p id="bootRecoveryText">正在检查启动资源…</p>
-      <div><a href="/index.html?manual-reload=45.7.14">重新加载</a><a href="/repair-sw.html?from=boot-45.7.14">修复缓存</a><a href="/startup-repair.html?v=45.7.14">启动诊断</a></div>
+      <div><a href="/index.html?manual-reload=45.7.15">重新加载</a><a href="/repair-sw.html?from=boot-45.7.15">修复缓存</a><a href="/startup-repair.html?v=45.7.15">启动诊断</a></div>
     </div>
-    <details class="boot-manual"><summary>启动帮助</summary><div><a href="/index.html?manual-reload=45.7.14">重新加载</a><a href="/repair-sw.html?from=boot-45.7.14">修复缓存</a></div></details>
+    <details class="boot-manual"><summary>启动帮助</summary><div><a href="/index.html?manual-reload=45.7.15">重新加载</a><a href="/repair-sw.html?from=boot-45.7.15">修复缓存</a></div></details>
   </div>
 </div>
 
@@ -219,7 +219,7 @@
 <div class="scroll data-hub">
 <div class="data-hero">
  <div class="data-hero-mark">▣</div>
- <div><small>LOCAL DATA · V45.7.14</small><h2>你的本机资料</h2><p>人物、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
+ <div><small>LOCAL DATA · V45.7.15</small><h2>你的本机资料</h2><p>人物、面具与聊天保存在当前浏览器；导出文件不包含 API Key。</p></div>
  <span>仅本机</span>
 </div>
 <div class="data-stats" aria-label="本机资料统计">
@@ -350,49 +350,51 @@
  try{Object.defineProperty(editor,'value',{configurable:true,get:text,set:value=>{editor.textContent=String(value||'')}});Object.defineProperty(editor,'placeholder',{configurable:true,get:()=>editor.dataset.placeholder||'',set:value=>{editor.dataset.placeholder=String(value||'')}});Object.defineProperty(editor,'disabled',{configurable:true,get:()=>disabled,set:value=>{disabled=!!value;editor.setAttribute('contenteditable',disabled?'false':'plaintext-only');editor.setAttribute('aria-disabled',disabled?'true':'false')}});Object.defineProperty(editor,'type',{configurable:true,get:()=>'text',set:()=>{}});Object.defineProperty(editor,'name',{configurable:true,get:()=>'',set:()=>{}});Object.defineProperty(editor,'autocomplete',{configurable:true,get:()=>'off',set:()=>{}})}catch{}
 })();
 </script>
-<script src="/assets/app.js?v=45.7.14"></script>
-<script src="/assets/v45-patch.js?v=45.7.14"></script>
-<script src="/assets/v45-final.js?v=45.7.14"></script>
-<script src="/assets/v45-ui-fix.js?v=45.7.14"></script>
-<script src="/assets/v45-phone-call.js?v=45.7.14"></script>
-<script src="/assets/v45-followup.js?v=45.7.14"></script>
-<script src="/assets/v45-stability.js?v=45.7.14"></script>
-<script src="/assets/v45.1-fix.js?v=45.7.14"></script>
+<script src="/assets/app.js?v=45.7.15"></script>
+<script src="/assets/v45-patch.js?v=45.7.15"></script>
+<script src="/assets/v45-final.js?v=45.7.15"></script>
+<script src="/assets/v45-ui-fix.js?v=45.7.15"></script>
+<script src="/assets/v45-phone-call.js?v=45.7.15"></script>
+<script src="/assets/v45-followup.js?v=45.7.15"></script>
+<script src="/assets/v45-stability.js?v=45.7.15"></script>
+<script src="/assets/v45.1-fix.js?v=45.7.15"></script>
 <!-- Existing phone desktop remains authoritative; only app interiors load below. -->
-<script src="/assets/v45.1-memory-entries.js?v=45.7.14"></script>
-<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.4.1-runtime.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.4.1-phone.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.4.1-story.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.5.0-framework.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.6.0-refinement.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.7.0-polish.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.7.1-refinement.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.7.2-refinement.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.7.9-icon-mode.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.7.12-refinement.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.7.13-plain.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.7.14-phone-plain.css?v=45.7.14">
-<link rel="stylesheet" href="/assets/v45.7.13-home-glass.css?v=45.7.14">
-<script src="/assets/v45.2-app-interiors.js?v=45.7.14"></script>
-<script src="/assets/pako-inflate.min.js?v=45.7.14"></script>
-<script src="/assets/v45.3-repair.js?v=45.7.14"></script>
+<script src="/assets/v45.1-memory-entries.js?v=45.7.15"></script>
+<link rel="stylesheet" href="/assets/v45.1-scope-override.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.2-app-interiors.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.3-repair.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.4-next-stage.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.4.1-runtime.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.4.1-phone.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.4.1-story.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.5.0-framework.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.6.0-refinement.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.0-polish.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.1-refinement.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.2-refinement.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.9-icon-mode.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.12-refinement.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.13-plain.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.14-phone-plain.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.15-white.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.15-lines.css?v=45.7.15">
+<link rel="stylesheet" href="/assets/v45.7.13-home-glass.css?v=45.7.15">
+<script src="/assets/v45.2-app-interiors.js?v=45.7.15"></script>
+<script src="/assets/pako-inflate.min.js?v=45.7.15"></script>
+<script src="/assets/v45.3-repair.js?v=45.7.15"></script>
 <!-- Formal routed pages: no preview navigator is loaded into the deploy package. -->
-<script src="/assets/v45.4-next-stage.js?v=45.7.14"></script>
-<script src="/assets/v45.4.1-core.js?v=45.7.14"></script>
-<script src="/assets/v45.4.1-runtime.js?v=45.7.14"></script>
-<script src="/assets/v45.4.1-phone.js?v=45.7.14"></script>
-<script src="/assets/v45.4.1-story.js?v=45.7.14"></script>
-<script src="/assets/v45.5.0-framework.js?v=45.7.14"></script>
-<script src="/assets/v45.6.0-refinement.js?v=45.7.14"></script>
-<script src="/assets/v45.7.0-polish.js?v=45.7.14"></script>
-<script src="/assets/v45.7.1-refinement.js?v=45.7.14"></script>
-<script src="/assets/v45.7.2-refinement.js?v=45.7.14"></script>
-<script src="/assets/v45.7.9-icon-mode.js?v=45.7.14"></script>
-<script src="/assets/v45.7.12-refinement.js?v=45.7.14"></script>
+<script src="/assets/v45.4-next-stage.js?v=45.7.15"></script>
+<script src="/assets/v45.4.1-core.js?v=45.7.15"></script>
+<script src="/assets/v45.4.1-runtime.js?v=45.7.15"></script>
+<script src="/assets/v45.4.1-phone.js?v=45.7.15"></script>
+<script src="/assets/v45.4.1-story.js?v=45.7.15"></script>
+<script src="/assets/v45.5.0-framework.js?v=45.7.15"></script>
+<script src="/assets/v45.6.0-refinement.js?v=45.7.15"></script>
+<script src="/assets/v45.7.0-polish.js?v=45.7.15"></script>
+<script src="/assets/v45.7.1-refinement.js?v=45.7.15"></script>
+<script src="/assets/v45.7.2-refinement.js?v=45.7.15"></script>
+<script src="/assets/v45.7.9-icon-mode.js?v=45.7.15"></script>
+<script src="/assets/v45.7.12-refinement.js?v=45.7.15"></script>
 <script>
 if('serviceWorker' in navigator&&window.__pokejiDisableServiceWorker!==true){
   window.addEventListener('load',async()=>{
