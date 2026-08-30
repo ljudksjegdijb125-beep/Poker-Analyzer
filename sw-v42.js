@@ -1,5 +1,5 @@
 /* POKEJI legacy Service Worker migration bridge. */
-const POKEJI_V44_TARGET = '/index.html?sw-migrate=45.2';
+const POKEJI_V44_目标 = '/index.html?sw-migrate=45.2';
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil((async()=>{
   try{await self.clients.claim()}catch{}
@@ -7,7 +7,7 @@ self.addEventListener('activate', event => event.waitUntil((async()=>{
   try{const keys=await caches.keys();await Promise.all(keys.filter(key=>/^pokeji-v(?:38|42|43)/i.test(key)).map(key=>caches.delete(key)))}catch{}
   const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
   await Promise.all(windows.map(async client=>{
-    try{if(client.navigate)await client.navigate(POKEJI_V44_TARGET+'&t='+Date.now());else client.postMessage({type:'POKEJI_LEGACY_SW_RELEASED'})}
+    try{if(client.navigate)await client.navigate(POKEJI_V44_目标+'&t='+Date.now());else client.postMessage({type:'POKEJI_LEGACY_SW_RELEASED'})}
     catch{try{client.postMessage({type:'POKEJI_LEGACY_SW_RELEASED'})}catch{}}
   }));
 })()));
