@@ -38,7 +38,7 @@
   const fieldId=key=>`v472Color${key.charAt(0).toUpperCase()}${key.slice(1)}`;
 
   data.settings=O(data.settings);
-  data.settings.beautyFactory={bubbleWidth:84,fontSize:14,bubbleRadius:18,bubblePadding:11,componentOpacity:.94,safeComponents:true,...O(data.settings.beautyFactory)};
+  data.settings.beautyFactory={bubbleWidth:76,fontSize:14,bubbleRadius:14,bubblePadding:9,componentOpacity:.94,safeComponents:true,...O(data.settings.beautyFactory)};
   data.settings.beautyFactory.colors=O(data.settings.beautyFactory.colors);
   data.settings.beautyFactory.autoContrast=true;
 

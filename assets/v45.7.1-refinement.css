@@ -1,7 +1,7 @@
 /* POKEJI V45.7.1 · neutral, readable refinement layer */
 :root{
   --v471-bg:#0d0e10;--v471-panel:#17181b;--v471-panel-2:#222327;--v471-text:#f4f4f2;--v471-muted:#a9aaae;--v471-line:rgba(255,255,255,.12);--v471-accent:#d4d5d8;--v471-accent-text:#151619;
-  --v471-bubble-width:84%;--v471-chat-font:14px;--v471-bubble-radius:18px;--v471-bubble-padding:11px;--v471-component-opacity:.94;
+  --v471-bubble-width:76%;--v471-chat-font:14px;--v471-bubble-radius:14px;--v471-bubble-padding:9px;--v471-component-opacity:.94;
 }
 html[data-v471-tone="light"]{--v471-bg:#f1f1ef;--v471-panel:#fff;--v471-panel-2:#e5e5e3;--v471-text:#161719;--v471-muted:#64666a;--v471-line:rgba(0,0,0,.13);--v471-accent:#303136;--v471-accent-text:#fff}
 html,body,button,input,textarea,select{font-family:var(--ui-font,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif)}
@@ -27,7 +27,9 @@ button,input,textarea,select{font-size:inherit}
 #chat.has-custom-bg .chat-head,#chat.has-custom-bg .composer,#chat.has-custom-bg .speaker-picker{backdrop-filter:blur(18px);background:color-mix(in srgb,var(--v471-panel) 73%,transparent)!important;color:var(--v471-text)!important}
 #chat:not(.has-custom-bg)>.scroll{background:linear-gradient(180deg,var(--v471-bg),color-mix(in srgb,var(--v471-bg) 86%,var(--v471-panel)))!important}
 #chat .msg-group{max-width:var(--v471-bubble-width)!important}
-#chat .msg-group .bubble,#chat .voice-strip{padding:var(--v471-bubble-padding)!important;border-radius:var(--v471-bubble-radius)!important;font-size:var(--v471-chat-font)!important;line-height:1.62}
+/* V45.7.22：气泡压矮。竖向内边距取一半，横向保留，行高 1.62→1.42。
+   min-height 保证可点击区域不缩小（38px 与语音条一致）。 */
+#chat .msg-group .bubble,#chat .voice-strip{padding:calc(var(--v471-bubble-padding) * .5) var(--v471-bubble-padding)!important;border-radius:var(--v471-bubble-radius)!important;font-size:var(--v471-chat-font)!important;line-height:1.42!important;min-height:34px;display:flex;flex-direction:column;justify-content:center}
 #chat .msg-group .bubble{background:#f5f5f3!important;color:#18191b!important;border:1px solid rgba(0,0,0,.07);box-shadow:0 5px 16px rgba(0,0,0,.13)}
 #chat .msg-group.me .bubble{background:#202125!important;color:#f7f7f5!important;border-color:rgba(255,255,255,.1)}
 #chat .composer{background:color-mix(in srgb,var(--v471-panel) 91%,transparent)!important;border-color:var(--v471-line)!important}
@@ -105,3 +107,31 @@ html[data-v471-safe-components="true"] .home-widget{opacity:var(--v471-component
 .v4571-vn-player>footer{max-height:44%;overflow:auto;padding:9px 11px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--v471-line);background:color-mix(in srgb,var(--v471-panel) 96%,transparent)}.v4571-vn-choices{display:grid;gap:6px}.v4571-vn-choices button{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px;border:1px solid var(--v471-line);border-radius:11px;background:var(--v471-panel-2);color:var(--v471-text);text-align:left}.v4571-vn-choices small{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--v471-panel);font-size:7px!important}.v4571-vn-choices span{font-size:9px;line-height:1.45}.v4571-vn-custom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-top:7px}.v4571-vn-custom input{min-width:0;height:38px;padding:0 9px;border:1px solid var(--v471-line);border-radius:9px;background:var(--v471-panel-2);color:var(--v471-text)}.v4571-vn-custom button{border:0;border-radius:9px;background:var(--v471-accent);color:var(--v471-accent-text)}.v4571-vn-loading,.v4571-vn-empty{display:grid;place-items:center;align-content:center;min-height:260px;padding:24px;text-align:center}.v4571-vn-loading i,.v4571-vn-generating i{width:18px;height:18px;border:2px solid var(--v471-line);border-top-color:var(--v471-text);border-radius:50%;animation:v471spin .8s linear infinite}.v4571-vn-loading p,.v4571-vn-empty p{font-size:8px;color:var(--v471-muted)}.v4571-vn-generating{display:flex;align-items:center;justify-content:center;gap:8px;min-height:45px;font-size:9px}@keyframes v471spin{to{transform:rotate(360deg)}}
 
 @media(max-width:380px){.v4571-beauty-actions{grid-template-columns:1fr}.v4571-phone-scopes,.v4571-vn-people,.v4571-vn-mode{grid-template-columns:1fr}.v4571-vn-list>article{grid-template-columns:68px minmax(0,1fr) 22px}.v4571-market-home>div{grid-template-columns:1fr}}
+
+
+/* V45.7.22 · 语音转文字位置
+   v45-phone-call.js 用正则把 .voice-transcript 插在 .voice-strip 之后，
+   于是它成了 .bubble-line 这个 flex 行的第二个子项，被挤成右边一条窄柱。
+   这里只调呈现：允许换行 + 整行占满，让它落到播放条正下方并左对齐。 */
+#chat .bubble-line{flex-wrap:wrap}
+#chat .voice-transcript{
+  flex:1 0 100%;
+  width:100%;
+  margin-top:4px;
+  padding:6px 10px;
+  border-radius:12px;
+  background:var(--pk-panel-2,rgba(0,0,0,.04));
+  color:var(--pk-muted,#666);
+  font-size:11px;
+  line-height:1.5;
+  text-align:left;
+}
+#chat .msg-group.me .voice-transcript{
+  background:var(--pk-panel-2,rgba(255,255,255,.14));
+}
+#chat .voice-transcript small{
+  display:block;margin-bottom:2px;
+  font-size:8px;letter-spacing:.5px;
+  color:var(--pk-muted,#999);
+}
+#chat .voice-transcript span{display:block;white-space:pre-wrap}

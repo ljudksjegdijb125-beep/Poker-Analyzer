@@ -19,7 +19,23 @@
   data.settings=O(data.settings);data.runtime=O(data.runtime);
   data.runtime.v4571=O(data.runtime.v4571);
   data.settings.promptCacheMode=['auto','compat','off'].includes(data.settings.promptCacheMode)?data.settings.promptCacheMode:'auto';
-  data.settings.beautyFactory={bubbleWidth:84,fontSize:14,bubbleRadius:18,bubblePadding:11,componentOpacity:.94,safeComponents:true,...O(data.settings.beautyFactory)};
+  data.settings.beautyFactory={bubbleWidth:76,fontSize:14,bubbleRadius:14,bubblePadding:9,componentOpacity:.94,safeComponents:true,...O(data.settings.beautyFactory)};
+  /* V45.7.22：一次性迁移旧的气泡尺寸。
+     用户反馈气泡又宽又高，但已经存过美化设置的资料里仍是旧默认值
+     （宽 84%、内边距 11、圆角 18），不迁移就永远吃不到新默认。
+     只在「当前值恰好等于旧默认」时下调——用户自己调过的数值一律不动。 */
+  try{
+    data.runtime=O(data.runtime);
+    if(!data.runtime.v45722BubbleTightened){
+      const beauty=data.settings.beautyFactory;
+      if(Number(beauty.bubbleWidth)===84)beauty.bubbleWidth=76;
+      if(Number(beauty.bubblePadding)===11)beauty.bubblePadding=9;
+      if(Number(beauty.bubbleRadius)===18)beauty.bubbleRadius=14;
+      data.runtime.v45722BubbleTightened=true;
+      try{save()}catch{}
+    }
+  }catch{}
+
   data.settings.homeBackgroundMode=data.settings.homeBackgroundMode==='image'?'image':'overlay';
   data.settings.homeBackgroundOpacity=clamp(data.settings.homeBackgroundOpacity,0,.85,.38);
   data.settings.randomEventIntensity=clamp(data.settings.randomEventIntensity,1,3,2);
@@ -146,7 +162,7 @@
   window.v4571HomeImageOnly=function(){data.settings.homeBackgroundMode='image';data.settings.homeBackgroundOpacity=0;const input=document.getElementById('v471HomeOpacity');if(input)input.value=0;v4571BeautyPreview()};
   window.v4571ChatImageOnly=function(){if(!currentChat)return;const settings=getChatSettings(currentChat);settings.backgroundMode='image';settings.backgroundOpacity=0;const input=document.getElementById('v471ChatOpacity');if(input)input.value=0;v4571BeautyPreview()};
   window.v4571SaveBeauty=function(){v4571BeautyPreview();save();closeModal();toast('美化工厂设置已保存')};
-  window.v4571ResetBeauty=function(){data.settings.beautyFactory={bubbleWidth:84,fontSize:14,bubbleRadius:18,bubblePadding:11,componentOpacity:.94,safeComponents:true};data.settings.homeBackgroundMode='overlay';data.settings.homeBackgroundOpacity=.38;if(currentChat){const settings=getChatSettings(currentChat);settings.backgroundMode='overlay';settings.backgroundOpacity=.38}applyBeautyFactory();refinedHomeBackground();refinedChatBackground();save();closeModal();toast('安全尺寸与背景层已恢复默认')};
+  window.v4571ResetBeauty=function(){data.settings.beautyFactory={bubbleWidth:76,fontSize:14,bubbleRadius:14,bubblePadding:9,componentOpacity:.94,safeComponents:true};data.settings.homeBackgroundMode='overlay';data.settings.homeBackgroundOpacity=.38;if(currentChat){const settings=getChatSettings(currentChat);settings.backgroundMode='overlay';settings.backgroundOpacity=.38}applyBeautyFactory();refinedHomeBackground();refinedChatBackground();save();closeModal();toast('安全尺寸与背景层已恢复默认')};
 
   function injectHomeFactory(){const editor=document.getElementById('homeEditor');if(!editor||editor.querySelector('[data-v471-beauty]'))return;const row=document.createElement('div');row.className='p12-editor-row';row.dataset.v471Beauty='true';row.innerHTML='<b>美化工厂</b><button onclick="openBeautyFactory()">尺寸 / 圆角 / 壁纸层</button>';const section=[...editor.querySelectorAll('.p12-editor-section')].find(node=>node.textContent.includes('桌面排列'));section?.before(row)}
 

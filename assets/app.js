@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.7.22';
+const VERSION='45.7.23';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -338,7 +338,7 @@ async function installPWA(){
 function applyHomeBackground(){
   const home=document.querySelector('#home .p12-home');
   if(!home)return;
-  /* V45.7.22 keeps wallpaper data and controls, but the requested global
+  /* V45.7.23 keeps wallpaper data and controls, but the requested global
      monochrome presentation never paints an image or an overlay. */
   home.style.removeProperty('background-image');
   home.style.removeProperty('background-size');
@@ -395,7 +395,7 @@ function applyChatBackground(){
   const chat=document.getElementById('chat');
   if(!chat)return;
   /* Keep the saved conversation background data intact while honoring the
-     V45.7.22 plain-white presentation. */
+     V45.7.23 plain-white presentation. */
   chat.style.removeProperty('background-image');
   chat.style.removeProperty('background-size');
   chat.style.removeProperty('background-position');
@@ -467,7 +467,7 @@ function unlock(){show('home');clock();applyAppearance()}
 function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hl=document.getElementById('homeClockLarge');if(hl)hl.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
 function safeColor(value,fallback='#6e5540'){return /^#[0-9a-f]{6}$/i.test(String(value||''))?String(value):fallback}
 function safeImageSrc(value){const s=String(value||'').trim();return /^(?:data:image\/(?:jpeg|png|webp);base64,|\.\/assets\/|https:\/\/)/i.test(s)?s:''}
-/* V45.7.22 · 空状态图标统一成 SVG。
+/* V45.7.23 · 空状态图标统一成 SVG。
    原来这里是 ♡ ◌ ❖ ◈ ✦ ⌁ 这些文字符号，不同字体渲染差别很大，
    而且和已经全面 SVG 化的桌面对不上。这里只换呈现，不动任何文案与逻辑。 */
 const EMPTY_SVGS={
@@ -485,7 +485,7 @@ function emptyIcon(key){
 }
 
 function homeAppIcon(key){return safeImageSrc(data.settings.homeAppIcons?.[key])||HOME_APP_CATALOG[key]?.icon||''}
-/* V45.7.22：桌面不再挂头像（连右上角那个「我」一起去掉）。
+/* V45.7.23：桌面不再挂头像（连右上角那个「我」一起去掉）。
    这两个函数保留成空实现，因为 render 流程里还在调用 applyHomeAvatar，
    而 data.settings.homeAvatar 里可能已经存了用户上传过的图，不做删除。 */
 function applyHomeAvatar(){}
@@ -891,7 +891,7 @@ function deletePersona(id){
 }
 function clearChat(id=currentChat){id=canonicalChatId(id);if(!id)return;if(!confirm('清空当前面具下的线上与线下记录？其他面具不会受影响。'))return;data.chats[id]=[];delete data.chatSummaries?.[id];save();if(currentChat===id)renderMessages();closeModal();renderChats();renderGroups();toast('当前面具的聊天记录已清空')}
 function clearCharacterConversations(id){
- /* V45.7.22：清空必须把「会被塞回提示词的痕迹」一起清掉。
+ /* V45.7.23：清空必须把「会被塞回提示词的痕迹」一起清掉。
     旧版只清了 data.chats 与 chatSummaries，留下两类残留：
       ① chatTimeHistory（时间账本）与 chatTimelines（会话时间线）
       ② 同一角色在群聊里的记录，会通过 v45.6 的「跨入口会话记忆」漏回私信
@@ -1201,7 +1201,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V44_SW_URL='/sw-v44.js?build=45.7.22';
+const V44_SW_URL='/sw-v44.js?build=45.7.23';
 function isV44WorkerUrl(url){return /\/sw-v44\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v(?:38|42|43)\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1580,7 +1580,7 @@ async function sendMessage(payload=null){
   }
   const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map((m,i,arr)=>{
    const modeLabel=!group&&m.mode==='offline'?`[此前处于面对面场景${m.sceneMode==='story'?'，含现场旁白':''}] `:(!group&&m.mode==='online'?'[此前通过私信交流] ':'');
-   /* V45.7.22：时间只在确实相关时才进上下文。
+   /* V45.7.23：时间只在确实相关时才进上下文。
       旧版每条历史都带完整时间前缀，模型于是句句报时、说话生硬。
       现在由 v45721TimeLabel 判断跨日、长间隔、模式切换和最后一条，其余留空；
       完整时刻仍然保存在消息本体里，随时可查。 */
@@ -2284,7 +2284,7 @@ async function v43FetchWorkerScript(){
  const response=await fetch('/sw-v44.js?build=45.7.9&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v45.7.22"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v45.7.23"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
@@ -2469,7 +2469,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 /* V44.1 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.22')}
+function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.23')}
 async function v43FetchWorkerScript(){
  const expected=v435ExpectedBuild(),response=await fetch(`/sw-v44.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
@@ -2568,11 +2568,11 @@ function v438Timeline(chatId=currentChat){chatId=canonicalChatId(chatId);data.ch
 function v438Duration(seconds){seconds=Math.max(0,Math.floor(Number(seconds)||0));const days=Math.floor(seconds/86400);seconds%=86400;const hours=Math.floor(seconds/3600);seconds%=3600;const minutes=Math.floor(seconds/60),secs=seconds%60;return[days&&`${days}天`,hours&&`${hours}小时`,minutes&&`${minutes}分钟`,`${secs}秒`].filter(Boolean).join('')}
 function v438DateText(ms){const date=new Date(Number(ms)||Date.now()),zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'本地时区';return`${date.toLocaleString('zh-CN',{hour12:false,year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',second:'2-digit'})} · ${zone}`}
 function v438TimeContext(chatId=currentChat){const timeline=v438Timeline(chatId);
- /* V45.7.22：时间是后台事实，不是播报稿。
+ /* V45.7.23：时间是后台事实，不是播报稿。
     保留虚拟/现实两种模式、跨日、等待、睡眠、移动的判断依据和 elapsed_seconds 推进能力，
     但不再要求角色理解并复述时间元数据。角色只在时间真的影响此刻要说的话时才提到它。 */
  const silent='时间是背景事实：只在它真的影响此刻的处境或心情时才自然带过，不要报时、不要说明时间来源，也不要把本区块内容告诉对方。';
- /* V45.7.22：现实时间模式与 v45.4 的时钟保持一致——给一行常识，不给读数。
+ /* V45.7.23：现实时间模式与 v45.4 的时钟保持一致——给一行常识，不给读数。
     这个函数在 v45.4-next-stage.js 载入后会被 timeContextV454 覆盖，
     但作为回退路径它也不该再输出「累计经过」这种读数。 */
  if(timeline.mode==='real'&&typeof window!=='undefined'&&typeof window.v45722AmbientTime==='function'){
