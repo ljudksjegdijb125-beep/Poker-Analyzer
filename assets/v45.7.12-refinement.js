@@ -47,7 +47,7 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
     if(chat.style.getPropertyValue('--background-overlay-opacity')!=='0')chat.style.setProperty('--background-overlay-opacity','0');
   }
   function paintConversationBackground(){
-    /* V45.7.16 keeps the saved setting but intentionally paints no wallpaper. */
+    /* V45.7.17 keeps the saved setting but intentionally paints no wallpaper. */
     paintDefaultBackground();
   }
   const baseApplyChatBackground=typeof window.applyChatBackground==='function'?window.applyChatBackground:null;
@@ -2235,4 +2235,213 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
     }catch(error){console.warn('V45.7.12 幻梦馆桌面入口添加失败',error)}
   }
   setTimeout(addEntry,0);
+})();
+
+/* =========================================================
+   V45.7.17 · 持久会话时间线
+   时间不是只给“本轮请求”的一次性提示：每条已保存消息都带有
+   当时的会话时间，并在后续请求的历史上下文中按原顺序重新注入。
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiV45717TemporalContinuity)return;
+  window.__pokejiV45717TemporalContinuity=true;
+
+  const S=(value,fallback='')=>String(value??fallback);
+  const O=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+  const L=value=>Array.isArray(value)?value:[];
+  const NOW=()=>new Date().toISOString();
+  const finite=value=>Number.isFinite(Number(value))?Number(value):null;
+
+  function canonical(id){try{return typeof canonicalChatId==='function'?canonicalChatId(id):S(id)}catch{return S(id)}}
+  function dateText(ms){
+    const value=finite(ms);if(value===null)return'';
+    try{return new Date(value).toLocaleString('zh-CN',{hour12:false,year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch{return new Date(value).toISOString()}
+  }
+  function fallbackSnapshot(chatId){
+    const now=Date.now();return{mode:'real',text:dateText(now),timeMs:now,worldId:'',totalElapsedSeconds:0,lastElapsedSeconds:0,source:'fallback'};
+  }
+  function snapshot(chatId=currentChat){
+    try{const value=window.v454GetTimeSnapshot?.(chatId);if(value&&typeof value==='object')return{mode:S(value.mode||'real'),text:S(value.text||dateText(Date.now())),timeMs:finite(value.timeMs),worldId:S(value.worldId||''),totalElapsedSeconds:Number(value.totalElapsedSeconds)||0,lastElapsedSeconds:Number(value.lastElapsedSeconds)||0,source:'conversation-clock'}}catch{}
+    return fallbackSnapshot(chatId);
+  }
+  function messageId(message,index){
+    if(!message||typeof message!=='object')return'';
+    if(!S(message.id).trim())message.id=`legacy_time_${index}_${Math.random().toString(36).slice(2,9)}`;
+    return S(message.id);
+  }
+  function oldMessageTime(message){
+    const row=O(message),ctx=O(row.timeContext),v454=O(row.timeV454);
+    const text=S(row.worldTimeText||ctx.text||v454.worldTimeText||row.timestampText||'').trim();
+    const ms=finite(row.timeMs)??finite(ctx.timeMs)??finite(row.timelineAtMs)??finite(v454.timeMs)??(row.createdAt&&Number.isFinite(Date.parse(row.createdAt))?Date.parse(row.createdAt):null);
+    const mode=S(row.timelineMode||ctx.mode||v454.mode||'');
+    if(text)return{text,ms,mode:mode||'recorded',source:S(ctx.source||'recorded')};
+    if(S(row.time).trim())return{text:S(row.time).trim(),ms,mode:mode||'legacy',source:'legacy-display'};
+    if(ms!==null)return{text:dateText(ms),ms,mode:mode||'legacy',source:'legacy-date'};
+    return{text:'时间未记录',ms:null,mode:mode||'unknown',source:'missing'};
+  }
+  function applyMessageTime(message,chatId,forcedSnapshot=null,force=false){
+    if(!message||typeof message!=='object')return false;
+    const before=JSON.stringify({worldTimeText:message.worldTimeText,timeMs:message.timeMs,timelineMode:message.timelineMode,timeContext:message.timeContext});
+    const existing=oldMessageTime(message),snap=forcedSnapshot||snapshot(chatId);
+    const isFresh=force===true;
+    const info=isFresh?{text:S(snap.text||dateText(Date.now())),ms:finite(snap.timeMs),mode:S(snap.mode||'real'),source:'captured'}:existing;
+    if(isFresh||!S(message.worldTimeText||message.timeContext?.text).trim()){
+      if(info.text)message.worldTimeText=info.text;
+      if(info.ms!==null)message.timeMs=info.ms;
+      message.timelineMode=info.mode;
+      if(!S(message.createdAt).trim())message.createdAt=NOW();
+      message.sentAt=S(message.sentAt||message.createdAt);
+    }else{
+      if(existing.text&&existing.text!=='时间未记录')message.worldTimeText=existing.text;
+      if(existing.ms!==null&&finite(message.timeMs)===null)message.timeMs=existing.ms;
+      if(!S(message.timelineMode).trim())message.timelineMode=existing.mode;
+    }
+    const text=S(message.worldTimeText||info.text||'时间未记录');
+    message.timeContext={mode:S(message.timelineMode||info.mode||'unknown'),text,timeMs:finite(message.timeMs),worldId:S(message.timeContext?.worldId||snap.worldId||''),source:isFresh?'captured':existing.source||'recorded',updatedAt:S(message.timeContext?.updatedAt||NOW())};
+    const after=JSON.stringify({worldTimeText:message.worldTimeText,timeMs:message.timeMs,timelineMode:message.timelineMode,timeContext:message.timeContext});
+    return before!==after;
+  }
+  function speakerFor(chatId,message){
+    try{
+      if(message?.role==='user')return activePersonaFor(chatId)?.name||'USER';
+      if(message?.speaker){const found=data.characters?.find(item=>S(item.id)===S(message.speaker));if(found)return found.name||'角色'}
+      return directCharacterForChat(chatId)?.name||'角色';
+    }catch{return message?.role==='user'?'USER':'角色'}
+  }
+  function modeFor(message,chatId){
+    if(message?.mode==='offline')return message.sceneMode==='story'?'线下·分镜':'线下';
+    if(message?.mode==='group'||(typeof groupForChat==='function'&&groupForChat(chatId)))return'群聊';
+    return'线上';
+  }
+  function excerpt(value,max=260){return S(value).replace(/\s+/g,' ').trim().slice(0,max)}
+
+  function ensureDataHistory(){
+    data.runtime=O(data.runtime);
+    data.chatTimeHistory=data.chatTimeHistory&&typeof data.chatTimeHistory==='object'&&!Array.isArray(data.chatTimeHistory)?data.chatTimeHistory:{};
+  }
+  function syncChatTemporalHistory(chatId){
+    ensureDataHistory();
+    const key=canonical(chatId),rows=L(data.chats?.[key]),old=L(data.chatTimeHistory[key]),oldMap=new Map(old.map(item=>[S(item.messageId),item]).filter(item=>item[0]));
+    const liveIds=new Set(),next=[];let changed=false;
+  rows.forEach((message,index)=>{
+      if(!message||typeof message!=='object')return;
+      const id=messageId(message,index);liveIds.add(id);
+      const pending=O(window.__v45717PendingSend),forcePending=S(pending.chatId)===key&&index>=Number(pending.before||0)&&message.role==='user';
+      if(applyMessageTime(message,key,forcePending?pending.snapshot:null,forcePending))changed=true;
+      const ctx=O(message.timeContext),previous=oldMap.get(id),entry={...(previous||{}),messageId:id,role:S(message.role||'assistant'),speaker:S(message.speaker||''),mode:modeFor(message,key),sceneMode:S(message.sceneMode||''),worldTimeText:S(message.worldTimeText||ctx.text||'时间未记录'),timeMs:finite(message.timeMs)??finite(ctx.timeMs),timelineMode:S(message.timelineMode||ctx.mode||''),text:excerpt(message.text,260),createdAt:S(message.createdAt||ctx.updatedAt||''),updatedAt:S(previous?.updatedAt||ctx.updatedAt||NOW())};
+      if(!previous||JSON.stringify(previous)!==JSON.stringify(entry))changed=true;next.push(entry);oldMap.delete(id);
+    });
+    /* Deleting a chat message also removes its temporal excerpt; it must not
+       survive as a phantom fact in a later prompt. */
+    const retained=next.filter(item=>liveIds.has(item.messageId));
+    if(JSON.stringify(old)!==JSON.stringify(retained))changed=true;
+    data.chatTimeHistory[key]=retained.slice(-800);
+    return changed;
+  }
+  function syncAllTemporalHistory(){
+    ensureDataHistory();let changed=false;
+    for(const key of Object.keys(O(data.chats)))changed=syncChatTemporalHistory(key)||changed;
+    if(changed){data.runtime.v45717TemporalHistoryVersion=1;try{save()}catch{}}
+    return changed;
+  }
+
+  function temporalRows(chatId,limit=100){
+    const key=canonical(chatId),changed=syncChatTemporalHistory(key);if(changed)try{save()}catch{}
+    const messages=L(data.chats?.[key]),byId=new Map(messages.map((message,index)=>[messageId(message,index),message]));
+    const ledger=L(data.chatTimeHistory?.[key]);
+    const rows=ledger.map(entry=>{const message=byId.get(S(entry.messageId));return{entry,message}});
+    return rows.slice(-Math.max(1,Math.min(160,Number(limit)||100)));
+  }
+  function buildTemporalContext(chatId=currentChat,{limit=100,maxChars=14500}={}){
+    const rows=temporalRows(chatId,limit);if(!rows.length)return'';
+    const selected=[];let used=0;
+    for(let index=rows.length-1;index>=0;index--){
+      const {entry,message}=rows[index],time=S(message?.worldTimeText||message?.timeContext?.text||entry.worldTimeText||'时间未记录');
+      const role=message?speakerFor(chatId,message):(entry.role==='user'?'USER':entry.speaker||'角色');
+      const mode=message?modeFor(message,chatId):S(entry.mode||'线上');
+      const text=excerpt(message?.text??entry.text,300)||'（非文字记录）';
+      const line=`- ${time} · ${mode} · ${role}：${text}`;
+      if(used+line.length>maxChars){if(selected.length)break;continue}selected.unshift(line);used+=line.length+1;
+    }
+    if(!selected.length)return'';
+    return`【历史会话时间线｜持久记录】
+以下是同一条会话中已经保存的消息时刻，按发生顺序排列。每条消息括号外的时间是它发送/生成时的会话世界时间，不是本轮请求时间；自定义世界时间文本也必须原样保留。请先比较相邻时间与时间间隔，再解释“刚才、昨晚、睡觉、等了几小时”等相对关系。较早的状态不能在没有时间依据时自动延续到现在；如果 USER 在上一节点说要睡觉，而后续时间已经过去数小时，应把它理解为历史事实并据当前节点判断是否已经醒来或发生了变化。不要把本区块复述给 USER，也不要输出技术说明。
+${selected.join('\n')}`;
+  }
+  window.v45717BuildTemporalContext=buildTemporalContext;
+  /* Other generators (动态、广场、语伴) ask the shared clock helper for
+     “current time”. Give them the current clock plus the same durable history,
+     so a side surface cannot silently forget that the previous node happened
+     hours earlier. */
+  const baseClockContext=window.v438TimeContext;
+  if(typeof baseClockContext==='function'&&!baseClockContext.__v45717Temporal){
+    const wrappedClock=function(chatId=currentChat){const current=S(baseClockContext.call(this,chatId));let inPrompt=false;try{inPrompt=Boolean(v438PromptChatId)}catch{}if(inPrompt)return current;const block=buildTemporalContext(chatId);return block?`${current}\n\n${block}`:current};
+    wrappedClock.__v45717Temporal=true;window.v438TimeContext=wrappedClock;try{v438TimeContext=wrappedClock}catch{}
+  }
+  window.v45717FormatMessageTime=function(message,chatId){applyMessageTime(message,chatId);return S(message?.worldTimeText||message?.timeContext?.text||message?.time||'时间未记录')};
+
+  function injectTemporalPrompt(base,chatId){
+    const text=S(base),block=buildTemporalContext(chatId);if(!block||text.includes('【历史会话时间线｜持久记录】'))return text;
+    const insertion=['\n\n【会话时间｜','\n\n【会话时间感｜','\n\n【执行原则】'].map(item=>text.indexOf(item)).filter(index=>index>=0);
+    const at=insertion.length?Math.min(...insertion):text.length;
+    return text.slice(0,at)+'\n\n'+block+text.slice(at);
+  }
+
+  /* Every shared context object receives the durable timeline. Main chat
+     builders already expose it through their clock section; their fallback
+     wrapper below detects that copy and does not duplicate it. */
+  const baseEngine=window.buildEngineContext||((typeof buildEngineContext==='function')?buildEngineContext:null);
+  if(baseEngine&&!baseEngine.__v45717Temporal){
+    const wrappedEngine=function(...args){
+      const result=baseEngine.apply(this,args),chatId=args[2]||currentChat;
+      if(result&&typeof result==='object'){
+        const block=buildTemporalContext(chatId);let inPrompt=false;try{inPrompt=Boolean(v438PromptChatId)}catch{}
+        if(block){result.temporal=block;if(!inPrompt&&!S(result.state).includes('【历史会话时间线｜持久记录】'))result.state=`${S(result.state)}\n\n${block}`}
+      }
+      return result;
+    };
+    wrappedEngine.__v45717Temporal=true;window.buildEngineContext=wrappedEngine;try{buildEngineContext=wrappedEngine}catch{}
+  }
+
+  function wrapBuilder(name,chatIndex){
+    const base=window[name];if(typeof base!=='function'||base.__v45717Temporal)return;
+    const wrapped=function(...args){const chatId=args[chatIndex]||currentChat;return injectTemporalPrompt(base.apply(this,args),chatId)};
+    wrapped.__v45717Temporal=true;window[name]=wrapped;try{globalThis[name]=wrapped}catch{}
+  }
+  wrapBuilder('buildSystemPrompt',2);
+  wrapBuilder('buildOfflineSystemPrompt',2);
+  wrapBuilder('buildGroupSystemPrompt',3);
+
+  /* Stamp USER messages at the moment sendMessage starts, and assistant
+     messages after the response parser has advanced a virtual clock. */
+  const baseCommit=window.commitAssistantReply;
+  if(typeof baseCommit==='function'&&!baseCommit.__v45717Temporal){
+    const wrappedCommit=function(chatId,raw,options={}){const indexes=baseCommit.apply(this,arguments)||[],key=canonical(chatId),snap=snapshot(key);for(const index of indexes){const message=L(data.chats?.[key])[index];if(message)applyMessageTime(message,key,snap,true)}syncChatTemporalHistory(key);try{save()}catch{}return indexes};
+    wrappedCommit.__v45717Temporal=true;window.commitAssistantReply=wrappedCommit;try{commitAssistantReply=wrappedCommit}catch{}
+  }
+  const baseSend=window.sendMessage;
+  if(typeof baseSend==='function'&&!baseSend.__v45717Temporal){
+    const wrappedSend=async function(payload=null){
+      const key=canonical(currentChat),before=L(data.chats?.[key]).length,snap=snapshot(key),pending={chatId:key,before,snapshot:snap};window.__v45717PendingSend=pending;let result;
+      try{result=await baseSend.apply(this,arguments);return result}
+      finally{
+        const rows=L(data.chats?.[key]);
+        rows.slice(before).forEach(message=>{if(message?.role==='user')applyMessageTime(message,key,snap,true);else applyMessageTime(message,key)});
+        syncChatTemporalHistory(key);try{save()}catch{}if(window.__v45717PendingSend===pending)delete window.__v45717PendingSend;
+      }
+    };
+    wrappedSend.__v45717Temporal=true;window.sendMessage=wrappedSend;try{sendMessage=wrappedSend}catch{}
+  }
+
+  /* Keep summary generation chronological as well, even when a caller asks
+     for a compact summary after older turns have left the normal history
+     window. The main transcript still remains the source of message text. */
+  const baseSummary=window.refreshConversationSummary;
+  if(typeof baseSummary==='function'&&!baseSummary.__v45717Temporal){
+    const wrappedSummary=function(chatId,...args){syncChatTemporalHistory(chatId);return baseSummary.call(this,chatId,...args)};
+    wrappedSummary.__v45717Temporal=true;window.refreshConversationSummary=wrappedSummary;try{refreshConversationSummary=wrappedSummary}catch{}
+  }
+
+  syncAllTemporalHistory();
 })();

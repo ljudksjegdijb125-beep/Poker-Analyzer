@@ -1,0 +1,1673 @@
+/*
+  POKEJI V45.7.17 · 全页面白底规范
+  仅负责呈现层：不改变路由、数据、事件、组件尺寸或交互。
+  旧版主题样式仍可读取和保存，但本版本的界面统一为白底、墨字、灰线。
+*/
+
+/* ---------- 中性设计令牌 ---------- */
+/* 可保存色卡的运行时令牌；默认仍保持上一版的白底中性色。 */
+:root{
+  --pk-background:#ffffff;
+  --pk-background-text:#151719;
+  --pk-panel:#f7f8f9;
+  --pk-panel-text:#151719;
+  --pk-panel-2:#eef0f2;
+  --pk-panel-2-text:#151719;
+  --pk-header:#ffffff;
+  --pk-header-text:#151719;
+  --pk-dock:#f7f8f9;
+  --pk-dock-text:#151719;
+  --pk-accent:#4f5963;
+  --pk-accent-text:#ffffff;
+  --pk-icon-outer:#eef0f2;
+  --pk-icon-outer-text:#151719;
+  --pk-icon:#1c2024;
+  --pk-input:#ffffff;
+  --pk-input-text:#151719;
+  --pk-text:#151719;
+  --pk-muted:#62686e;
+  --pk-line:#dfe2e5;
+  --pk-bubble-mine:#4f5963;
+  --pk-bubble-mine-text:#ffffff;
+  --pk-bubble-other:#f1f2f3;
+  --pk-bubble-other-text:#151719;
+}
+
+:root,
+#phone,
+#phone *,
+#modal,
+#modal *,
+#bootScreen,
+#bootScreen *,
+#pokejiEmergencyStartup,
+#pokejiEmergencyStartup *{
+  --black:var(--pk-background)!important;
+  --black2:var(--pk-panel-2)!important;
+  --panel:var(--pk-panel)!important;
+  --panel2:var(--pk-panel-2)!important;
+  --ivory:var(--pk-text)!important;
+  --ivory2:var(--pk-muted)!important;
+  --muted:var(--pk-muted)!important;
+  --dim:var(--pk-muted)!important;
+  --caption:var(--pk-muted)!important;
+  --whisper:var(--pk-muted)!important;
+  --gold:var(--pk-accent)!important;
+  --gold-hi:var(--pk-icon)!important;
+  --gold-lo:var(--pk-accent)!important;
+  --wine:#4d5359!important;
+  --velvet:#ffffff!important;
+  --velvet2:#f7f8f9!important;
+  --line:var(--pk-line)!important;
+  --line2:color-mix(in srgb,var(--pk-line) 58%,transparent)!important;
+  --shadow:none!important;
+  --gold-grad:var(--pk-accent)!important;
+  --glass-sheen:none!important;
+  --theme-icon-color:var(--pk-icon)!important;
+  --theme-home-top:var(--pk-background)!important;
+  --theme-home-bottom:var(--pk-background)!important;
+  --theme-panel:var(--pk-panel)!important;
+  --theme-panel-2:var(--pk-panel-2)!important;
+  --theme-text:var(--pk-text)!important;
+  --theme-muted:var(--pk-muted)!important;
+  --theme-line:var(--pk-line)!important;
+  --v454-gold:var(--pk-accent)!important;
+  --v454-gold-hi:var(--pk-icon)!important;
+  --v454-ink:var(--pk-text)!important;
+  --v454-line:var(--pk-line)!important;
+  --v454-muted:var(--pk-muted)!important;
+  --v454-panel:var(--pk-panel)!important;
+  --v454-panel-2:var(--pk-panel-2)!important;
+  --v454-paper:var(--pk-background)!important;
+  --v454-paper-2:var(--pk-panel)!important;
+  --v454-text:var(--pk-text)!important;
+  --v452-ink:var(--pk-text)!important;
+  --v452-muted:var(--pk-muted)!important;
+  --v452-paper:var(--pk-background)!important;
+  --v452-card:var(--pk-panel)!important;
+  --v452-line:var(--pk-line)!important;
+  --v452-gold:var(--pk-accent)!important;
+  --v452-gold-hi:var(--pk-icon)!important;
+  --action-dark:var(--pk-accent)!important;
+  --action-dark-hi:var(--pk-accent)!important;
+  --action-dark-text:var(--pk-accent-text)!important;
+  --action-muted:var(--pk-muted)!important;
+  --action-silver:var(--pk-panel-2)!important;
+  --action-silver-hi:var(--pk-panel)!important;
+  --action-silver-text:var(--pk-text)!important;
+  --sim-accent:var(--pk-accent)!important;
+  --paper:var(--pk-background)!important;
+  --background-overlay-opacity:0!important;
+  --v457-header:var(--pk-header)!important;
+  --v457-dock:var(--pk-dock)!important;
+  --v457-bubble-mine:var(--pk-bubble-mine)!important;
+  --v457-bubble-other:var(--pk-bubble-other)!important;
+  --v471-bg:var(--pk-background)!important;
+  --v471-panel:var(--pk-panel)!important;
+  --v471-panel-2:var(--pk-panel-2)!important;
+  --v471-text:var(--pk-text)!important;
+  --v471-muted:var(--pk-muted)!important;
+  --v471-accent:var(--pk-accent)!important;
+  --v471-accent-text:var(--pk-accent-text)!important;
+  --v471-component-opacity:1!important;
+  --v472-bg:var(--pk-background)!important;
+  --v472-bg-text:var(--pk-background-text)!important;
+  --v472-bg-muted:var(--pk-muted)!important;
+  --v472-panel:var(--pk-panel)!important;
+  --v472-panel-2:var(--pk-panel-2)!important;
+  --v472-panel-text:var(--pk-panel-text)!important;
+  --v472-panel-2-text:var(--pk-panel-2-text)!important;
+  --v472-panel-muted:var(--pk-muted)!important;
+  --v472-panel-2-muted:var(--pk-muted)!important;
+  --v472-header:var(--pk-header)!important;
+  --v472-header-text:var(--pk-header-text)!important;
+  --v472-header-muted:var(--pk-muted)!important;
+  --v472-dock:var(--pk-dock)!important;
+  --v472-dock-text:var(--pk-dock-text)!important;
+  --v472-dock-muted:var(--pk-muted)!important;
+  --v472-accent:var(--pk-accent)!important;
+  --v472-accent-text:var(--pk-accent-text)!important;
+  --v472-icon:var(--pk-icon)!important;
+  --v472-icon-outer:var(--pk-icon-outer)!important;
+  --v472-icon-outer-text:var(--pk-icon-outer-text)!important;
+  --v472-input:var(--pk-input)!important;
+  --v472-input-text:var(--pk-input-text)!important;
+  --v472-input-muted:var(--pk-muted)!important;
+  --v472-line:var(--pk-line)!important;
+  --v472-line-soft:color-mix(in srgb,var(--pk-line) 58%,transparent)!important;
+  --v472-bubble-mine:var(--pk-bubble-mine)!important;
+  --v472-bubble-mine-text:var(--pk-bubble-mine-text)!important;
+  --v472-bubble-other:var(--pk-bubble-other)!important;
+  --v472-bubble-other-text:var(--pk-bubble-other-text)!important;
+  --ph-bg:var(--pk-background)!important;
+  --ph-face:var(--pk-panel)!important;
+  --ph-face-2:var(--pk-panel-2)!important;
+  --ph-line:var(--pk-line)!important;
+  --ph-line-2:color-mix(in srgb,var(--pk-line) 58%,transparent)!important;
+  --ph-ink:var(--pk-text)!important;
+  --ph-ink-2:var(--pk-text)!important;
+  --ph-ink-3:var(--pk-muted)!important;
+  --ph-ink-4:var(--pk-muted)!important;
+}
+
+html,
+body{
+  background:#ffffff!important;
+  color:#151719!important;
+  color-scheme:light!important;
+  background-image:none!important;
+}
+::selection{
+  background:#dfe2e5!important;
+  color:#151719!important;
+}
+#phone *,
+#modal *,
+#bootScreen *,
+#pokejiEmergencyStartup *{
+  scrollbar-color:#bfc4c9 #ffffff!important;
+}
+
+/* ---------- 画布与所有正式页面 ---------- */
+#phone,
+#screen,
+#phone .view,
+#phone .scroll,
+#modal,
+#modal>.sheet,
+#modalContent,
+#toast,
+#bootScreen,
+#pokejiEmergencyStartup{
+  background-color:#ffffff!important;
+  color:#151719!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  filter:none!important;
+  text-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+#phone{
+  border-color:#c7cbd0!important;
+  box-shadow:none!important;
+}
+#status,
+.status-icons{
+  color:#41464c!important;
+}
+#phone .view.active{
+  opacity:1!important;
+  transform:none!important;
+  animation:none!important;
+}
+/* 先把所有动态路由的未知表面归零，再由下面的卡片/气泡规则恢复层次。这样新增页面也不会漏回深色。 */
+#phone .view *:not(img):not(video):not(canvas),
+#modal *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #phone .view *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #modal *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #modal:not(.phone-fullscreen) *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #modal.phone-fullscreen *:not(img):not(video):not(canvas){
+  background-color:#ffffff!important;
+}
+/* 旧主题层有若干 !important 的浅色文字；先统一继承色，再在下方恢复标题、按钮和气泡的语义色。 */
+#phone .view *:not(img):not(video):not(canvas),
+#modal *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #phone .view *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #modal *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #modal:not(.phone-fullscreen) *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #modal.phone-fullscreen *:not(img):not(video):not(canvas){
+  color:#151719!important;
+}
+#phone *,
+#modal *,
+#toast *,
+html[data-pokeji-theme] #phone *,
+html[data-pokeji-theme] #modal *,
+html[data-pokeji-theme] #modal:not(.phone-fullscreen) *,
+html[data-pokeji-theme] #modal.phone-fullscreen *,
+#bootScreen *,
+#pokejiEmergencyStartup *{
+  box-shadow:none!important;
+  border-color:#dfe2e5!important;
+  text-transform:none!important;
+  animation:none!important;
+  transition:none!important;
+  filter:none!important;
+  text-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  mix-blend-mode:normal!important;
+  outline-color:#9fa5ab!important;
+  caret-color:#1c2024!important;
+}
+#phone .view *::before,
+#phone .view *::after,
+#modal *::before,
+#modal *::after,
+html[data-pokeji-theme] #phone .view *::before,
+html[data-pokeji-theme] #phone .view *::after,
+html[data-pokeji-theme] #modal *::before,
+html[data-pokeji-theme] #modal *::after,
+html[data-pokeji-theme] #modal:not(.phone-fullscreen) *::before,
+html[data-pokeji-theme] #modal:not(.phone-fullscreen) *::after,
+html[data-pokeji-theme] #modal.phone-fullscreen *::before,
+html[data-pokeji-theme] #modal.phone-fullscreen *::after{
+  background-image:none!important;
+  filter:none!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+}
+
+/* ---------- 页面底与顶部 ---------- */
+#lock,
+#home,
+#home .p12-home,
+#home .p12-pages,
+#home .p12-page,
+#home .p12-editor,
+#phone .view:not(#home),
+#chat,
+#chat>.scroll,
+#modal,
+#modal>.sheet,
+#modalContent{
+  background-color:#ffffff!important;
+  color:#151719!important;
+}
+#home .p12-home,
+#home .p12-editor,
+#home .p12-small-widget,
+#home .p12-dock,
+#home .p12-island,
+#home .p12-tile,
+#home .p12-tile-mini{
+  background-image:none!important;
+  background-color:#ffffff!important;
+  border-color:#dfe2e5!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+#home .p12-small-widget,
+#home .p12-dock,
+#home .p12-editor-row,
+#home .p12-editor-section,
+#home .home-widget,
+#home .home-photo-empty,
+#home .home-record,
+#home .home-cd-foot b{
+  background-color:#f7f8f9!important;
+  background-image:none!important;
+  border-color:#dfe2e5!important;
+}
+#home .home-widget:before,
+#home .home-photo-empty:before,
+#home .home-photo-empty:after,
+#home .home-record:after{
+  background-image:none!important;
+  background-color:transparent!important;
+  box-shadow:none!important;
+}
+#home .p12-island{
+  color:#151719!important;
+  border:1px solid #bfc4c9!important;
+}
+#home .p12-island *{
+  color:#151719!important;
+}
+#home .p12-statusbar,
+#home .p12-clock strong,
+#home .p12-clock span,
+#home .p12-brand b,
+#home .p12-brand small,
+#home .p12-dots,
+#home .p12-gesture{
+  color:#41464c!important;
+  text-shadow:none!important;
+}
+#home .p12-gesture{background:#41464c!important}
+#home .p12-dots button{background:#dfe2e5!important;border:1px solid #bfc4c9!important}
+#home .p12-dots button.on{background:#1c2024!important}
+
+/* 锁屏、启动页同样是白底；保留原有按钮位置和启动状态。 */
+#bootScreen,
+#bootScreen .boot-inner,
+#bootScreen .boot-recovery,
+#bootScreen .boot-manual div,
+#lock,
+#lock .lock-main,
+#lock .unlock{
+  color:#151719!important;
+  background-color:#ffffff!important;
+  border-color:#bfc4c9!important;
+}
+#bootScreen .boot-seal:before,
+#bootScreen .boot-seal:after,
+#bootScreen .boot-corner{
+  border-color:#bfc4c9!important;
+  animation:none!important;
+}
+#bootScreen .boot-suit,
+#bootScreen .boot-name,
+#bootScreen .boot-tag,
+#bootScreen .boot-hint,
+#lock .lock-time,
+#lock .lock-date,
+#lock .lock-title,
+#lock .unlock,
+#lock .unlock svg{
+  color:#1c2024!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  -webkit-background-clip:border-box!important;
+  background-clip:border-box!important;
+  opacity:1!important;
+  filter:none!important;
+}
+#bootScreen .boot-recovery p,
+#bootScreen .boot-manual,
+#bootScreen .boot-manual summary,
+#lock .lock-date{
+  color:#62686e!important;
+}
+#bootScreen .boot-loader{
+  background:#eef0f2!important;
+  border:1px solid #dfe2e5!important;
+}
+#bootScreen .boot-fill{
+  width:100%!important;
+  background:#1c2024!important;
+  background-image:none!important;
+}
+#bootScreen{transition:none!important}
+#bootScreen .boot-recovery a,
+#bootScreen .boot-manual a,
+#lock .unlock{
+  background:#ffffff!important;
+  color:#1c2024!important;
+  border:1px solid #bfc4c9!important;
+}
+#bootScreen .boot-recovery a:nth-child(2),
+#bootScreen .boot-manual a:last-child{
+  background:#1c2024!important;
+  color:#ffffff!important;
+}
+
+/* ---------- 文字层级 ---------- */
+#phone .view,
+#modal,
+#modalContent,
+#toast,
+#bootScreen,
+#pokejiEmergencyStartup{
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Segoe UI",sans-serif!important;
+  text-transform:none!important;
+}
+#phone .view h1,
+#phone .view h2,
+#phone .view h3,
+#phone .view h4,
+#phone .view b,
+#phone .view strong,
+#modal h1,
+#modal h2,
+#modal h3,
+#modal h4,
+#modal b,
+#modal strong,
+#bootScreen b,
+#pokejiEmergencyStartup b{
+  color:#151719!important;
+}
+#phone .view p,
+#phone .view label,
+#phone .view li,
+#phone .view span,
+#phone .view div,
+#modal p,
+#modal label,
+#modal li,
+#modal span,
+#modal div,
+#bootScreen p,
+#pokejiEmergencyStartup p{
+  color:#151719!important;
+}
+#phone .view small,
+#phone .view time,
+#phone .view em,
+#modal small,
+#modal time,
+#modal em,
+#bootScreen small,
+#pokejiEmergencyStartup small{
+  color:#737980!important;
+}
+#phone .view .muted,
+#phone .view .caption,
+#modal .muted,
+#modal .caption{
+  color:#62686e!important;
+}
+#phone .view .empty,
+#modal .empty,
+#phone .view .placeholder,
+#modal .placeholder{
+  color:#92979c!important;
+}
+#phone .header,
+#chat .chat-head,
+#modal .vphone-app-head,
+#modal .v455-phone-head,
+#modal .v454-phone-head,
+#modal .v455-story-head,
+#modal .v45712-dream-head{
+  background:#ffffff!important;
+  color:#151719!important;
+  border-color:#c7cbd0!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+#phone .header h1,
+#chat .chat-name,
+#chat .chat-sub,
+#chat .chat-status-line{
+  color:#151719!important;
+  text-shadow:none!important;
+}
+#chat .chat-sub,
+#chat .chat-status-line{
+  color:#737980!important;
+}
+
+/* ---------- 面板、卡片和线条层级 ---------- */
+#phone .view .card,
+#phone .view .row.card,
+#phone .view .section,
+#phone .view .group,
+#phone .view .data-panel,
+#phone .view .data-hero,
+#phone .view .preview,
+#phone .view .note,
+#phone .view [class*="-card"],
+#phone .view [class*="-panel"],
+#phone .view [class*="-sheet"],
+#modal .card,
+#modal .row.card,
+#modal .section,
+#modal .group,
+#modal .data-panel,
+#modal .data-hero,
+#modal .preview,
+#modal .note,
+#modal [class*="-card"],
+#modal [class*="-panel"],
+#modal [class*="-sheet"]{
+  background-color:#f7f8f9!important;
+  color:#151719!important;
+  border-color:#dfe2e5!important;
+  box-shadow:none!important;
+  background-image:none!important;
+}
+#phone .view .setting,
+#phone .view .row:not(.card),
+#phone .view .meta-row,
+#modal .setting,
+#modal [class*="-row"]{
+  background-color:#ffffff!important;
+  color:#151719!important;
+  border-color:#eef0f2!important;
+  box-shadow:none!important;
+}
+#phone .view .header,
+#chat .chat-head,
+#modal .vphone-app-head,
+#modal [class*="-head"]{
+  border-bottom:1px solid #c7cbd0!important;
+}
+#phone .view .group-title,
+#phone .view .data-panel-title,
+#modal .group-title,
+#modal [class*="-section-title"]{
+  color:#62686e!important;
+  border-color:#dfe2e5!important;
+}
+#phone .view .card,
+#phone .view .row.card,
+#phone .view .group,
+#phone .view .data-panel,
+#modal .card,
+#modal .row.card,
+#modal .group,
+#modal .data-panel,
+#modal [class*="-card"],
+#modal [class*="-panel"]{
+  border-style:solid!important;
+  border-width:1px!important;
+}
+#phone .view .setting,
+#phone .view .row:not(.card),
+#modal .setting,
+#modal [class*="-row"]{
+  border-bottom-style:solid!important;
+  border-bottom-width:1px!important;
+}
+
+/* ---------- 表单与按钮 ---------- */
+#phone button,
+#modal button,
+#bootScreen a,
+#bootScreen button,
+#pokejiEmergencyStartup button,
+#pokejiEmergencyStartup a{
+  color:#1c2024!important;
+  background-color:#ffffff!important;
+  border-color:#c7cbd0!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  text-transform:none!important;
+}
+#phone input,
+#phone textarea,
+#phone select,
+#phone .v453-safe-editor,
+#modal input,
+#modal textarea,
+#modal select,
+#modal [contenteditable="true"],
+#modal [contenteditable="plaintext-only"]{
+  color:#151719!important;
+  background-color:#ffffff!important;
+  border:1px solid #9fa5ab!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+}
+#phone input::placeholder,
+#phone textarea::placeholder,
+#phone .v453-safe-editor:empty:before,
+#modal input::placeholder,
+#modal textarea::placeholder,
+#modal [contenteditable="true"]:empty:before,
+#modal [contenteditable="plaintext-only"]:empty:before{
+  color:#92979c!important;
+}
+#phone button.primary,
+#phone .primary,
+#phone .send,
+#modal button.primary,
+#modal .primary,
+#modal .v455-phone-send,
+#bootScreen .boot-recovery a:nth-child(2),
+#bootScreen .boot-manual a:last-child,
+#pokejiEmergencyStartup .primary{
+  color:#ffffff!important;
+  background-color:#1c2024!important;
+  border-color:#1c2024!important;
+}
+#phone button.danger,
+#phone .danger,
+#modal button.danger,
+#modal .danger{
+  color:#a33a32!important;
+  background-color:#ffffff!important;
+  border-color:#c7cbd0!important;
+}
+#phone button:disabled,
+#modal button:disabled,
+#phone input:disabled,
+#modal input:disabled{
+  color:#92979c!important;
+  background-color:#f1f2f3!important;
+  border-color:#e1e3e5!important;
+  opacity:1!important;
+}
+#phone .icon-btn,
+#phone .back,
+#chat .back,
+#modal .icon-btn,
+#modal .back{
+  color:#1c2024!important;
+  background:#ffffff!important;
+  border:1px solid #bfc4c9!important;
+  opacity:1!important;
+}
+#chat .composer{
+  background:#ffffff!important;
+  border-top:1px solid #c7cbd0!important;
+  box-shadow:none!important;
+}
+#chat .composer-tool,
+#chat .send{
+  border:1px solid #bfc4c9!important;
+}
+#modal .handle{
+  background:#bfc4c9!important;
+  background-image:none!important;
+}
+#phone a,
+#modal a{
+  color:#1c2024!important;
+  text-decoration-color:#9fa5ab!important;
+}
+#phone ::selection,
+#modal ::selection{
+  background:#dfe2e5!important;
+  color:#151719!important;
+}
+#phone input[type="checkbox"],
+#phone input[type="radio"],
+#modal input[type="checkbox"],
+#modal input[type="radio"]{
+  accent-color:#1c2024!important;
+}
+
+/* ---------- 主聊天：对方浅灰、我的墨色，保留所有气泡及操作入口 ---------- */
+#chat .bubble,
+#chat .bubble-original,
+#chat .bubble-translation,
+#chat .voice-strip,
+#chat .image-pending,
+#chat .sticker-bubble{
+  color:#151719!important;
+  background-color:#f7f8f9!important;
+  border-color:#dfe2e5!important;
+  box-shadow:none!important;
+}
+#chat .bubble-translation{
+  color:#62686e!important;
+  border-top-color:#eef0f2!important;
+}
+#chat .msg-group.me .bubble,
+#chat .msg.me .bubble,
+#chat .msg-group.me .bubble-original,
+#chat .msg.me .bubble-original,
+#chat .msg-group.me .sticker-bubble,
+#chat .msg.me .sticker-bubble{
+  color:#ffffff!important;
+  background-color:#1c2024!important;
+  border-color:#1c2024!important;
+}
+#chat .msg-group.me .bubble *,
+#chat .msg.me .bubble *,
+#chat .msg-group.me .bubble-original *,
+#chat .msg.me .bubble-original *{
+  color:#ffffff!important;
+}
+#chat .msg-speaker,
+#chat .msg-time,
+#chat .message-footer,
+#chat .narration-text,
+#chat .thought-entry span{
+  color:#737980!important;
+}
+#chat .message-avatar,
+#chat .avatar,
+#modal .avatar,
+#modal [class*="avatar"]{
+  color:#1c2024!important;
+  background-color:#eef0f2!important;
+  border-color:#c7cbd0!important;
+  box-shadow:none!important;
+  opacity:1!important;
+}
+#chat .message-avatar img,
+#chat .avatar img,
+#modal .avatar img,
+#modal [class*="avatar"] img{
+  opacity:1!important;
+  filter:none!important;
+}
+#chat .message-read-button,
+#chat .voice-play{
+  color:#1c2024!important;
+  background:#eef0f2!important;
+  border-color:#c7cbd0!important;
+  opacity:1!important;
+}
+
+/* ---------- 所有图标恢复可见 ---------- */
+#phone svg,
+#modal svg,
+#bootScreen svg,
+#pokejiEmergencyStartup svg{
+  color:#1c2024!important;
+  stroke:#1c2024!important;
+  opacity:1!important;
+  visibility:visible!important;
+  filter:none!important;
+}
+#phone svg[fill="none"],
+#modal svg[fill="none"]{
+  fill:none!important;
+}
+#phone svg [fill]:not([fill="none"]),
+#modal svg [fill]:not([fill="none"]){
+  fill:#1c2024!important;
+}
+#phone svg [stroke]:not([stroke="none"]),
+#modal svg [stroke]:not([stroke="none"]){
+  stroke:#1c2024!important;
+}
+#phone .home-app-glyph svg,
+#phone .v4579-home-svg svg,
+#phone .dock-icon svg,
+#modal .tool-svg svg,
+#modal .vphone-icon svg,
+#modal .vphone-dock svg{
+  display:block!important;
+  fill:none!important;
+  stroke:#1c2024!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+#phone .home-app-glyph svg .icon-fill,
+#phone .v4579-home-svg svg .icon-fill{
+  fill:#1c2024!important;
+  stroke:none!important;
+}
+#phone .status-icons svg{
+  display:block!important;
+  fill:currentColor!important;
+  stroke:currentColor!important;
+}
+#phone .home-app-icon,
+#phone .home-app-icon b,
+#phone .home-app-glyph:before,
+#phone .home-app-glyph:after,
+#phone .dock-icon,
+#phone .dock-icon svg,
+#phone .tool-svg,
+#modal .tool-svg,
+#modal .vphone-icon,
+#modal .vphone-icon>button,
+#modal .vphone-dock,
+#modal .vphone-dock button,
+#phone .data-row-icon,
+#modal [class*="-icon"]{
+  color:#1c2024!important;
+  opacity:1!important;
+  visibility:visible!important;
+  filter:none!important;
+}
+#phone .home-app-icon img,
+#phone .home-app-image img,
+#modal .vphone-icon img,
+#modal [class*="icon"] img{
+  opacity:1!important;
+  visibility:visible!important;
+  filter:none!important;
+}
+#phone .p12-tile,
+#phone .p12-tile-mini,
+#phone .home-app-icon,
+#phone .dock-icon,
+#modal .vphone-icon>button,
+#modal .vphone-icon>span{
+  border:1px solid #dfe2e5!important;
+  background-color:#f7f8f9!important;
+}
+#phone .home-app-label,
+#phone .p12-app>span:last-child,
+#modal .vphone-icon>span{
+  color:#41464c!important;
+  text-shadow:none!important;
+}
+
+/* ---------- 虚拟手机：与项目其他页面完全同一套白底灰线 ---------- */
+#modal.phone-fullscreen,
+#modal.phone-fullscreen>.sheet,
+#modal.phone-fullscreen #modalContent,
+#modal.phone-fullscreen .vphone,
+#modal.phone-fullscreen .vphone-home,
+#modal.phone-fullscreen .vphone-app,
+#modal.phone-fullscreen .vphone-app-body,
+#modal.phone-fullscreen [class*="phone-page"],
+#modal.phone-fullscreen [class*="phone-body"],
+#modal.phone-fullscreen [class*="phone-shell"],
+#modal.phone-fullscreen [class*="app-body"]{
+  background-color:#ffffff!important;
+  color:#151719!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+#modal.phone-fullscreen [class*="phone-head"],
+#modal.phone-fullscreen [class*="app-head"],
+#modal.phone-fullscreen [class*="phone-toolbar"],
+#modal.phone-fullscreen [class*="phone-search"],
+#modal.phone-fullscreen [class*="phone-nav"]{
+  background:#ffffff!important;
+  color:#151719!important;
+  border-color:#c7cbd0!important;
+  box-shadow:none!important;
+}
+#modal.phone-fullscreen [class*="phone-list"] article,
+#modal.phone-fullscreen [class*="phone-row"],
+#modal.phone-fullscreen [class*="thread-row"],
+#modal.phone-fullscreen [class*="settings-list"] button,
+#modal.phone-fullscreen [class*="management-grid"] button{
+  background:#ffffff!important;
+  color:#151719!important;
+  border-color:#eef0f2!important;
+}
+#modal.phone-fullscreen [class*="light-panel"],
+#modal.phone-fullscreen [class*="light-actions"],
+#modal.phone-fullscreen [class*="route-note"],
+#modal.phone-fullscreen [class*="phone-warning"],
+#modal.phone-fullscreen [class*="phone-failed"],
+#modal.phone-fullscreen [class*="connection-state"]{
+  background:#f7f8f9!important;
+  color:#151719!important;
+  border:1px solid #dfe2e5!important;
+}
+#modal.phone-fullscreen [class*="thread-bubble"],
+#modal.phone-fullscreen [class*="thread-bubble"] *{
+  color:#151719!important;
+  background-color:#f7f8f9!important;
+  border-color:#dfe2e5!important;
+}
+#modal.phone-fullscreen [class*="thread-msg"][class*="out"] [class*="thread-bubble"],
+#modal.phone-fullscreen [class*="thread-msg"][class*="mine"] [class*="thread-bubble"],
+#modal.phone-fullscreen [class*="lesson-message"][class*="mine"]{
+  color:#ffffff!important;
+  background-color:#1c2024!important;
+  border-color:#1c2024!important;
+}
+#modal.phone-fullscreen [class*="thread-msg"][class*="out"] [class*="thread-bubble"] *,
+#modal.phone-fullscreen [class*="thread-msg"][class*="mine"] [class*="thread-bubble"] *{
+  color:#ffffff!important;
+}
+#modal.phone-fullscreen [class*="phone-empty"],
+#modal.phone-fullscreen [class*="typing"]{
+  color:#92979c!important;
+  background:#ffffff!important;
+}
+#modal.phone-fullscreen [class*="phone-avatar"],
+#modal.phone-fullscreen [class*="thread-avatar"]{
+  color:#1c2024!important;
+  background:#eef0f2!important;
+  border-color:#c7cbd0!important;
+  opacity:1!important;
+}
+#modal.phone-fullscreen [class*="phone-send"],
+#modal.phone-fullscreen [class*="primary"]{
+  color:#ffffff!important;
+  background:#1c2024!important;
+  border-color:#1c2024!important;
+}
+
+/* #phone 内未来新增的非 view 覆盖层也沿用同一规范。 */
+#phone>:not(#status):not(#screen):not(#modal):not(#toast),
+#phone>:not(#status):not(#screen):not(#modal):not(#toast) *:not(img):not(video):not(canvas){
+  background-color:#ffffff!important;
+  color:#151719!important;
+  box-shadow:none!important;
+  filter:none!important;
+  text-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+
+/* ---------- 全屏写字层：它挂在 #phone 下而不是某个 view，不能漏掉 ---------- */
+#phone .v451-writer,
+#phone .v451-writer>header,
+#phone .v451-writer>textarea,
+#phone .v451-writer>footer,
+#phone .v451-writer .v451-phone-reply,
+#phone .v451-writer .v451-phone-reply-body{
+  background:#ffffff!important;
+  background-color:#ffffff!important;
+  background-image:none!important;
+  color:#151719!important;
+  border-color:#dfe2e5!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+#phone .v451-writer h1,
+#phone .v451-writer h2,
+#phone .v451-writer h3,
+#phone .v451-writer b,
+#phone .v451-writer strong,
+#phone .v451-writer p,
+#phone .v451-writer span,
+#phone .v451-writer label,
+#phone .v451-writer button,
+#phone .v451-writer textarea{
+  color:#151719!important;
+}
+#phone .v451-writer button{
+  background:#ffffff!important;
+  border:1px solid #c7cbd0!important;
+}
+#phone .v451-writer>footer button{
+  background:#1c2024!important;
+  color:#ffffff!important;
+  border-color:#1c2024!important;
+}
+
+/* ---------- 内容型媒体只保留内容，不添加滤镜或装饰层 ---------- */
+#phone img,
+#modal img,
+#phone video,
+#modal video,
+#phone canvas,
+#modal canvas{
+  filter:none!important;
+  opacity:1!important;
+  box-shadow:none!important;
+}
+#phone .feed-cover,
+#phone .v452-discover-cover,
+#phone .v452-moment-cover,
+#modal .feed-cover,
+#modal [class*="discover-cover"],
+#modal [class*="moment-cover"],
+#modal [class*="photo-large"],
+#modal [class*="vn-bg"]{
+  box-shadow:none!important;
+  filter:none!important;
+}
+
+/* ---------- 去掉纯装饰性英文小标题，不触碰功能文本 ---------- */
+#bootScreen .boot-tag,
+#bootScreen .boot-hint{
+  display:none!important;
+}
+
+/* ---------- 状态、进度和选中态使用中性灰 ---------- */
+#phone [class*="progress"] i,
+#phone [class*="track"] i,
+#modal [class*="progress"] i,
+#modal [class*="track"] i{
+  background:#697077!important;
+  box-shadow:none!important;
+}
+#phone [class*="selected"],
+#phone [class*="active"],
+#phone .on,
+#modal [class*="selected"],
+#modal [class*="active"],
+#modal .on{
+  border-color:#9fa5ab!important;
+}
+#phone .chip,
+#phone .pill,
+#modal .chip,
+#modal .pill,
+#modal [class*="tag"]{
+  background:#eef0f2!important;
+  color:#41464c!important;
+  border-color:#dfe2e5!important;
+}
+
+/* 主题/色卡设置仍可保存原始配置，但其预览本身遵守本版本的中性色规范。 */
+#modal .v457-palette-studio,
+#modal .v457-saved-themes,
+#modal .v457-palette-cards button,
+#modal .v457-saved-theme-list article,
+#modal .v457-palette-fields label{
+  background:#ffffff!important;
+  background-image:none!important;
+  color:#151719!important;
+  border-color:#dfe2e5!important;
+  box-shadow:none!important;
+}
+#modal .v457-palette-cards button>span,
+#modal .v457-palette-cards button>span i,
+#modal .v457-saved-theme-list article>span,
+#modal .v457-saved-theme-list article>span i{
+  background:#eef0f2!important;
+  background-image:none!important;
+  color:#1c2024!important;
+  border-color:#dfe2e5!important;
+}
+#modal .v457-palette-preview,
+#modal .v457-palette-preview header,
+#modal .v457-palette-preview footer{
+  background:#ffffff!important;
+  background-image:none!important;
+  color:#151719!important;
+  border-color:#c7cbd0!important;
+}
+#modal .v457-palette-preview header,
+#modal .v457-palette-preview footer{background:#f7f8f9!important}
+#modal .v457-palette-preview>i{background:#eef0f2!important;color:#1c2024!important}
+#modal .v457-palette-preview>b{background:#f1f2f3!important;color:#151719!important}
+#modal .v457-palette-preview>strong{background:#1c2024!important;color:#ffffff!important}
+#modal input[type="color"]{
+  background:#ffffff!important;
+  border:1px solid #9fa5ab!important;
+  box-shadow:none!important;
+}
+
+/* 通用按钮规则位于前面；再次声明桌面组件，确保它们仍以浅灰面区分，而不是被按钮默认白底吞掉。 */
+#home .home-widget,
+#home .home-photo-empty,
+#home .home-record,
+#home .home-cd-foot b{
+  background-color:#f7f8f9!important;
+  background-image:none!important;
+  border-color:#dfe2e5!important;
+  color:#1c2024!important;
+}
+
+/* ---------- 最后一道高特异度兜底：覆盖历史主题的 !important 颜色 ---------- */
+html[data-pokeji-theme] #phone #screen .view:not(#home) *:not(img):not(video):not(canvas),
+#phone #screen .view:not(#home) *:not(img):not(video):not(canvas),
+html[data-pokeji-theme] #modal #modalContent *:not(img):not(video):not(canvas),
+#modal #modalContent *:not(img):not(video):not(canvas){
+  background-color:#ffffff!important;
+  color:#151719!important;
+  box-shadow:none!important;
+  filter:none!important;
+  text-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+html[data-pokeji-theme] #phone #screen .view:not(#home) *:not(img):not(video):not(canvas):not([style*="background-image"]),
+#phone #screen .view:not(#home) *:not(img):not(video):not(canvas):not([style*="background-image"]),
+html[data-pokeji-theme] #modal #modalContent *:not(img):not(video):not(canvas):not([style*="background-image"]),
+#modal #modalContent *:not(img):not(video):not(canvas):not([style*="background-image"]){
+  background-image:none!important;
+}
+html[data-pokeji-theme] #phone #screen .view:not(#home) *::before,
+html[data-pokeji-theme] #phone #screen .view:not(#home) *::after,
+#phone #screen .view:not(#home) *::before,
+#phone #screen .view:not(#home) *::after,
+html[data-pokeji-theme] #modal #modalContent *::before,
+html[data-pokeji-theme] #modal #modalContent *::after,
+#modal #modalContent *::before,
+#modal #modalContent *::after{
+  background-image:none!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+/* Final surfaces */
+html[data-pokeji-theme] #phone #screen .view:not(#home) [class*="-card"],
+html[data-pokeji-theme] #phone #screen .view:not(#home) [class*="-panel"],
+html[data-pokeji-theme] #phone #screen .view:not(#home) [class*="-sheet"],
+#phone #screen .view:not(#home) [class*="-card"],
+#phone #screen .view:not(#home) [class*="-panel"],
+#phone #screen .view:not(#home) [class*="-sheet"],
+html[data-pokeji-theme] #modal #modalContent [class*="-card"],
+html[data-pokeji-theme] #modal #modalContent [class*="-panel"],
+html[data-pokeji-theme] #modal #modalContent [class*="-sheet"],
+#modal #modalContent [class*="-card"],
+#modal #modalContent [class*="-panel"],
+#modal #modalContent [class*="-sheet"]{
+  background-color:#f7f8f9!important;
+  color:#151719!important;
+  border-color:#dfe2e5!important;
+}
+html[data-pokeji-theme] #phone #screen .view:not(#home) .header,
+html[data-pokeji-theme] #phone #screen #chat .chat-head,
+html[data-pokeji-theme] #phone #screen #chat .composer,
+#phone #screen .view:not(#home) .header,
+#phone #screen #chat .chat-head,
+#phone #screen #chat .composer,
+html[data-pokeji-theme] #modal #modalContent [class*="-head"],
+#modal #modalContent [class*="-head"]{
+  background:#ffffff!important;
+  color:#151719!important;
+  border-color:#c7cbd0!important;
+}
+html[data-pokeji-theme] #phone #screen .view:not(#home) button,
+#phone #screen .view:not(#home) button,
+html[data-pokeji-theme] #modal #modalContent button,
+#modal #modalContent button{
+  background:#ffffff!important;
+  color:#1c2024!important;
+  border-color:#c7cbd0!important;
+  box-shadow:none!important;
+}
+html[data-pokeji-theme] #phone #screen .view:not(#home) input,
+html[data-pokeji-theme] #phone #screen .view:not(#home) textarea,
+html[data-pokeji-theme] #phone #screen .view:not(#home) select,
+#phone #screen .view:not(#home) input,
+#phone #screen .view:not(#home) textarea,
+#phone #screen .view:not(#home) select,
+html[data-pokeji-theme] #modal #modalContent input,
+html[data-pokeji-theme] #modal #modalContent textarea,
+html[data-pokeji-theme] #modal #modalContent select,
+#modal #modalContent input,
+#modal #modalContent textarea,
+#modal #modalContent select{
+  background:#ffffff!important;
+  color:#151719!important;
+  border-color:#9fa5ab!important;
+  box-shadow:none!important;
+}
+html[data-pokeji-theme] #phone #screen .view:not(#home) button.primary,
+html[data-pokeji-theme] #phone #screen .view:not(#home) .primary,
+html[data-pokeji-theme] #phone #screen .view:not(#home) .send,
+#phone #screen .view:not(#home) button.primary,
+#phone #screen .view:not(#home) .primary,
+#phone #screen .view:not(#home) .send,
+html[data-pokeji-theme] #modal #modalContent button.primary,
+html[data-pokeji-theme] #modal #modalContent .primary,
+#modal #modalContent button.primary,
+#modal #modalContent .primary{
+  background:#1c2024!important;
+  color:#ffffff!important;
+  border-color:#1c2024!important;
+}
+html[data-pokeji-theme] #phone #screen #chat .bubble,
+#phone #screen #chat .bubble{
+  background:#f7f8f9!important;
+  color:#151719!important;
+  border-color:#dfe2e5!important;
+}
+html[data-pokeji-theme] #phone #screen #chat .msg-group.me .bubble,
+html[data-pokeji-theme] #phone #screen #chat .msg.me .bubble,
+#phone #screen #chat .msg-group.me .bubble,
+#phone #screen #chat .msg.me .bubble{
+  background:#1c2024!important;
+  color:#ffffff!important;
+  border-color:#1c2024!important;
+}
+html[data-pokeji-theme] #phone #screen #chat .msg-group.me .bubble *,
+html[data-pokeji-theme] #phone #screen #chat .msg.me .bubble *,
+#phone #screen #chat .msg-group.me .bubble *,
+#phone #screen #chat .msg.me .bubble *{color:#ffffff!important}
+html[data-pokeji-theme] #modal.phone-fullscreen #modalContent [class*="thread-bubble"],
+#modal.phone-fullscreen #modalContent [class*="thread-bubble"]{
+  background:#f7f8f9!important;
+  color:#151719!important;
+  border-color:#dfe2e5!important;
+}
+html[data-pokeji-theme] #modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="out"] [class*="thread-bubble"],
+#modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="out"] [class*="thread-bubble"],
+html[data-pokeji-theme] #modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="mine"] [class*="thread-bubble"],
+#modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="mine"] [class*="thread-bubble"]{
+  background:#1c2024!important;
+  color:#ffffff!important;
+  border-color:#1c2024!important;
+}
+html[data-pokeji-theme] #modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="out"] [class*="thread-bubble"] *,
+#modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="out"] [class*="thread-bubble"] *,
+html[data-pokeji-theme] #modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="mine"] [class*="thread-bubble"] *,
+#modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="mine"] [class*="thread-bubble"] *{color:#ffffff!important}
+html[data-pokeji-theme] #phone #screen .view:not(#home) svg,
+#phone #screen .view:not(#home) svg,
+html[data-pokeji-theme] #modal #modalContent svg,
+#modal #modalContent svg{
+  color:#1c2024!important;
+  stroke:#1c2024!important;
+  opacity:1!important;
+  visibility:visible!important;
+  filter:none!important;
+}
+html[data-pokeji-theme] #phone #screen .view:not(#home) svg .icon-fill,
+#phone #screen .view:not(#home) svg .icon-fill,
+html[data-pokeji-theme] #modal #modalContent svg .icon-fill,
+#modal #modalContent svg .icon-fill{fill:#1c2024!important;stroke:none!important}
+html[data-pokeji-theme] #phone #screen .view:not(#home) small,
+html[data-pokeji-theme] #phone #screen .view:not(#home) time,
+html[data-pokeji-theme] #phone #screen .view:not(#home) em,
+#phone #screen .view:not(#home) small,
+#phone #screen .view:not(#home) time,
+#phone #screen .view:not(#home) em,
+html[data-pokeji-theme] #modal #modalContent small,
+html[data-pokeji-theme] #modal #modalContent time,
+html[data-pokeji-theme] #modal #modalContent em,
+#modal #modalContent small,
+#modal #modalContent time,
+#modal #modalContent em{
+  color:#737980!important;
+}
+html[data-pokeji-theme] #phone #screen .view:not(#home) button:disabled,
+#phone #screen .view:not(#home) button:disabled,
+html[data-pokeji-theme] #modal #modalContent button:disabled,
+#modal #modalContent button:disabled,
+html[data-pokeji-theme] #phone #screen .view:not(#home) input:disabled,
+#phone #screen .view:not(#home) input:disabled,
+html[data-pokeji-theme] #modal #modalContent input:disabled,
+#modal #modalContent input:disabled{
+  background:#f1f2f3!important;
+  color:#92979c!important;
+  border-color:#e1e3e5!important;
+  opacity:1!important;
+}
+
+/* 弹层根面也不能被通话/故事旧规则刷回深色。 */
+html[data-pokeji-theme] #modal #modalContent,
+#modal #modalContent,
+html[data-pokeji-theme] #modal>.sheet,
+#modal>.sheet{
+  background:#ffffff!important;
+  background-color:#ffffff!important;
+  background-image:none!important;
+  color:#151719!important;
+  box-shadow:none!important;
+  filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+
+/* 最后再次声明桌面，避免任何主题规则把主页刷回深色。 */
+html[data-pokeji-theme] #phone #screen #home .p12-home,
+#phone #screen #home .p12-home{
+  background:#ffffff!important;
+  background-color:#ffffff!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+html[data-pokeji-theme] #phone #screen #home .home-widget,
+html[data-pokeji-theme] #phone #screen #home .p12-dock,
+html[data-pokeji-theme] #phone #screen #home .p12-small-widget,
+#phone #screen #home .home-widget,
+#phone #screen #home .p12-dock,
+#phone #screen #home .p12-small-widget{
+  background:#f7f8f9!important;
+  background-color:#f7f8f9!important;
+  background-image:none!important;
+  border-color:#dfe2e5!important;
+  box-shadow:none!important;
+}
+html[data-pokeji-theme] #phone #screen #home .home-app-icon,
+html[data-pokeji-theme] #phone #screen #home .p12-tile,
+html[data-pokeji-theme] #phone #screen #home .dock-icon,
+#phone #screen #home .home-app-icon,
+#phone #screen #home .p12-tile,
+#phone #screen #home .dock-icon{
+  background:#f7f8f9!important;
+  background-color:#f7f8f9!important;
+  background-image:none!important;
+  border-color:#dfe2e5!important;
+  color:#1c2024!important;
+}
+html[data-pokeji-theme] #phone #screen #home .home-app-icon svg,
+html[data-pokeji-theme] #phone #screen #home .dock-icon svg,
+#phone #screen #home .home-app-icon svg,
+#phone #screen #home .dock-icon svg{
+  display:block!important;
+  color:#1c2024!important;
+  stroke:#1c2024!important;
+  fill:none!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+
+/* ---------- V45.7.17 · 桌面去卡牌装饰与正常图标尺寸 ---------- */
+#phone #screen #home .p12-brand,
+#phone #screen #home .home-app-glyph::before,
+#phone #screen #home .home-app-glyph::after,
+#phone #screen #home .home-photo-caption,
+#phone #screen #home .home-photo-code,
+#phone #screen #home .home-cd-head,
+#phone #screen #home .home-cd-foot em,
+#phone #screen #home .p12-dock button>i{
+  display:none!important;
+  content:none!important;
+}
+#phone #screen #home .home-app{
+  gap:5px!important;
+}
+#phone #screen #home .home-app-icon,
+#phone #screen #home .home-app-image{
+  width:48px!important;
+  height:48px!important;
+  min-width:48px!important;
+  min-height:48px!important;
+  aspect-ratio:1!important;
+  border-radius:12px!important;
+}
+#phone #screen #home .home-app-icon svg,
+#phone #screen #home #homeDesk[data-home-icon-mode="svg"] .home-app-icon.v4579-home-svg svg{
+  width:25px!important;
+  height:25px!important;
+}
+#phone #screen #home .home-app-label{
+  max-width:68px!important;
+  font-size:9px!important;
+  line-height:1.25!important;
+}
+#phone #screen #home .home-photo-empty{
+  display:grid!important;
+  place-items:center!important;
+}
+#phone #screen #home .home-photo-action{
+  position:static!important;
+  display:block!important;
+  text-align:center!important;
+}
+#phone #screen #home .home-photo-action em{
+  color:#62686e!important;
+  font-style:normal!important;
+  font-size:9px!important;
+}
+#phone #screen #home .home-record-mark{
+  display:block!important;
+  width:15px!important;
+  height:15px!important;
+  border:2px solid currentColor!important;
+  border-radius:50%!important;
+  background:transparent!important;
+}
+#phone #screen #home .home-cd-foot{
+  left:0!important;
+  right:0!important;
+  bottom:10px!important;
+  display:flex!important;
+  justify-content:center!important;
+  gap:6px!important;
+}
+#phone #screen #home .home-cd-foot b{
+  width:22px!important;
+  height:22px!important;
+}
+@media(max-width:360px), (max-height:720px){
+  #phone #screen #home .home-app-icon,
+  #phone #screen #home .home-app-image{
+    width:44px!important;
+    height:44px!important;
+    min-width:44px!important;
+    min-height:44px!important;
+    border-radius:11px!important;
+  }
+  #phone #screen #home .home-app-icon svg,
+  #phone #screen #home #homeDesk[data-home-icon-mode="svg"] .home-app-icon.v4579-home-svg svg{
+    width:23px!important;
+    height:23px!important;
+  }
+}
+
+/* =========================================================
+   V45.7.17 · 色卡运行层
+   只替换颜色令牌，不改变任何尺寸、路由或组件结构。
+   ========================================================= */
+html[data-pokeji-colors="active"],
+html[data-pokeji-colors="active"] body{
+  background:var(--pk-background)!important;
+  color:var(--pk-text)!important;
+}
+html[data-pokeji-colors="active"] ::selection{
+  background:var(--pk-accent)!important;
+  color:var(--pk-accent-text)!important;
+}
+/* 先清除上一版固定白面，再恢复有语义的表面。 */
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) *:not(img):not(video):not(canvas),
+html[data-pokeji-colors="active"] #modal #modalContent *:not(img):not(video):not(canvas){
+  background-color:transparent!important;
+  color:var(--pk-text)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone,
+html[data-pokeji-colors="active"] #screen,
+html[data-pokeji-colors="active"] #phone #screen .view,
+html[data-pokeji-colors="active"] #phone #screen .view>.scroll,
+html[data-pokeji-colors="active"] #phone #screen #chat>.scroll,
+html[data-pokeji-colors="active"] #modal>.sheet,
+html[data-pokeji-colors="active"] #modal #modalContent,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen>.sheet,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen #modalContent,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen .vphone,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="phone-page"],
+html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="phone-body"],
+html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="phone-shell"],
+html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="app-body"]{
+  background:var(--pk-background)!important;
+  background-color:var(--pk-background)!important;
+  color:var(--pk-text)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .card,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .group,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .engine-card,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .data-panel,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [class*="-card"],
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [class*="-panel"],
+html[data-pokeji-colors="active"] #modal #modalContent .card,
+html[data-pokeji-colors="active"] #modal #modalContent .group,
+html[data-pokeji-colors="active"] #modal #modalContent .engine-card,
+html[data-pokeji-colors="active"] #modal #modalContent .data-panel,
+html[data-pokeji-colors="active"] #modal #modalContent [class*="-card"],
+html[data-pokeji-colors="active"] #modal #modalContent [class*="-panel"]{
+  background:var(--pk-panel)!important;
+  background-color:var(--pk-panel)!important;
+  color:var(--pk-panel-text)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .row,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .setting,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [class*="-row"],
+html[data-pokeji-colors="active"] #modal #modalContent .row,
+html[data-pokeji-colors="active"] #modal #modalContent .setting,
+html[data-pokeji-colors="active"] #modal #modalContent [class*="-row"]{
+  background-color:var(--pk-panel)!important;
+  color:var(--pk-panel-text)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .header,
+html[data-pokeji-colors="active"] #phone #screen #chat .chat-head,
+html[data-pokeji-colors="active"] #phone #screen #chat .composer,
+html[data-pokeji-colors="active"] #modal #modalContent [class*="-head"],
+html[data-pokeji-colors="active"] #modal.phone-fullscreen #modalContent [class*="phone-head"]{
+  background:var(--pk-header)!important;
+  background-color:var(--pk-header)!important;
+  color:var(--pk-header-text)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .header *,
+html[data-pokeji-colors="active"] #phone #screen #chat .chat-head *,
+html[data-pokeji-colors="active"] #modal #modalContent [class*="-head"] *{
+  color:var(--pk-header-text)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) textarea,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) select,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [contenteditable="true"],
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [contenteditable="plaintext-only"],
+html[data-pokeji-colors="active"] #modal #modalContent input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html[data-pokeji-colors="active"] #modal #modalContent textarea,
+html[data-pokeji-colors="active"] #modal #modalContent select,
+html[data-pokeji-colors="active"] #modal #modalContent [contenteditable="true"],
+html[data-pokeji-colors="active"] #modal #modalContent [contenteditable="plaintext-only"]{
+  background:var(--pk-input)!important;
+  background-color:var(--pk-input)!important;
+  color:var(--pk-input-text)!important;
+  border-color:var(--pk-line)!important;
+  caret-color:var(--pk-input-text)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) button,
+html[data-pokeji-colors="active"] #modal #modalContent button{
+  background-color:var(--pk-panel)!important;
+  color:var(--pk-panel-text)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) button.primary,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .primary,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .send,
+html[data-pokeji-colors="active"] #modal #modalContent button.primary,
+html[data-pokeji-colors="active"] #modal #modalContent .primary,
+html[data-pokeji-colors="active"] #modal #modalContent .v455-phone-send{
+  background:var(--pk-accent)!important;
+  background-color:var(--pk-accent)!important;
+  color:var(--pk-accent-text)!important;
+  border-color:var(--pk-accent)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) button.primary *,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .primary *,
+html[data-pokeji-colors="active"] #modal #modalContent button.primary *,
+html[data-pokeji-colors="active"] #modal #modalContent .primary *{
+  color:var(--pk-accent-text)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) small,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) time,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) em,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .muted,
+html[data-pokeji-colors="active"] #modal #modalContent small,
+html[data-pokeji-colors="active"] #modal #modalContent time,
+html[data-pokeji-colors="active"] #modal #modalContent em,
+html[data-pokeji-colors="active"] #modal #modalContent .muted{
+  color:var(--pk-muted)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .chip,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) .pill,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [class*="badge"],
+html[data-pokeji-colors="active"] #modal #modalContent .chip,
+html[data-pokeji-colors="active"] #modal #modalContent .pill,
+html[data-pokeji-colors="active"] #modal #modalContent [class*="badge"]{
+  background:var(--pk-panel-2)!important;
+  background-color:var(--pk-panel-2)!important;
+  color:var(--pk-panel-2-text)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) svg,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) svg *,
+html[data-pokeji-colors="active"] #modal #modalContent svg,
+html[data-pokeji-colors="active"] #modal #modalContent svg *{
+  color:var(--pk-icon)!important;
+  stroke:var(--pk-icon)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) svg .icon-fill,
+html[data-pokeji-colors="active"] #modal #modalContent svg .icon-fill{
+  fill:var(--pk-icon)!important;
+  stroke:none!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [class*="-icon"],
+html[data-pokeji-colors="active"] #modal #modalContent [class*="-icon"],
+html[data-pokeji-colors="active"] #modal #modalContent [class*="-mark"]{
+  color:var(--pk-icon)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) button.on,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [aria-selected="true"],
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [aria-pressed="true"],
+html[data-pokeji-colors="active"] #modal #modalContent button.on,
+html[data-pokeji-colors="active"] #modal #modalContent [aria-selected="true"],
+html[data-pokeji-colors="active"] #modal #modalContent [aria-pressed="true"]{
+  border-color:var(--pk-accent)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [class*="progress"] i,
+html[data-pokeji-colors="active"] #phone #screen .view:not(#home) [class*="track"] i,
+html[data-pokeji-colors="active"] #modal #modalContent [class*="progress"] i,
+html[data-pokeji-colors="active"] #modal #modalContent [class*="track"] i{
+  background:var(--pk-accent)!important;
+}
+html[data-pokeji-colors="active"] #phone input[type="checkbox"],
+html[data-pokeji-colors="active"] #phone input[type="radio"],
+html[data-pokeji-colors="active"] #modal input[type="checkbox"],
+html[data-pokeji-colors="active"] #modal input[type="radio"]{
+  accent-color:var(--pk-accent)!important;
+}
+/* 对话与手机线程保留各自气泡层。 */
+html[data-pokeji-colors="active"] #phone #screen #chat .bubble,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen #modalContent [class*="thread-bubble"]{
+  background:var(--pk-bubble-other)!important;
+  color:var(--pk-bubble-other-text)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #chat .msg-group.me .bubble,
+html[data-pokeji-colors="active"] #phone #screen #chat .msg.me .bubble,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="out"] [class*="thread-bubble"],
+html[data-pokeji-colors="active"] #modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="mine"] [class*="thread-bubble"]{
+  background:var(--pk-bubble-mine)!important;
+  color:var(--pk-bubble-mine-text)!important;
+  border-color:var(--pk-bubble-mine)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #chat .msg-group.me .bubble *,
+html[data-pokeji-colors="active"] #phone #screen #chat .msg.me .bubble *,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="out"] [class*="thread-bubble"] *,
+html[data-pokeji-colors="active"] #modal.phone-fullscreen #modalContent [class*="thread-msg"][class*="mine"] [class*="thread-bubble"] *{
+  color:var(--pk-bubble-mine-text)!important;
+}
+/* 主桌面沿用原布局，仅把色卡映射到现有表面。 */
+html[data-pokeji-colors="active"] #phone #screen #home,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-home,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-pages,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-page,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-editor{
+  background:var(--pk-background)!important;
+  background-color:var(--pk-background)!important;
+  color:var(--pk-text)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #home .home-widget,
+html[data-pokeji-colors="active"] #phone #screen #home .home-photo-empty,
+html[data-pokeji-colors="active"] #phone #screen #home .home-record,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-editor-row,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-editor-section{
+  background:var(--pk-panel)!important;
+  background-color:var(--pk-panel)!important;
+  color:var(--pk-panel-text)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #home .p12-dock{
+  background:var(--pk-dock)!important;
+  background-color:var(--pk-dock)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #home .home-app-icon,
+html[data-pokeji-colors="active"] #phone #screen #home .dock-icon,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-tile{
+  background:var(--pk-icon-outer)!important;
+  background-color:var(--pk-icon-outer)!important;
+  color:var(--pk-icon)!important;
+  border-color:var(--pk-line)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #home .home-app-image{
+  background:transparent!important;
+  background-color:transparent!important;
+  border-color:transparent!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #home .home-app-icon svg,
+html[data-pokeji-colors="active"] #phone #screen #home .dock-icon svg{
+  color:var(--pk-icon)!important;
+  stroke:var(--pk-icon)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #home .home-app-icon svg .icon-fill{
+  fill:var(--pk-icon)!important;
+  stroke:none!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #home .home-app-label,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-clock strong,
+html[data-pokeji-colors="active"] #phone #screen #home .p12-clock span{
+  color:var(--pk-text)!important;
+}
+html[data-pokeji-colors="active"] #phone #screen #home .p12-dots button.on{
+  background:var(--pk-accent)!important;
+  border-color:var(--pk-accent)!important;
+}
+/* 色卡目录仍使用原弹层；只增加分组标题与滚动可读性。 */
+#modal #modalContent .v457-palette-catalog{display:grid!important;gap:10px!important;margin:10px 0 13px!important;background:transparent!important}
+#modal #modalContent .v457-palette-group{display:grid!important;gap:6px!important;background:transparent!important}
+#modal #modalContent .v457-palette-group>header{display:flex!important;align-items:center!important;justify-content:space-between!important;background:transparent!important;color:var(--pk-text)!important}
+#modal #modalContent .v457-palette-group>header b{font-size:10px!important;color:var(--pk-text)!important}
+#modal #modalContent .v457-palette-group>header small{font-size:7px!important;color:var(--pk-muted)!important}
+#modal #modalContent .v457-palette-group .v457-palette-cards{margin:0!important}
+/* 色卡与美化工厂预览必须显示正在选择的颜色，不能再被全局白色兜底覆盖。 */
+#modal #modalContent .v457-palette-cards button>span i:nth-child(1){background:var(--p-bg)!important}
+#modal #modalContent .v457-palette-cards button>span i:nth-child(2){background:var(--p-card)!important}
+#modal #modalContent .v457-palette-cards button>span i:nth-child(3){background:var(--p-accent)!important}
+#modal #modalContent .v457-palette-cards button>span i:nth-child(4){background:var(--p-icon)!important}
+#modal #modalContent .v457-saved-theme-list article>span i:nth-child(1){background:var(--a)!important}
+#modal #modalContent .v457-saved-theme-list article>span i:nth-child(2){background:var(--b)!important}
+#modal #modalContent .v457-saved-theme-list article>span i:nth-child(3){background:var(--c)!important}
+#modal #modalContent .v457-saved-theme-list article>span i:nth-child(4){background:var(--d)!important}
+#modal #modalContent .v457-palette-preview{background:var(--p-bg)!important;color:var(--p-text)!important;border-color:var(--p-accent)!important}
+#modal #modalContent .v457-palette-preview header{background:var(--p-head)!important;color:var(--p-head-text,var(--p-text))!important}
+#modal #modalContent .v457-palette-preview footer{background:var(--p-dock)!important;color:var(--p-dock-text,var(--p-text))!important}
+#modal #modalContent .v457-palette-preview>i{background:var(--p-icon-outer,var(--p-card))!important;color:var(--p-icon)!important}
+#modal #modalContent .v457-palette-preview>b{background:var(--p-other)!important;color:var(--p-other-text,var(--p-text))!important}
+#modal #modalContent .v457-palette-preview>strong{background:var(--p-mine)!important;color:var(--p-mine-text,var(--p-accent-text))!important}
+#modal #modalContent .v472-beauty-preview{background:var(--pv-background)!important;color:var(--pv-background-text)!important;border-color:var(--pv-accent)!important}
+#modal #modalContent .v472-beauty-preview>header{background:var(--pv-header)!important;color:var(--pv-header-text)!important}
+#modal #modalContent .v472-beauty-preview>main{background:var(--pv-background)!important;color:var(--pv-background-text)!important}
+#modal #modalContent .v472-beauty-preview>footer{background:var(--pv-dock)!important;color:var(--pv-dock-text)!important}
+#modal #modalContent .v472-beauty-preview .v472-preview-icon i{background:var(--pv-icon-outer)!important;color:var(--pv-icon)!important}
+#modal #modalContent .v472-beauty-preview>footer i{background:var(--pv-icon-outer)!important;color:var(--pv-icon)!important}
+#modal #modalContent .v472-beauty-preview article{background:var(--pv-panel)!important;color:var(--pv-panel-text)!important}
+#modal #modalContent .v472-beauty-preview article span{background:var(--pv-panel-2)!important;color:var(--pv-panel-2-text)!important}
+#modal #modalContent .v472-beauty-preview article label{background:var(--pv-input)!important;color:var(--pv-input-text)!important;border-color:var(--pv-line,var(--pk-line))!important}
+#modal #modalContent .v472-beauty-preview main>button{background:var(--pv-accent)!important;color:var(--pv-accent-text)!important}
+#modal #modalContent .v472-preview-bubbles p{background:var(--pv-bubble-other)!important;color:var(--pv-bubble-other-text)!important}
+#modal #modalContent .v472-preview-bubbles p:last-child{background:var(--pv-bubble-mine)!important;color:var(--pv-bubble-mine-text)!important}
+#modal #modalContent input[type="color"]{
+  background:transparent!important;
+  border-color:var(--pk-line)!important;
+}

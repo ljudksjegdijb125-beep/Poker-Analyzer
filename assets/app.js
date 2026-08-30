@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.7.16';
+const VERSION='45.7.17';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -135,7 +135,7 @@ function emptyModel(){return{provider:'openai',base:'',key:'',model:'',voice:'al
 function defaultPersona(){return{id:'persona_default',name:'我',nickname:'',pronouns:'',age:'',identity:'',description:'',personality:'',background:'',appearance:'',likes:'',dislikes:'',speechStyle:'',relationship:'',boundaries:'',goals:'',notes:'',image:'',imagePrompt:''}}
 function normalizeCharacter(c={}){c=c&&typeof c==='object'?c:{};return{id:String(c.id||('c_'+v44UUID())),name:String(c.name||''),nickname:String(c.nickname||''),status:String(c.status||''),pronouns:String(c.pronouns||''),tags:String(c.tags||''),bio:String(c.bio||''),personality:String(c.personality||''),background:String(c.background||''),appearance:String(c.appearance||''),speechStyle:String(c.speechStyle||''),relationship:String(c.relationship||''),scenario:String(c.scenario||''),firstMessage:String(c.firstMessage||''),exampleDialogue:String(c.exampleDialogue||''),systemPrompt:String(c.systemPrompt||''),boundaries:String(c.boundaries||''),image:String(c.image||''),imagePrompt:String(c.imagePrompt||''),voiceId:String(c.voiceId||''),voiceSpeed:Math.min(2,Math.max(.5,Number(c.voiceSpeed)||1)),chatApiConfigId:String(c.chatApiConfigId||''),proactiveEnabled:c.proactiveEnabled===true}}
 function normalizePersona(p={}){p=p&&typeof p==='object'?p:{};return{id:String(p.id||('persona_'+v44UUID())),name:String(p.name||'我'),nickname:String(p.nickname||''),pronouns:String(p.pronouns||''),age:String(p.age||''),identity:String(p.identity||''),description:String(p.description||''),personality:String(p.personality||''),background:String(p.background||''),appearance:String(p.appearance||''),likes:String(p.likes||''),dislikes:String(p.dislikes||''),speechStyle:String(p.speechStyle||''),relationship:String(p.relationship||''),boundaries:String(p.boundaries||''),goals:String(p.goals||''),notes:String(p.notes||''),image:String(p.image||''),imagePrompt:String(p.imagePrompt||'')}}
-function defaultDynamicIsland(){return{compactText:'扑克机',title:'扑克机',subtitle:'私人空间',symbol:'♠',accent:'#e8e8e4',size:'standard'}}
+function defaultDynamicIsland(){return{compactText:'',title:'',subtitle:'',symbol:'',accent:'#4f5963',size:'standard'}}
 function builtInWorldBooks(){return[
  {id:'builtin_online_lifelike_v42',name:'线上活人感',desc:['当前入口是私人线上消息。','只输出人物真正会发送的聊天内容；禁止旁白、动作括号、舞台说明、系统注释和界面描述。','结合人物的说话方式、关系阶段与当前上下文，自然决定回复节奏；避免每轮都提问、重复性格标签、复述对方原话或过度解释。','启用多气泡时，由人物依据本轮表达需要决定实际气泡数，不按句号机械拆分。'].join('\n'),scope:'global',mode:'online',activation:'persistent',targetIds:[],trigger:'',enabled:true,builtIn:true},
  {id:'builtin_offline_lifelike_v42',name:'线下活人感',desc:['当前入口是面对面相遇，保持人物位置、动作、视线、物件与环境的连续性。','只能描写人物自身和必要环境反馈，绝不能替对方说话、行动、思考、感受或作决定。','直接进入使用一个连贯长回复；分镜入口将中性旁白与人物对白分开。','避免重复性格标签、无意义复述和每轮强制提问。'].join('\n'),scope:'global',mode:'offline',activation:'persistent',targetIds:[],trigger:'',enabled:true,builtIn:true},
@@ -162,6 +162,7 @@ function normalize(x){
  d.settings.themes=themeRows.filter(theme=>theme&&typeof theme==='object'&&!Array.isArray(theme)).map(theme=>({...theme,id:String(theme.id||('theme_'+v44UUID())),name:String(theme.name||'未命名主题'),vars:theme.vars&&typeof theme.vars==='object'&&!Array.isArray(theme.vars)?theme.vars:{},palette:theme.palette&&typeof theme.palette==='object'&&!Array.isArray(theme.palette)?theme.palette:{}}));
  d.settings.activeTheme=String(sourceSettings.activeTheme||'');if(!d.settings.themes.some(theme=>theme.id===d.settings.activeTheme))d.settings.activeTheme='';
  d.settings.dynamicIsland={...defaultDynamicIsland(),...(x.settings?.dynamicIsland||{})};
+ const legacyIsland=d.settings.dynamicIsland;if((legacyIsland.compactText==='扑克机'||legacyIsland.compactText==='POKEJI')&&legacyIsland.title==='扑克机'&&legacyIsland.subtitle==='私人空间'&&legacyIsland.symbol==='♠')d.settings.dynamicIsland=defaultDynamicIsland();
  d.settings.homeAppIcons=x.settings?.homeAppIcons&&typeof x.settings.homeAppIcons==='object'?x.settings.homeAppIcons:{};
  d.settings.customFont={source:'',label:'',...(x.settings?.customFont||{})};
  d.settings.onlineMultiBubbleEnabled=x.settings?.onlineMultiBubbleEnabled!==false;
@@ -337,7 +338,7 @@ async function installPWA(){
 function applyHomeBackground(){
   const home=document.querySelector('#home .p12-home');
   if(!home)return;
-  /* V45.7.16 keeps wallpaper data and controls, but the requested global
+  /* V45.7.17 keeps wallpaper data and controls, but the requested global
      monochrome presentation never paints an image or an overlay. */
   home.style.removeProperty('background-image');
   home.style.removeProperty('background-size');
@@ -371,14 +372,14 @@ function cleanIslandConfig(input=data.settings?.dynamicIsland){
 function applyDynamicIsland(){
  const island=document.getElementById('dynamicIsland');if(!island)return;
  const cfg=cleanIslandConfig();data.settings.dynamicIsland=cfg;
- const enabled=data.settings.dynamicIslandEnabled!==false;
- island.hidden=!enabled;island.dataset.size=cfg.size;island.style.setProperty('--island-accent',cfg.accent);
+ const enabled=data.settings.dynamicIslandEnabled!==false,hasContent=Boolean(cfg.compactText||cfg.title||cfg.subtitle||cfg.symbol);
+ island.hidden=!enabled||!hasContent;island.dataset.size=cfg.size;island.style.setProperty('--island-accent',cfg.accent);
  document.getElementById('islandCompactText').textContent=cfg.compactText;
  document.getElementById('islandCompactSymbol').textContent=cfg.symbol;
  document.getElementById('islandExpandedSymbol').textContent=cfg.symbol;
  document.getElementById('islandTitle').textContent=cfg.title;
  document.getElementById('islandSubtitle').textContent=cfg.subtitle;
- if(!enabled)collapseDynamicIsland();
+ if(!enabled||!hasContent)collapseDynamicIsland();
 }
 function collapseDynamicIsland(){
  const island=document.getElementById('dynamicIsland');if(!island)return;
@@ -394,7 +395,7 @@ function applyChatBackground(){
   const chat=document.getElementById('chat');
   if(!chat)return;
   /* Keep the saved conversation background data intact while honoring the
-     V45.7.16 plain-white presentation. */
+     V45.7.17 plain-white presentation. */
   chat.style.removeProperty('background-image');
   chat.style.removeProperty('background-size');
   chat.style.removeProperty('background-position');
@@ -493,15 +494,14 @@ function clearCustomFont(){data.settings.customFont={source:'',label:''};save();
 function homeItemMarkup(item){
  const style=`grid-column:${item.x+1}/span ${item.w};grid-row:${item.y+1}/span ${item.h};--widget-color:${safeColor(item.color)}`;
  if(item.kind==='app'){
-  const app=HOME_APP_CATALOG[item.app],src=homeAppIcon(item.app);
-  const glyphSvg=HOME_GLYPH_SVGS[item.app];
-  const icon=src?`<span class="home-app-icon home-app-image"><img src="${attr(src)}" alt=""></span>`:`<span class="home-app-icon home-app-glyph" data-rank="${attr(app.rank||'A')}" data-suit="${attr(app.suit||'♠')}">${glyphSvg?`<svg viewBox="0 0 32 32" aria-hidden="true">${glyphSvg}</svg>`:`<b>${esc(app.glyph)}</b>`}</span>`;
+  const app=HOME_APP_CATALOG[item.app],src=homeAppIcon(item.app),glyphSvg=HOME_GLYPH_SVGS[item.app];
+  const icon=src?`<span class="home-app-icon home-app-image"><img src="${attr(src)}" alt=""></span>`:`<span class="home-app-icon home-app-glyph">${glyphSvg?`<svg viewBox="0 0 32 32" aria-hidden="true">${glyphSvg}</svg>`:`<b aria-hidden="true">${esc(app.glyph||'')}</b>`}</span>`;
   return `<button class="home-item home-app${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" aria-label="${attr(app.label)}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${icon}<span class="home-app-label">${esc(app.label)}</span><i class="home-edit-badge">×</i></button>`;
  }
  const src=safeImageSrc(item.image),kind=item.widget==='cd'?' home-widget-cd':' home-widget-photo';
  const inner=item.widget==='cd'
-  ?`<span class="home-cd-head"><i>♦</i> 唱片 · 01</span><span class="home-record${item.playing?' is-playing':''}">${src?`<img src="${attr(src)}" alt="">`:'<i>♠</i>'}</span><span class="home-cd-foot"><b>Ⅱ</b><small>播放</small><em>装饰组件 ◆</em></span>`
-  :(src?`<img class="home-photo-image" src="${attr(src)}" alt=""><span class="home-photo-caption">♠ 照片档案 <em>更换图片 +</em></span>`:`<span class="home-photo-empty"><span class="home-photo-code">照片档案<br>空组件<br>3 · ♠</span><span class="home-photo-action"><b>♠ 照片档案</b><em>上传图片 +</em></span></span>`);
+  ?`<span class="home-record${item.playing?' is-playing':''}">${src?`<img src="${attr(src)}" alt="">`:'<i class="home-record-mark" aria-hidden="true"></i>'}</span><span class="home-cd-foot"><b>${item.playing?'Ⅱ':'▶'}</b><small>${item.playing?'播放中':'播放'}</small></span>`
+  :(src?`<img class="home-photo-image" src="${attr(src)}" alt="">`:`<span class="home-photo-empty"><span class="home-photo-action"><em>上传图片 +</em></span></span>`);
  return `<button class="home-item home-widget${kind}${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" aria-label="${item.widget==='cd'?'唱片组件':'照片组件'}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${inner}<i class="home-edit-badge">×</i></button>`;
 }
 function renderHomeDesktop(){
@@ -1159,7 +1159,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V44_SW_URL='/sw-v44.js?build=45.7.9';
+const V44_SW_URL='/sw-v44.js?build=45.7.17';
 function isV44WorkerUrl(url){return /\/sw-v44\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v(?:38|42|43)\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1393,8 +1393,8 @@ async function refreshConversationSummary(chatId,signal,force=false){
  const old=arr.slice(0,cutoff);if(cutoff<=0||!old.length)return data.chatSummaries[chatId]?.text||'';
  const fingerprint=`${old.length}:${old.at(-1)?.time||''}:${old.at(-1)?.text?.slice(-40)||''}`;
  if(data.chatSummaries[chatId]?.fingerprint===fingerprint)return data.chatSummaries[chatId].text;
- const transcript=old.map(m=>`${m.mode==='offline'?'[线下]':m.mode==='online'?'[线上]':''}${m.kind==='narration'?'旁白':m.kind==='thought'?'角色内心话':m.kind==='sticker'?'表情包':m.kind==='image'?'图片':m.kind==='phoneEvent'?'模拟手机事件':(m.role==='user'?'用户':'AI')}：${m.text}`).join('\n');
- const summary=await invokeModel('summary',{system:'你是独立的对话记忆摘要工具。忠实压缩人物、事实、关系、承诺、偏好、未完成事项与时间线；不续写，不对话。',history:[{role:'user',content:`已有摘要：\n${data.chatSummaries[chatId]?.text||'无'}\n\n待压缩对话：\n${transcript}`}],temperature:0.1,maxTokens:1200,signal});
+ const transcript=old.map(m=>`${m.mode==='offline'?'[线下]':m.mode==='online'?'[线上]':''}${m.kind==='narration'?'旁白':m.kind==='thought'?'角色内心话':m.kind==='sticker'?'表情包':m.kind==='image'?'图片':m.kind==='phoneEvent'?'模拟手机事件':(m.role==='user'?'用户':'AI')}【发送时会话时间：${m.worldTimeText||m.timeContext?.text||m.time||'时间未记录'}${m.timelineMode||m.timeContext?.mode?` · 时间模式：${m.timelineMode||m.timeContext?.mode}`:''}】：${m.text}`).join('\n');
+ const summary=await invokeModel('summary',{system:'你是独立的对话记忆摘要工具。忠实压缩人物、事实、关系、承诺、偏好、未完成事项与时间线；不续写，不对话。必须保留关键消息的发送时刻、时间模式和相邻时间间隔；不要把“准备睡觉”等旧状态无条件延续到数小时后的新节点。',history:[{role:'user',content:`已有摘要：\n${data.chatSummaries[chatId]?.text||'无'}\n\n待压缩对话（方括号内是消息发生时刻，必须作为时间事实保留）：\n${transcript}`}],temperature:0.1,maxTokens:1200,signal});
  data.chatSummaries[chatId]={text:summary.trim(),fingerprint,updatedAt:new Date().toISOString()};save();return summary.trim();
 }
 function queueConversationSummary(chatId){
@@ -1466,7 +1466,7 @@ async function generateProactiveMessage(character){
   let system=buildSystemPrompt(character,'',chatId);
   const summary=data.chatSummaries?.[chatId]?.text;if(summary)system+=`\n\n【自动记忆摘要】\n${summary}`;
   system+=`\n\n【主动说话任务｜内部状态，不可显示】\n现在到了角色按自己的生活节奏主动开口的时点。先理解最近对话停在何处、现实或世界时间经过多久、双方关系与角色此刻可能在做什么，再决定一句或数条真正会发出的线上消息。内容必须像角色主动想说，而不是提醒、签到、客服问候或催促 USER 回复；不得复述上一轮、机械提问、凭空推进重大剧情，也不得提及任务、计时器、频率、系统或应用。只输出角色真正发送的内容，不替 USER 回答。`;
-  const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(message=>({role:message.role==='assistant'?'assistant':'user',content:(message.kind==='narration'?'[旁白] ':'')+message.text}));
+  const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(message=>({role:message.role==='assistant'?'assistant':'user',content:`[这条消息发生时的会话时间：${message.worldTimeText||message.timeContext?.text||message.time||'时间未记录'}；时间模式：${message.timelineMode||message.timeContext?.mode||'未记录'}] `+(message.kind==='narration'?'[旁白] ':'')+message.text}));
   history.push({role:'user',content:'【内部触发】请现在以角色身份主动发来一条自然的线上消息。'});
   backgroundTaskId='proactive_'+v44UUID();
   const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:`pokeji_chat_${activePersonaFor(chatId).id}_online_${character.id}`,signal:controller.signal,background:true,backgroundTaskId,backgroundMeta:{operation:'proactive',chatId,speakerId:character.id,groupId:'',mode:'online',sceneMode:'direct',notificationName:character.name,showNotification:shouldUseBackgroundNotification(),startedAt:new Date().toISOString()}});
@@ -1538,9 +1538,10 @@ async function sendMessage(payload=null){
   }
   const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map(m=>{
    const modeLabel=!group&&m.mode==='offline'?`[此前处于面对面场景${m.sceneMode==='story'?'，含现场旁白':''}] `:(!group&&m.mode==='online'?'[此前通过私信交流] ':'');
-   if(m.role==='user')return{role:'user',content:modeLabel+(m.kind==='sticker'?`[USER 表情包：${m.text}]`:m.kind==='image'?`[USER 发送图片；画面描述：${m.text}]`:m.kind==='phoneEvent'?`[网站模拟手机授权] ${m.text}`:m.text)};
-   if(group){const spk=data.characters.find(x=>x.id===m.speaker);return{role:'assistant',content:`[${spk?spk.name:'角色'}] ${m.text}`}}
-   return{role:'assistant',content:modeLabel+(m.kind==='narration'?'[旁白] ':m.kind==='thought'?'[角色未说出口的内心话] ':m.kind==='sticker'?'[角色表情包] ':m.kind==='phoneEvent'?'[角色查看模拟手机] ':'')+m.text};
+   const timeLabel=`[这条消息发送/生成时的会话时间：${m.worldTimeText||m.timeContext?.text||m.time||'时间未记录'}；时间模式：${m.timelineMode||m.timeContext?.mode||'未记录'}] `;
+   if(m.role==='user')return{role:'user',content:timeLabel+modeLabel+(m.kind==='sticker'?`[USER 表情包：${m.text}]`:m.kind==='image'?`[USER 发送图片；画面描述：${m.text}]`:m.kind==='phoneEvent'?`[网站模拟手机授权] ${m.text}`:m.text)};
+   if(group){const spk=data.characters.find(x=>x.id===m.speaker);return{role:'assistant',content:timeLabel+`[${spk?spk.name:'角色'}] ${m.text}`}}
+   return{role:'assistant',content:timeLabel+modeLabel+(m.kind==='narration'?'[旁白] ':m.kind==='thought'?'[角色未说出口的内心话] ':m.kind==='sticker'?'[角色表情包] ':m.kind==='phoneEvent'?'[角色查看模拟手机] ':'')+m.text};
   });
   backgroundTaskId='chat_'+v44UUID();
   const rawReply=await invokeModel('chat',{system,history,temperature:s.temperature,maxTokens:s.maxTokens,cacheKey:'pokeji_chat_'+activePersonaFor(chatId).id+'_'+(group?group.id+'_'+activeChar.id:mode+'_'+sceneMode+'_'+activeChar.id),signal:controller.signal,background:true,backgroundTaskId,backgroundMeta:{operation:'chat',chatId,speakerId:activeChar.id,groupId:group?.id||'',mode,sceneMode,notificationName:notifName,showNotification:shouldUseBackgroundNotification(),startedAt:new Date().toISOString()}});
@@ -1872,14 +1873,14 @@ async function saveAppearanceSettings(){
  if(!isInstalledMode()&&data.settings.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch(e){errorDetail(e,'无法进入全屏')}}else if(!data.settings.fullscreenEnabled&&document.fullscreenElement){try{await document.exitFullscreen()}catch(e){errorDetail(e,'无法退出全屏')}}
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.9 资源包更新');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署当前版本资源包更新');
  if(!('serviceWorker' in navigator))return toast('当前浏览器不支持离线更新');
  toast('正在检查更新…');
  try{
   const registration=await ensureV44ServiceWorker({forceUpdate:true});
-  if(!registration)throw Error('V45.7.9 离线服务未能注册');
+  if(!registration)throw Error('当前版本离线服务未能注册');
   if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}
-  toast('V45.7.9 更新检查完成');
+  toast('当前版本更新检查完成');
  }catch(error){errorDetail(error,'检查更新失败')}
 }
 function resetData(){if(!confirm('确定清空 V45.7.9 的本机数据吗？历史版本的独立存储不会被删除。'))return;try{localStorage.setItem(STORE,JSON.stringify(blank()));localStorage.removeItem(`${STORE}_migration`);location.reload()}catch(error){errorDetail(error,'清空 V45.7.9 本机数据失败')}}
@@ -2237,12 +2238,12 @@ async function v43FetchWorkerScript(){
  const response=await fetch('/sw-v44.js?build=45.7.9&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v45.7.9"))throw Error('线上 sw-v44.js 仍不是 V45.7.9。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v45.7.17"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.9 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查 V45.7.9 更新…');
- try{await v43FetchWorkerScript();const registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('V45.7.9 离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('V45.7.9 更新检查完成')}
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署当前版本资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查当前版本更新…');
+ try{await v43FetchWorkerScript();const registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('当前版本离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast('当前版本更新检查完成')}
  catch(error){const detail=String(error?.message||error);if(/42\.3|仍不是 V45\.2|unknown error|Failed to update|fetching the script/i.test(detail)){modal(`<h2>离线服务仍是旧版</h2><div class="note">${esc(detail)}<br><br>先确认 GitHub/Vercel 已覆盖 index.html、assets/app.js、assets/app.css、sw-v44.js 和 vercel.json。部署完成后，打开修复页清理旧 Service Worker；不会删除聊天数据。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }
 
@@ -2422,7 +2423,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 /* V44.1 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.9')}
+function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.17')}
 async function v43FetchWorkerScript(){
  const expected=v435ExpectedBuild(),response=await fetch(`/sw-v44.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
@@ -2434,7 +2435,7 @@ async function v43FetchWorkerScript(){
  return{online,expected};
 }
 async function checkForUpdates(){
- if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署 V45.7.9 资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
+ if(document.body?.dataset.singleFile==='true')return toast('单文件是预览版，请部署当前版本资源包更新');if(!('serviceWorker'in navigator))return toast('当前浏览器不支持离线更新');toast('正在检查更新…');
  try{const versions=await v43FetchWorkerScript(),registration=await ensureV44ServiceWorker({forceUpdate:true});if(!registration)throw Error('离线服务未能注册');if(registration.waiting){registration.waiting.postMessage({type:'SKIP_WAITING'});await waitForWorkerActivation(registration)}toast(`更新检查完成 · Worker ${versions.online}`)}
  catch(error){const detail=String(error?.message||error);if(/Service Worker 版本|sw-v44\.js|ServiceWorker|Failed to update|unknown error|fetching the script|Content-Type|语法无效|无法识别版本/i.test(detail)){modal(`<h2>离线服务版本不一致</h2><div class="note">${esc(detail)}<br><br>当前页面可能仍由旧缓存控制。请先把同一版本的 index.html、assets/app.js、assets/app.css、sw-v44.js、repair-sw.html 一起部署，再打开修复页。</div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="location.href='/repair-sw.html?t='+Date.now()">打开修复页</button></div>`);return}errorDetail(error,'检查更新失败')}
 }

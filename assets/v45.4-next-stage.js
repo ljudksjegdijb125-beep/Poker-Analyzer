@@ -119,6 +119,10 @@
   function openPendingTimeProposal(){const timeline=timeState();if(timeline.pendingProposal?.status!=='pending')return toast('当前没有待确认的推进提议');openStage('time-proposal',{proposalId:timeline.pendingProposal.id})}
   window.showTimeSenseSettings=function(){if(!currentChat)return toast('请先进入聊天会话');closeModal();openStage('time')};try{showTimeSenseSettings=window.showTimeSenseSettings}catch{}
   window.v454SetTimeMode=setTimeMode;window.v454SetCalendarFlow=setCalendarFlow;window.v454SetCalendarRate=setCalendarRate;window.v454BindTimeWorld=bindTimeWorld;window.v454SaveCalendarCalibration=saveCalendarCalibration;window.v454SaveCustomTime=saveCustomTime;window.v454ResetTimeBranch=resetTimeBranch;window.v454CreateTimeProposal=createTimeProposal;window.v454ConfirmTimeProposal=confirmTimeProposal;window.v454OpenPendingTimeProposal=openPendingTimeProposal;
+  /* Expose a read-only clock snapshot for the prompt/history layer. It does not
+     change the existing time controls; it only lets later layers stamp each
+     message with the same clock that the current prompt sees. */
+  window.v454GetTimeSnapshot=function(chatId=currentChat){const timeline=timeState(chatId),mode=timeline?.mode||'real';return{mode,text:timeText(chatId),timeMs:mode==='calendar'?calendarNow(timeline):mode==='real'?Date.now():null,worldId:S(timeline?.worldId||''),totalElapsedSeconds:Number(timeline?.totalElapsedSeconds)||0,lastElapsedSeconds:Number(timeline?.lastElapsedSeconds)||0}};
 
   /* ---------- two owner stores and phone-event memory ---------- */
   function rawPhoneStore(owner,chatId=currentChat){

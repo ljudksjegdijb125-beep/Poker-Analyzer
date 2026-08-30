@@ -67,7 +67,7 @@
       const pure=currentMode()===SVG_MODE,source=pure?'':homeAppIcon(item.app),svg=svgFor(item.app);
       const icon=source
         ?`<span class="home-app-icon home-app-image"><img src="${attr(source)}" alt=""></span>`
-        :`<span class="home-app-icon home-app-glyph v4579-home-svg${pure?' is-pure-svg':''}" data-rank="${attr(app.rank||'A')}" data-suit="${attr(app.suit||'♠')}"><svg viewBox="0 0 32 32" aria-hidden="true">${svg}</svg></span>`;
+        :`<span class="home-app-icon home-app-glyph v4579-home-svg${pure?' is-pure-svg':''}"><svg viewBox="0 0 32 32" aria-hidden="true">${svg}</svg></span>`;
       return `<button class="home-item home-app${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" aria-label="${attr(app.label)}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${icon}<span class="home-app-label">${esc(app.label)}</span><i class="home-edit-badge">×</i></button>`
     };
     homeItemMarkup=iconModeMarkup;window.homeItemMarkup=iconModeMarkup;

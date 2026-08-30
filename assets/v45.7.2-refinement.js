@@ -27,13 +27,13 @@
   function readableMuted(background){const text=contrastText(background);let result=text;for(let step=1;step<=24;step++){const candidate=mix(text,background,step/100);if(contrastRatio(background,candidate)<4.5)break;result=candidate}return result}
 
   const COLOR_FIELDS=[
-    ['background','页面主色'],['panel','卡片层'],['panel2','次级卡片'],['header','顶部栏'],['dock','底栏'],
-    ['accent','强调按钮'],['iconOuter','图标外层'],['icon','图标线条'],['input','输入区域'],
-    ['bubbleMine','我的气泡'],['bubbleOther','对方气泡']
+    ['background','页面背景'],['panel','主要卡片'],['panel2','次级卡片'],['header','顶部栏'],['dock','底栏 / Dock'],
+    ['accent','强调按钮'],['iconOuter','图标外容器'],['icon','图标线条'],['input','输入区域'],
+    ['text','主要文字'],['muted','次级文字'],['line','边界 / 分隔线'],['bubbleMine','我的气泡'],['bubbleOther','对方气泡']
   ];
   const DEFAULT_COLORS={
-    background:'#111114',panel:'#1d1d21',panel2:'#29292e',header:'#17171b',dock:'#202024',
-    accent:'#c39a58',iconOuter:'#29292e',icon:'#e1bd79',input:'#29292e',bubbleMine:'#4a3a27',bubbleOther:'#27272c'
+    background:'#ffffff',panel:'#f7f8f9',panel2:'#eef0f2',header:'#ffffff',dock:'#f7f8f9',
+    accent:'#4f5963',iconOuter:'#eef0f2',icon:'#1c2024',input:'#ffffff',text:'#151719',muted:'#62686e',line:'#dfe2e5',bubbleMine:'#4f5963',bubbleOther:'#f1f2f3'
   };
   const fieldId=key=>`v472Color${key.charAt(0).toUpperCase()}${key.slice(1)}`;
 
@@ -44,50 +44,79 @@
 
   function currentTheme(){return L(data.settings.themes).find(item=>S(item.id)===S(data.settings.activeTheme))||null}
   function themeSeed(){
-    const theme=currentTheme(),palette=O(theme?.palette),vars=O(theme?.vars),background=hex(palette.background||vars['--black']||vars['--paper'],DEFAULT_COLORS.background),panel=hex(palette.panel||vars['--panel'],DEFAULT_COLORS.panel),accent=hex(palette.accent||vars['--gold'],DEFAULT_COLORS.accent),text=contrastText(panel);
+    const theme=currentTheme(),palette=O(theme?.palette),vars=O(theme?.vars),background=hex(palette.background||vars['--pk-background']||vars['--black']||vars['--paper'],DEFAULT_COLORS.background),panel=hex(palette.panel||vars['--pk-panel']||vars['--panel'],DEFAULT_COLORS.panel),accent=hex(palette.accent||vars['--pk-accent']||vars['--gold'],DEFAULT_COLORS.accent),mainText=hex(palette.text||vars['--pk-text']||vars['--ivory'],contrastText(background));
     return{
       background,panel,
-      panel2:hex(palette.panel2||vars['--panel2'],mix(panel,text,.08)),
-      header:hex(palette.header||vars['--v457-header'],mix(background,accent,.1)),
-      dock:hex(palette.dock||vars['--v457-dock'],mix(background,panel,.62)),
+      panel2:hex(palette.panel2||vars['--pk-panel-2']||vars['--panel2'],theme?mix(panel,mainText,.08):DEFAULT_COLORS.panel2),
+      header:hex(palette.header||vars['--pk-header']||vars['--v457-header'],theme?mix(background,accent,.08):DEFAULT_COLORS.header),
+      dock:hex(palette.dock||vars['--pk-dock']||vars['--v457-dock'],theme?mix(background,panel,.62):DEFAULT_COLORS.dock),
       accent,
-      iconOuter:hex(palette.iconOuter||vars['--v472-icon-outer'],mix(panel,contrastText(panel),.08)),
-      icon:hex(palette.icon||vars['--theme-icon-color'],DEFAULT_COLORS.icon),
-      input:hex(palette.input||vars['--v472-input'],mix(panel,contrastText(panel),.08)),
-      bubbleMine:hex(palette.bubbleMine||vars['--v457-bubble-mine'],DEFAULT_COLORS.bubbleMine),
-      bubbleOther:hex(palette.bubbleOther||vars['--v457-bubble-other'],DEFAULT_COLORS.bubbleOther)
+      iconOuter:hex(palette.iconOuter||vars['--pk-icon-outer']||vars['--v472-icon-outer'],theme?mix(panel,mainText,.08):DEFAULT_COLORS.iconOuter),
+      icon:hex(palette.icon||vars['--pk-icon']||vars['--theme-icon-color'],DEFAULT_COLORS.icon),
+      input:hex(palette.input||vars['--pk-input']||vars['--v472-input'],theme?mix(panel,background,.45):DEFAULT_COLORS.input),
+      text:mainText,
+      muted:hex(palette.muted||vars['--pk-muted']||vars['--muted'],theme?mix(mainText,background,.48):DEFAULT_COLORS.muted),
+      line:hex(palette.line||vars['--pk-line']||vars['--line'],theme?mix(panel,mainText,.16):DEFAULT_COLORS.line),
+      bubbleMine:hex(palette.bubbleMine||vars['--pk-bubble-mine']||vars['--v457-bubble-mine'],DEFAULT_COLORS.bubbleMine),
+      bubbleOther:hex(palette.bubbleOther||vars['--pk-bubble-other']||vars['--v457-bubble-other'],DEFAULT_COLORS.bubbleOther)
     }
   }
   function resolvedColors(){const seed=themeSeed(),custom=O(data.settings.beautyFactory.colors),output={};for(const [key] of COLOR_FIELDS)output[key]=hex(custom[key],seed[key]);return output}
-  function setRoot(name,value){document.documentElement.style.setProperty(name,value)}
+  function setRoot(name,value){document.documentElement.style.setProperty(name,value,'important')}
+  function applyRuntimePaletteStyle(colors){
+    let node=document.getElementById('v45717PaletteRuntime');
+    if(!node){node=document.createElement('style');node.id='v45717PaletteRuntime';(document.body||document.head||document.documentElement).appendChild(node)}
+    const bg=colors.background,panel=colors.panel,panel2=colors.panel2,header=colors.header,dock=colors.dock,accent=colors.accent,accentText=contrastText(accent),iconOuter=colors.iconOuter,icon=colors.icon,input=colors.input,text=colors.text,muted=colors.muted,line=colors.line,mine=colors.bubbleMine,mineText=contrastText(mine),other=colors.bubbleOther,otherText=contrastText(other);
+    node.textContent=[
+      'html[data-pokeji-colors="active"],html[data-pokeji-colors="active"] body{background-color:'+bg+'!important;color:'+text+'!important}',
+      'html[data-pokeji-colors="active"] #phone,html[data-pokeji-colors="active"] #screen,html[data-pokeji-colors="active"] #phone .view,html[data-pokeji-colors="active"] #phone .view>.scroll,html[data-pokeji-colors="active"] #modal>.sheet,html[data-pokeji-colors="active"] #modalContent{background-color:'+bg+'!important;color:'+text+'!important}',
+      'html[data-pokeji-colors="active"] #phone .view:not(#home) .card,html[data-pokeji-colors="active"] #phone .view:not(#home) .group,html[data-pokeji-colors="active"] #phone .view:not(#home) .engine-card,html[data-pokeji-colors="active"] #phone .view:not(#home) [class*="-card"],html[data-pokeji-colors="active"] #phone .view:not(#home) [class*="-panel"],html[data-pokeji-colors="active"] #modalContent .card,html[data-pokeji-colors="active"] #modalContent [class*="-card"],html[data-pokeji-colors="active"] #modalContent [class*="-panel"]{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone .view:not(#home) .row,html[data-pokeji-colors="active"] #phone .view:not(#home) .setting,html[data-pokeji-colors="active"] #phone .view:not(#home) [class*="-row"],html[data-pokeji-colors="active"] #modalContent .row,html[data-pokeji-colors="active"] #modalContent .setting,html[data-pokeji-colors="active"] #modalContent [class*="-row"]{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone .view:not(#home) .header,html[data-pokeji-colors="active"] #chat .chat-head,html[data-pokeji-colors="active"] #chat .composer,html[data-pokeji-colors="active"] #modalContent [class*="-head"]{background-color:'+header+'!important;color:'+contrastText(header)+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone .view:not(#home) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),html[data-pokeji-colors="active"] #phone .view:not(#home) textarea,html[data-pokeji-colors="active"] #phone .view:not(#home) select,html[data-pokeji-colors="active"] #modalContent input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),html[data-pokeji-colors="active"] #modalContent textarea,html[data-pokeji-colors="active"] #modalContent select{background-color:'+input+'!important;color:'+contrastText(input)+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone .view:not(#home) button,html[data-pokeji-colors="active"] #modalContent button{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone .view:not(#home) button.primary,html[data-pokeji-colors="active"] #phone .view:not(#home) .primary,html[data-pokeji-colors="active"] #phone .view:not(#home) .send,html[data-pokeji-colors="active"] #modalContent button.primary,html[data-pokeji-colors="active"] #modalContent .primary{background-color:'+accent+'!important;color:'+accentText+'!important;border-color:'+accent+'!important}',
+      'html[data-pokeji-colors="active"] #phone .view:not(#home) small,html[data-pokeji-colors="active"] #phone .view:not(#home) time,html[data-pokeji-colors="active"] #phone .view:not(#home) em,html[data-pokeji-colors="active"] #phone .view:not(#home) .muted,html[data-pokeji-colors="active"] #modalContent small,html[data-pokeji-colors="active"] #modalContent time,html[data-pokeji-colors="active"] #modalContent em,html[data-pokeji-colors="active"] #modalContent .muted{color:'+muted+'!important}',
+      'html[data-pokeji-colors="active"] #phone .view:not(#home) svg,html[data-pokeji-colors="active"] #phone .view:not(#home) svg *,html[data-pokeji-colors="active"] #modalContent svg,html[data-pokeji-colors="active"] #modalContent svg *{color:'+icon+'!important;stroke:'+icon+'!important}',
+      'html[data-pokeji-colors="active"] #phone #chat .bubble,html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="thread-bubble"]{background-color:'+other+'!important;color:'+otherText+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone #chat .msg-group.me .bubble,html[data-pokeji-colors="active"] #phone #chat .msg.me .bubble,html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="thread-msg"][class*="out"] [class*="thread-bubble"],html[data-pokeji-colors="active"] #modal.phone-fullscreen [class*="thread-msg"][class*="mine"] [class*="thread-bubble"]{background-color:'+mine+'!important;color:'+mineText+'!important;border-color:'+mine+'!important}',
+      'html[data-pokeji-colors="active"] #phone #screen #home,html[data-pokeji-colors="active"] #phone #screen #home .p12-home,html[data-pokeji-colors="active"] #phone #screen #home .p12-pages,html[data-pokeji-colors="active"] #phone #screen #home .p12-page,html[data-pokeji-colors="active"] #phone #screen #home .p12-editor{background-color:'+bg+'!important;color:'+text+'!important}',
+      'html[data-pokeji-colors="active"] #phone #screen #home .home-widget,html[data-pokeji-colors="active"] #phone #screen #home .home-photo-empty,html[data-pokeji-colors="active"] #phone #screen #home .home-record,html[data-pokeji-colors="active"] #phone #screen #home .p12-editor-row{background-color:'+panel+'!important;color:'+text+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone #screen #home .p12-dock{background-color:'+dock+'!important;color:'+contrastText(dock)+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone #screen #home .home-app-icon:not(.home-app-image),html[data-pokeji-colors="active"] #phone #screen #home .dock-icon{background-color:'+iconOuter+'!important;color:'+icon+'!important;border-color:'+line+'!important}',
+      'html[data-pokeji-colors="active"] #phone #screen #home .home-app-icon:not(.home-app-image) svg,html[data-pokeji-colors="active"] #phone #screen #home .dock-icon svg{color:'+icon+'!important;stroke:'+icon+'!important}',
+      'html[data-pokeji-colors="active"] #phone #screen #home .home-app-label,html[data-pokeji-colors="active"] #phone #screen #home .p12-clock strong,html[data-pokeji-colors="active"] #phone #screen #home .p12-clock span{color:'+text+'!important}'
+    ].join('\n');
+  }
   function applyColors(colors=resolvedColors()){
-    const text={};for(const [key] of COLOR_FIELDS)text[key]=contrastText(colors[key]);
-    const muted={background:readableMuted(colors.background),panel:readableMuted(colors.panel),panel2:readableMuted(colors.panel2),header:readableMuted(colors.header),dock:readableMuted(colors.dock),input:readableMuted(colors.input)};
+    const surfaceText=colors.text,mutedText=colors.muted,headerText=contrastText(colors.header),dockText=contrastText(colors.dock),accentText=contrastText(colors.accent),iconOuterText=contrastText(colors.iconOuter),inputText=contrastText(colors.input),mineText=contrastText(colors.bubbleMine),otherText=contrastText(colors.bubbleOther);
     const variables={
-      '--v472-bg':colors.background,'--v472-bg-text':text.background,'--v472-bg-muted':muted.background,
-      '--v472-panel':colors.panel,'--v472-panel-text':text.panel,'--v472-panel-muted':muted.panel,
-      '--v472-panel-2':colors.panel2,'--v472-panel-2-text':text.panel2,'--v472-panel-2-muted':muted.panel2,
-      '--v472-header':colors.header,'--v472-header-text':text.header,'--v472-header-muted':muted.header,
-      '--v472-dock':colors.dock,'--v472-dock-text':text.dock,'--v472-dock-muted':muted.dock,
-      '--v472-accent':colors.accent,'--v472-accent-text':text.accent,
-      '--v472-icon-outer':colors.iconOuter,'--v472-icon-outer-text':text.iconOuter,'--v472-icon':colors.icon,
-      '--v472-input':colors.input,'--v472-input-text':text.input,'--v472-input-muted':muted.input,
-      '--v472-bubble-mine':colors.bubbleMine,'--v472-bubble-mine-text':text.bubbleMine,
-      '--v472-bubble-other':colors.bubbleOther,'--v472-bubble-other-text':text.bubbleOther,
-      '--v472-line':rgba(text.panel,.22),'--v472-line-soft':rgba(text.panel,.12),
+      '--pk-background':colors.background,'--pk-background-text':surfaceText,'--pk-panel':colors.panel,'--pk-panel-text':surfaceText,'--pk-panel-2':colors.panel2,'--pk-panel-2-text':surfaceText,'--pk-header':colors.header,'--pk-header-text':headerText,'--pk-dock':colors.dock,'--pk-dock-text':dockText,'--pk-accent':colors.accent,'--pk-accent-text':accentText,'--pk-icon-outer':colors.iconOuter,'--pk-icon-outer-text':iconOuterText,'--pk-icon':colors.icon,'--pk-input':colors.input,'--pk-input-text':inputText,'--pk-text':surfaceText,'--pk-muted':mutedText,'--pk-line':colors.line,'--pk-bubble-mine':colors.bubbleMine,'--pk-bubble-mine-text':mineText,'--pk-bubble-other':colors.bubbleOther,'--pk-bubble-other-text':otherText,
+      '--v472-bg':colors.background,'--v472-bg-text':surfaceText,'--v472-bg-muted':mutedText,
+      '--v472-panel':colors.panel,'--v472-panel-text':surfaceText,'--v472-panel-muted':mutedText,
+      '--v472-panel-2':colors.panel2,'--v472-panel-2-text':surfaceText,'--v472-panel-2-muted':mutedText,
+      '--v472-header':colors.header,'--v472-header-text':headerText,'--v472-header-muted':mix(headerText,colors.header,.35),
+      '--v472-dock':colors.dock,'--v472-dock-text':dockText,'--v472-dock-muted':mix(dockText,colors.dock,.35),
+      '--v472-accent':colors.accent,'--v472-accent-text':accentText,
+      '--v472-icon-outer':colors.iconOuter,'--v472-icon-outer-text':iconOuterText,'--v472-icon':colors.icon,
+      '--v472-input':colors.input,'--v472-input-text':inputText,'--v472-input-muted':mix(inputText,colors.input,.42),
+      '--v472-bubble-mine':colors.bubbleMine,'--v472-bubble-mine-text':mineText,
+      '--v472-bubble-other':colors.bubbleOther,'--v472-bubble-other-text':otherText,
+      '--v472-line':colors.line,'--v472-line-soft':rgba(surfaceText,.10),
       '--black':colors.background,'--black2':colors.panel2,'--panel':colors.panel,'--panel2':colors.panel2,
-      '--ivory':text.background,'--ivory2':muted.background,'--muted':muted.background,'--dim':muted.background,'--caption':muted.background,'--whisper':muted.background,
-      '--gold':colors.accent,'--gold-hi':colors.icon,'--gold-lo':mix(colors.accent,'#000000',.28),'--line':rgba(text.panel,.22),'--line2':rgba(text.panel,.12),
+      '--ivory':surfaceText,'--ivory2':mutedText,'--muted':mutedText,'--dim':mutedText,'--caption':mutedText,'--whisper':mix(mutedText,colors.background,.25),
+      '--gold':colors.accent,'--gold-hi':colors.icon,'--gold-lo':mix(colors.accent,'#000000',.28),'--line':colors.line,'--line2':rgba(surfaceText,.10),
       '--theme-icon-color':colors.icon,'--theme-home-top':colors.background,'--theme-home-bottom':mix(colors.background,colors.header,.42),
-      '--accent':colors.accent,'--surface':colors.background,'--card':colors.panel,'--text':text.background,
+      '--accent':colors.accent,'--surface':colors.background,'--card':colors.panel,'--text':surfaceText,
       '--v457-header':colors.header,'--v457-dock':colors.dock,'--v457-bubble-mine':colors.bubbleMine,'--v457-bubble-other':colors.bubbleOther,
-      '--v471-bg':colors.background,'--v471-panel':colors.panel,'--v471-panel-2':colors.panel2,'--v471-text':text.panel,'--v471-muted':muted.panel,
-      '--v471-line':rgba(text.panel,.22),'--v471-accent':colors.accent,'--v471-accent-text':text.accent
+      '--v471-bg':colors.background,'--v471-panel':colors.panel,'--v471-panel-2':colors.panel2,'--v471-text':surfaceText,'--v471-muted':mutedText,
+      '--v471-line':colors.line,'--v471-accent':colors.accent,'--v471-accent-text':accentText
     };
     for(const [name,value] of Object.entries(variables))setRoot(name,value);
-    document.documentElement.dataset.v472Contrast='automatic';
+    applyRuntimePaletteStyle(colors);
+    document.documentElement.dataset.v472Contrast='automatic';document.documentElement.dataset.pokejiColors='active';
     document.documentElement.dataset.v471Tone=luminance(colors.background)>.42?'light':'dark';
-    const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute('content','#ffffff')
+    const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute('content',colors.header)
   }
 
   const baseBeautyApply=window.applyBeautyFactory;
@@ -98,7 +127,7 @@
     const read=(id,fallback)=>{const value=Number(document.getElementById(id)?.value);return Number.isFinite(value)?value:fallback};
     return{colors,bubbleWidth:read('v472BubbleWidth',84),fontSize:read('v472FontSize',14),bubbleRadius:read('v472BubbleRadius',18),bubblePadding:read('v472BubblePadding',11),componentOpacity:read('v472ComponentOpacity',94)/100,safeComponents:document.getElementById('v472SafeComponents')?.checked!==false,homeOpacity:read('v472HomeOpacity',38)/100,chatOpacity:read('v472ChatOpacity',38)/100}
   }
-  function setPreviewVariables(node,colors){if(!node)return;for(const [key,value] of Object.entries(colors)){node.style.setProperty(`--pv-${key.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase())}`,value);node.style.setProperty(`--pv-${key.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase())}-text`,contrastText(value))}}
+  function setPreviewVariables(node,colors){if(!node)return;for(const [key,value] of Object.entries(colors)){node.style.setProperty(`--pv-${key.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase())}`,value);node.style.setProperty(`--pv-${key.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase())}-text`,contrastText(value))}node.style.setProperty('--pv-background-text',colors.text);node.style.setProperty('--pv-panel-text',colors.text);node.style.setProperty('--pv-panel-2-text',colors.text)}
   window.v472UpdateBeautyPreview=function(){
     const draft=draftFromInputs(),preview=document.getElementById('v472BeautyPreview');setPreviewVariables(preview,draft.colors);
     for(const [id,value,unit] of [['v472HomeOpacityValue',Math.round(draft.homeOpacity*100),'%'],['v472ChatOpacityValue',Math.round(draft.chatOpacity*100),'%'],['v472BubbleWidthValue',draft.bubbleWidth,'%'],['v472FontSizeValue',draft.fontSize,'px'],['v472BubbleRadiusValue',draft.bubbleRadius,'px'],['v472BubblePaddingValue',draft.bubblePadding,'px'],['v472ComponentOpacityValue',Math.round(draft.componentOpacity*100),'%']]){const node=document.getElementById(id);if(node)node.textContent=`${value}${unit}`}
@@ -121,16 +150,17 @@
   window.openBeautyFactory=function(){
     try{closeHomeEditor?.()}catch{}
     const config=data.settings.beautyFactory,colors=resolvedColors(),chatSettings=currentChat&&typeof getChatSettings==='function'?getChatSettings(currentChat):null;
-    modal(`<div class="v472-beauty-factory"><header class="v472-beauty-head"><div><small>美化设置 · V45.7.9</small><h2>美化工厂</h2><p>每一层都可单独换色；所有文字会按所在底色自动切换为清晰的深色或浅色。</p></div><span>自动反色</span></header><section class="v472-preview-section"><div id="v472BeautyPreview" class="v472-beauty-preview"><header><b>页面顶部</b><small>文字自动反色</small></header><main><div class="v472-preview-icon"><i>♠</i><small>图标外层</small></div><article><b>卡片层</b><span>次级卡片与输入区域</span><label>输入预览</label></article><div class="v472-preview-bubbles"><p>对方气泡</p><p>我的气泡</p></div><button>强调按钮</button></main><footer><span>底栏</span><i>◇</i><i>♧</i><i>♤</i></footer></div><small>这里会即时显示图标、卡片、输入框、按钮和双方气泡的真实对比关系；预览不会提前改写已保存方案。</small></section><section><header><b>分层换色</b><small>包含图标外层；文字颜色无需手动挑选</small></header><div class="v472-color-grid">${COLOR_FIELDS.map(([key,label])=>`<label><span>${E(label)}</span><input id="${fieldId(key)}" type="color" value="${AT(colors[key])}" oninput="v472UpdateBeautyPreview()"></label>`).join('')}</div><div class="v472-inline-actions"><button onclick="v472LoadThemeColors()">载入当前主题</button><button onclick="openPaletteStudio()">图片取色 / 保存主题</button></div></section><section><header><b>壁纸层</b><small>透明度为 0 时不再用纯色遮盖图片</small></header><label class="v472-range"><span>主界面叠色透明度 <i id="v472HomeOpacityValue">${Math.round(clamp(data.settings.homeBackgroundOpacity,0,.85,.38)*100)}%</i></span><input id="v472HomeOpacity" type="range" min="0" max="85" value="${Math.round(clamp(data.settings.homeBackgroundOpacity,0,.85,.38)*100)}" oninput="v472UpdateBeautyPreview()"></label><div class="v472-inline-actions three"><button onclick="chooseHomeBackground()">选择主界面图片</button><button onclick="v472HomeImageOnly()">只用图片</button><button onclick="clearHomeBackground()">默认壁纸</button></div>${chatSettings?`<label class="v472-range"><span>当前聊天叠色透明度 <i id="v472ChatOpacityValue">${Math.round(clamp(chatSettings.backgroundOpacity,0,.85,.38)*100)}%</i></span><input id="v472ChatOpacity" type="range" min="0" max="85" value="${Math.round(clamp(chatSettings.backgroundOpacity,0,.85,.38)*100)}" oninput="v472UpdateBeautyPreview()"></label><div class="v472-inline-actions three"><button onclick="chooseChatBackground()">选择聊天图片</button><button onclick="v472ChatImageOnly()">只用图片</button><button onclick="clearChatBackground()">默认壁纸</button></div>`:''}</section><section><header><b>气泡、文字与安全组件</b><small>尺寸同样会在上方预览</small></header>${[['BubbleWidth','气泡最大宽度',58,100,clamp(config.bubbleWidth,58,100,84),'%'],['FontSize','聊天文字大小',10,22,clamp(config.fontSize,10,22,14),'px'],['BubbleRadius','气泡圆角',0,30,clamp(config.bubbleRadius,0,30,18),'px'],['BubblePadding','气泡内边距',6,20,clamp(config.bubblePadding,6,20,11),'px'],['ComponentOpacity','组件清晰度',55,100,Math.round(clamp(config.componentOpacity,.55,1,.94)*100),'%']].map(([id,label,min,max,value,unit])=>`<label class="v472-range"><span>${label} <i id="v472${id}Value">${value}${unit}</i></span><input id="v472${id}" type="range" min="${min}" max="${max}" value="${value}" oninput="v472UpdateBeautyPreview()"></label>`).join('')}<label class="v472-safe-toggle"><span><b>安全组件</b><small>只改变透明度和清晰度，不破坏桌面占格与拖动</small></span><input id="v472SafeComponents" type="checkbox" ${config.safeComponents!==false?'checked':''} onchange="v472UpdateBeautyPreview()"></label></section><div class="form-actions"><button onclick="closeModal()">取消</button><button onclick="v472ResetBeautyDraft()">恢复预设</button><button class="primary" onclick="v472SaveBeauty()">保存并应用</button></div></div>`);
+    modal(`<div class="v472-beauty-factory"><header class="v472-beauty-head"><div><small>美化设置 · V45.7.9</small><h2>美化工厂</h2><p>每一层都可单独换色；主要文字、次级文字和边界可独立选择，按钮与气泡文字仍会安全反色。</p></div><span>安全反色</span></header><section class="v472-preview-section"><div id="v472BeautyPreview" class="v472-beauty-preview"><header><b>页面顶部</b><small>文字自动反色</small></header><main><div class="v472-preview-icon"><i>◎</i><small>图标外层</small></div><article><b>卡片层</b><span>次级卡片与输入区域</span><label>输入预览</label></article><div class="v472-preview-bubbles"><p>对方气泡</p><p>我的气泡</p></div><button>强调按钮</button></main><footer><span>底栏</span><i>○</i><i>□</i><i>△</i></footer></div><small>这里会即时显示图标、卡片、输入框、按钮和双方气泡的真实对比关系；预览不会提前改写已保存方案。</small></section><section><header><b>分层换色</b><small>包含图标外容器、两级文字与分隔线</small></header><div class="v472-color-grid">${COLOR_FIELDS.map(([key,label])=>`<label><span>${E(label)}</span><input id="${fieldId(key)}" type="color" value="${AT(colors[key])}" oninput="v472UpdateBeautyPreview()"></label>`).join('')}</div><div class="v472-inline-actions"><button onclick="v472LoadThemeColors()">载入当前主题</button><button onclick="openPaletteStudio()">图片取色 / 保存主题</button></div></section><section><header><b>壁纸层</b><small>透明度为 0 时不再用纯色遮盖图片</small></header><label class="v472-range"><span>主界面叠色透明度 <i id="v472HomeOpacityValue">${Math.round(clamp(data.settings.homeBackgroundOpacity,0,.85,.38)*100)}%</i></span><input id="v472HomeOpacity" type="range" min="0" max="85" value="${Math.round(clamp(data.settings.homeBackgroundOpacity,0,.85,.38)*100)}" oninput="v472UpdateBeautyPreview()"></label><div class="v472-inline-actions three"><button onclick="chooseHomeBackground()">选择主界面图片</button><button onclick="v472HomeImageOnly()">只用图片</button><button onclick="clearHomeBackground()">默认壁纸</button></div>${chatSettings?`<label class="v472-range"><span>当前聊天叠色透明度 <i id="v472ChatOpacityValue">${Math.round(clamp(chatSettings.backgroundOpacity,0,.85,.38)*100)}%</i></span><input id="v472ChatOpacity" type="range" min="0" max="85" value="${Math.round(clamp(chatSettings.backgroundOpacity,0,.85,.38)*100)}" oninput="v472UpdateBeautyPreview()"></label><div class="v472-inline-actions three"><button onclick="chooseChatBackground()">选择聊天图片</button><button onclick="v472ChatImageOnly()">只用图片</button><button onclick="clearChatBackground()">默认壁纸</button></div>`:''}</section><section><header><b>气泡、文字与安全组件</b><small>尺寸同样会在上方预览</small></header>${[['BubbleWidth','气泡最大宽度',58,100,clamp(config.bubbleWidth,58,100,84),'%'],['FontSize','聊天文字大小',10,22,clamp(config.fontSize,10,22,14),'px'],['BubbleRadius','气泡圆角',0,30,clamp(config.bubbleRadius,0,30,18),'px'],['BubblePadding','气泡内边距',6,20,clamp(config.bubblePadding,6,20,11),'px'],['ComponentOpacity','组件清晰度',55,100,Math.round(clamp(config.componentOpacity,.55,1,.94)*100),'%']].map(([id,label,min,max,value,unit])=>`<label class="v472-range"><span>${label} <i id="v472${id}Value">${value}${unit}</i></span><input id="v472${id}" type="range" min="${min}" max="${max}" value="${value}" oninput="v472UpdateBeautyPreview()"></label>`).join('')}<label class="v472-safe-toggle"><span><b>安全组件</b><small>只改变透明度和清晰度，不破坏桌面占格与拖动</small></span><input id="v472SafeComponents" type="checkbox" ${config.safeComponents!==false?'checked':''} onchange="v472UpdateBeautyPreview()"></label></section><div class="form-actions"><button onclick="closeModal()">取消</button><button onclick="v472ResetBeautyDraft()">恢复预设</button><button class="primary" onclick="v472SaveBeauty()">保存并应用</button></div></div>`);
     v472UpdateBeautyPreview()
   };
 
   function syncPalettePreview(){
-    const preview=document.getElementById('v457PalettePreview');if(!preview)return;const values={background:document.getElementById('v457PaletteBackground')?.value||DEFAULT_COLORS.background,panel:document.getElementById('v457PalettePanel')?.value||DEFAULT_COLORS.panel,header:document.getElementById('v457PaletteHeader')?.value||DEFAULT_COLORS.header,dock:document.getElementById('v457PaletteDock')?.value||DEFAULT_COLORS.dock,accent:document.getElementById('v457PaletteAccent')?.value||DEFAULT_COLORS.accent,icon:document.getElementById('v457PaletteIcon')?.value||DEFAULT_COLORS.icon,bubbleMine:document.getElementById('v457PaletteBubbleMine')?.value||DEFAULT_COLORS.bubbleMine,bubbleOther:document.getElementById('v457PaletteBubbleOther')?.value||DEFAULT_COLORS.bubbleOther};
+    const preview=document.getElementById('v457PalettePreview');if(!preview)return;
+    const fallback=DEFAULT_COLORS,values={background:document.getElementById('v457PaletteBackground')?.value||fallback.background,panel:document.getElementById('v457PalettePanel')?.value||fallback.panel,panel2:document.getElementById('v457PalettePanel2')?.value||fallback.panel2,header:document.getElementById('v457PaletteHeader')?.value||fallback.header,dock:document.getElementById('v457PaletteDock')?.value||fallback.dock,accent:document.getElementById('v457PaletteAccent')?.value||fallback.accent,iconOuter:document.getElementById('v457PaletteIconOuter')?.value||fallback.iconOuter,icon:document.getElementById('v457PaletteIcon')?.value||fallback.icon,input:document.getElementById('v457PaletteInput')?.value||fallback.input,text:document.getElementById('v457PaletteText')?.value||fallback.text,muted:document.getElementById('v457PaletteMuted')?.value||fallback.muted,line:document.getElementById('v457PaletteLine')?.value||fallback.line,bubbleMine:document.getElementById('v457PaletteBubbleMine')?.value||fallback.bubbleMine,bubbleOther:document.getElementById('v457PaletteBubbleOther')?.value||fallback.bubbleOther};
     for(const [key,value] of Object.entries(values))preview.style.setProperty(`--p-${key==='background'?'bg':key==='panel'?'card':key==='bubbleMine'?'mine':key==='bubbleOther'?'other':key}`,value);
-    preview.style.setProperty('--p-bg-text',contrastText(values.background));preview.style.setProperty('--p-card-text',contrastText(values.panel));preview.style.setProperty('--p-head-text',contrastText(values.header));preview.style.setProperty('--p-dock-text',contrastText(values.dock));preview.style.setProperty('--p-accent-text',contrastText(values.accent));preview.style.setProperty('--p-mine-text',contrastText(values.bubbleMine));preview.style.setProperty('--p-other-text',contrastText(values.bubbleOther));
-    const textInput=document.getElementById('v457PaletteText');if(textInput){const nextText=contrastText(values.background);if(textInput.value!==nextText)textInput.value=nextText;if(textInput.disabled!==true)textInput.disabled=true;const label=textInput.closest('label')?.querySelector('span'),labelText='主要文字 · 自动反色';if(label&&label.textContent!==labelText)label.textContent=labelText}
+    preview.style.setProperty('--p-bg-text',values.text);preview.style.setProperty('--p-card-text',values.text);preview.style.setProperty('--p-head-text',contrastText(values.header));preview.style.setProperty('--p-dock-text',contrastText(values.dock));preview.style.setProperty('--p-accent-text',contrastText(values.accent));preview.style.setProperty('--p-mine-text',contrastText(values.bubbleMine));preview.style.setProperty('--p-other-text',contrastText(values.bubbleOther))
   }
+
   const basePalettePreview=window.v457PreviewPalette;if(typeof basePalettePreview==='function')window.v457PreviewPalette=function(...args){const result=basePalettePreview.apply(this,args);syncPalettePreview();return result};
   const basePaletteStudio=window.openPaletteStudio;if(typeof basePaletteStudio==='function')window.openPaletteStudio=function(...args){const result=basePaletteStudio.apply(this,args);setTimeout(syncPalettePreview,0);return result};
 
