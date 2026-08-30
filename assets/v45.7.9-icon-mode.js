@@ -32,9 +32,24 @@
   if(typeof HOME_GLYPH_SVGS==='object')Object.assign(HOME_GLYPH_SVGS,SVG_ICONS);
   data.settings=data.settings&&typeof data.settings==='object'?data.settings:{};
   const hadValidMode=data.settings.homeIconMode===IMAGE_MODE||data.settings.homeIconMode===SVG_MODE;
-  if(!hadValidMode)data.settings.homeIconMode=IMAGE_MODE;
+  /* V45.7.14: 默认改成纯色 SVG。一体化毛玻璃桌面需要墨线图标，
+     图片图标是黑金照片，CSS 改不了它的颜色。
+     用户原有的自定义图片一律保留在 data.settings.homeAppIcons 里，
+     切回图片模式即可恢复，这里只改「默认值」。 */
+  if(!hadValidMode)data.settings.homeIconMode=SVG_MODE;
 
   function currentMode(){return data.settings.homeIconMode===SVG_MODE?SVG_MODE:IMAGE_MODE}
+  /* V45.7.14: 一次性迁移。老资料里已经存着 image，光改默认值到不了现有用户，
+     所以这里做一次切换，并留标记不再重复执行。之后你手动切回图片，它不会再被改。 */
+  (function(){
+    try{
+      data.runtime=data.runtime&&typeof data.runtime==='object'?data.runtime:{};
+      if(data.runtime.v45714IconDefault)return;
+      data.runtime.v45714IconDefault=true;
+      if(data.settings.homeIconMode===IMAGE_MODE)data.settings.homeIconMode=SVG_MODE;
+      try{save()}catch{}
+    }catch{}
+  })();
   function svgFor(key){return HOME_GLYPH_SVGS?.[key]||SVG_ICONS[key]||SVG_FALLBACK}
   function setText(node,value){if(node&&node.textContent!==value)node.textContent=value}
   function miniIcon(key,mode){

@@ -22,13 +22,13 @@
 }
 
 /* ---------- 页面底：纯白，无渐变无纹理 ---------- */
-.view:not(#home){background:var(--pl-bg)}
+.view:not(#home){background:var(--pl-bg)!important}
 .view:not(#home):before,.view:not(#home):after{
  background:none!important;animation:none!important;content:none}
 
 /* ---------- 头部 ---------- */
 .view:not(#home) .header{
- background:var(--pl-bg);border:0;border-bottom:1px solid var(--pl-line);
+ background:var(--pl-bg)!important;border:0;border-bottom:1px solid var(--pl-line);
  box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 .view:not(#home) .header h1{color:var(--pl-ink);font-weight:600;letter-spacing:0}
 .view:not(#home) .icon-btn{
@@ -41,7 +41,7 @@
 .view:not(#home) .section,
 .view:not(#home) .character-studio-hero{
  border:1px solid var(--pl-line);border-radius:12px;
- background:var(--pl-panel);box-shadow:none;
+ background:var(--pl-panel)!important;box-shadow:none;
  -webkit-backdrop-filter:none;backdrop-filter:none}
 .view:not(#home) .row.card:before,
 .view:not(#home) .card:before,
@@ -107,7 +107,7 @@
 
 /* ---------- 对话页 ---------- */
 #chat .chat-head{
- background:var(--pl-bg);border:0;border-bottom:1px solid var(--pl-line);
+ background:var(--pl-bg)!important;border:0;border-bottom:1px solid var(--pl-line);
  box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 #chat .chat-name{color:var(--pl-ink);font-weight:600}
 #chat .chat-sub,#chat .chat-status-line{color:var(--pl-ink-4)}
@@ -115,12 +115,12 @@
  background:var(--pl-bg);box-shadow:none}
 /* 对方气泡：浅灰面黑字 */
 #chat .bubble{
- border:1px solid var(--pl-line);color:var(--pl-ink);
- background:var(--pl-panel);box-shadow:none;
+ border:1px solid var(--pl-line);color:var(--pl-ink)!important;
+ background:var(--pl-panel)!important;box-shadow:none;
  -webkit-backdrop-filter:none;backdrop-filter:none}
 #chat .bubble:before{content:none;background:none}
 /* 我方气泡：黑底白字 */
-#chat .msg-group.me .bubble{border:0;color:#ffffff;background:#1c1e22;box-shadow:none}
+#chat .msg-group.me .bubble{border:0;color:#ffffff!important;background:#1c1e22!important;box-shadow:none}
 #chat .msg-group.me .bubble:before{content:none;background:none}
 #chat .msg-speaker,#chat .msg-time,#chat .message-footer{color:var(--pl-ink-4)}
 #chat .narration-entry{border:0;background:none;box-shadow:none}
@@ -132,7 +132,7 @@
 #chat .bubble-translation{border:0;border-top:1px solid var(--pl-line-2);
  color:var(--pl-ink-3);background:none;box-shadow:none}
 #chat .composer{
- background:var(--pl-bg);border:0;border-top:1px solid var(--pl-line);
+ background:var(--pl-bg)!important;border:0;border-top:1px solid var(--pl-line);
  box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 #chat .composer-tool{border:1px solid var(--pl-line);border-radius:10px;
  color:var(--pl-ink-2);background:var(--pl-bg);box-shadow:none}
@@ -172,3 +172,38 @@
  -webkit-backdrop-filter:none;backdrop-filter:none;text-shadow:none}
 .view:not(#home) .row.card:hover,
 .view:not(#home) .card:hover{transform:none;box-shadow:none}
+
+/* ---------- 压过 html[data-pokeji-theme] 那一层 ----------
+   那一层的每条规则都带 !important，所以这里也必须带，
+   否则内部页面会被强制回深色。#home 不在其中。 */
+html[data-pokeji-theme] body,
+html[data-pokeji-theme] #screen{background:#ffffff!important;color:#141518!important}
+html[data-pokeji-theme] .view:not(#home),
+html[data-pokeji-theme] .app-view:not(#home){
+ background-color:#ffffff!important;color:#141518!important}
+html[data-pokeji-theme] .app-view:not(#home)>.scroll,
+html[data-pokeji-theme] #chat>.scroll{background:#ffffff!important}
+html[data-pokeji-theme] .app-view:not(#home)>.header,
+html[data-pokeji-theme] #chat .chat-head{
+ background:#ffffff!important;color:#141518!important;border-color:#e4e6e8!important}
+html[data-pokeji-theme] .view:not(#home) .group,
+html[data-pokeji-theme] .view:not(#home) .section,
+html[data-pokeji-theme] .view:not(#home) .setting,
+html[data-pokeji-theme] .view:not(#home) .data-panel{
+ color:#141518!important;border-color:#e4e6e8!important}
+html[data-pokeji-theme] .view:not(#home) .setting{background:#f6f7f8!important}
+html[data-pokeji-theme] #chat .msg-group .bubble{
+ background:#f6f7f8!important;color:#141518!important}
+html[data-pokeji-theme] #chat .msg-group.me .bubble{
+ background:#1c1e22!important;color:#ffffff!important}
+html[data-pokeji-theme] #chat .composer{
+ background:#ffffff!important;border-color:#e4e6e8!important}
+/* 番外页也曾被强制深色 */
+html[data-pokeji-theme] .v455-story-view,
+html[data-pokeji-theme] .v455-story-page{background:#ffffff!important;color:#141518!important}
+html[data-pokeji-theme] .v455-story-head,
+html[data-pokeji-theme] .v455-manuscript-composer{
+ background:#ffffff!important;color:#141518!important;border-color:#e4e6e8!important}
+/* 文游与幻梦馆是独立视图，同样统一 */
+html[data-pokeji-theme] .v4571-vn-view,
+html[data-pokeji-theme] .v45712-dream-view{background:#ffffff!important;color:#141518!important}
