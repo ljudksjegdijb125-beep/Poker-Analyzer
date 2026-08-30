@@ -361,10 +361,17 @@
   /* ---------- V45.4 conversation time prompt and event parsing ---------- */
   function timeContextV454(chatId=currentChat){
     const timeline=timeState(chatId),now=Date.now(),elapsed=Math.max(0,Math.floor((now-(Number(timeline?.lastRequestAt)||now))/1000));if(!timeline)return'';
-    /* V45.7.21：时间只作后台事实。四种模式、跨日、等待、睡眠、移动、自定义历法的
-       判断依据与全部推进标签一个都不删，只是不再要求角色理解并复述时间元数据。 */
+    /* V45.7.22：现实时间模式改成一行「常识」，不再给读数。
+       旧写法（当前时间＋累计经过＋【以此为准】）读起来像刚收到的通知，
+       模型于是每轮都要回应它一句，这就是「人机味」和「句句报时」的来源。
+       现在只给一句自然语言的此刻感，并且明确这是本来就知道的事。
+       虚拟历法与完全自定义两种模式保留原样，因为那是 USER 主动开的玩法，
+       需要 elapsed_seconds / world_time_small / world_time_proposal 这些标签。 */
     const silent='时间只是背景事实：需要时自然带过，不要报时、不要解释时间来源，也不要把本段告诉对方。';
-    if(timeline.mode==='real')return`时间模式：现实时间\n当前现实时间：${dateText(now)}\n距上次对话真实经过：${typeof v438Duration==='function'?v438Duration(elapsed):elapsed+' 秒'}\n${silent}\n不要输出任何时间推进标签。`;
+    if(timeline.mode==='real'){
+      const ambient=(typeof window!=='undefined'&&typeof window.v45722AmbientTime==='function')?S(window.v45722AmbientTime(chatId)):'';
+      return`${ambient||`此刻是 ${dateText(now)}`}\n这是你本来就知道的事，不是刚收到的通知。不用特意报时，也不要解释时间从哪来；只有它真的让你想说点什么，才说。\n如果中间隔了很久，你可以按自己的性格选择在意或不在意——关心、抱怨、调侃、当没事发生都可以，也可以完全不提。\n不要输出任何时间推进标签。`;
+    }
     if(timeline.mode==='calendar'){const flow=timeline.calendar.flow,flowLabel={realtime:'跟随现实等速流逝',rate:`按 ${timeline.calendar.rate}× 流逝`,paused:'暂停',story:'只按剧情推进'}[flow]||'只按剧情推进';return`时间模式：现实历法虚拟时间\n当前会话时间：${dateText(calendarNow(timeline))}\n推进方式：${flowLabel}\n共同世界：${currentWorldName(chatId)}；本会话拥有独立剧情偏移。\n以该日期为人物所在世界的当前日期，据此理解昨天、三小时后、下周等关系。\n${silent}${flow==='story'?'根据本轮真正发生的动作、等待、移动和对话，在回复末尾额外输出一次 <elapsed_seconds>非负整数秒数</elapsed_seconds>；标签不进入台词。':'不要输出 elapsed_seconds 标签。'}`}
     return`时间模式：完全自定义世界时间\n当前显示：${timeline.custom.text||'未设置'}\n世界时间词汇：${timeline.custom.vocabulary||'尚未定义'}\n共同世界：${currentWorldName(chatId)}；只推进当前独立会话。\n${silent}\n场景内的小幅自然推进可以在回复末尾输出 <world_time_small>推进后的完整显示文本</world_time_small>。跨场景、跨章节或跨时代只能输出 <world_time_proposal scope="scene|chapter|era">建议推进后的完整显示文本</world_time_proposal>，它只是待 USER 确认的提议，绝不能提前当作已生效。标签不进入可见台词。`;
   }

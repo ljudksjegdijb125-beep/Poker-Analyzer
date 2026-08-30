@@ -2358,6 +2358,96 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
      自定义世界历法的判断能力一个都不减；只是不再把每条历史都铺进提示词。
      判定「有意义的时间节点」：跨日、间隔≥20 分钟、时间模式切换、线上线下切换、
      以及最近两条。其余消息由普通历史承担，时间不重复出现。 */
+  /* =========================================================
+     V45.7.22 · 时间从「通知」改成「常识」
+     用户反馈两件事，其实同一个病根：
+       ① 前几小时说要睡觉，几小时后回来，角色还问「你不是要睡觉吗」
+       ② 一给时间就句句提时间，人味没了
+     原因是旧写法给的是原始读数（当前时间＋累计经过＋区块标题【以此为准】），
+     模型把它当成刚收到的通知，于是要回应它；同时历史里 USER 最后一句
+     「我去睡了」没有任何东西说明它已经过期，所以那句话一直是「最新状态」。
+     改法：给结论，不给读数。
+       · 一行自然语言的此刻感（带时段词），读起来像本来就知道的事
+       · USER 的状态声明超过合理时长，直接在那条消息上标「已结束」
+       · 不要求角色提时间，只允许它按性格自行决定在意或不在意
+     ========================================================= */
+  const V45722_PERIODS=[[5,'凌晨'],[9,'早上'],[11,'上午'],[13,'中午'],[17,'下午'],[19,'傍晚'],[24,'晚上']];
+  function periodWord(ms){
+    const hour=new Date(Number(ms)||Date.now()).getHours();
+    for(const [limit,word] of V45722_PERIODS)if(hour<limit)return word;
+    return'晚上';
+  }
+  function clockWord(ms){
+    const date=new Date(Number(ms)||Date.now());
+    const pad=value=>String(value).padStart(2,'0');
+    return`${periodWord(date.getTime())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+  function dayWord(ms,nowMs){
+    const date=new Date(Number(ms)||Date.now()),now=new Date(Number(nowMs)||Date.now());
+    const dayMs=24*60*60*1000;
+    const startOf=value=>{const d=new Date(value);d.setHours(0,0,0,0);return d.getTime()};
+    const diff=Math.round((startOf(now)-startOf(date))/dayMs);
+    if(diff===0)return'';
+    if(diff===1)return'昨天';
+    if(diff===2)return'前天';
+    if(diff>2&&diff<7)return`${diff}天前`;
+    return`${date.getMonth()+1}月${date.getDate()}日`;
+  }
+
+  /* USER 声明过的状态：超过合理时长就当它已经结束。
+     阈值按「这件事正常要做多久」定，不是随便取的数字。 */
+  const V45722_STATES=[
+    {key:'sleep',test:/(去睡|睡了|睡觉|晚安|洗漱睡|躺下|眯一会|补个觉|睡一下)/,short:3,long:5,
+     shortText:'睡了一会儿，可能刚醒',longText:'睡了一整觉，现在应该已经醒了'},
+    {key:'shower',test:/(洗澡|冲个澡|去洗漱|泡澡)/,short:40/60,long:2,
+     shortText:'应该洗完了',longText:'早就洗完了'},
+    {key:'meal',test:/(吃饭|去吃|吃个饭|点外卖|做饭|吃晚饭|吃午饭|吃早饭)/,short:1,long:3,
+     shortText:'应该吃完了',longText:'早就吃完了'},
+    {key:'out',test:/(出门|出去一下|上班|上课|去公司|去学校|要走了|下楼)/,short:2,long:8,
+     shortText:'可能还在外面，也可能回来了',longText:'早该回来了'},
+    {key:'busy',test:/(开会|忙一下|有事|处理一下|加班)/,short:1,long:4,
+     shortText:'应该忙完了',longText:'早就忙完了'}
+  ];
+  function stateExpiry(message,nowMs){
+    if(!message||message.role!=='user')return'';
+    const text=S(message.text);if(!text)return'';
+    const at=finite(message.timeMs);if(at===null||at===undefined)return'';
+    const hours=(Number(nowMs)-at)/3600000;
+    if(!(hours>0))return'';
+    for(const state of V45722_STATES){
+      if(!state.test.test(text))continue;
+      if(hours>=state.long)return`［这句话是 ${describeGap(hours)} 前说的，${state.longText}］`;
+      if(hours>=state.short)return`［这句话是 ${describeGap(hours)} 前说的，${state.shortText}］`;
+      return'';
+    }
+    return'';
+  }
+  function describeGap(hours){
+    if(hours<1)return`${Math.round(hours*60)} 分钟`;
+    if(hours<24)return`${Math.round(hours)} 小时`;
+    const days=Math.round(hours/24);
+    return`${days} 天`;
+  }
+  window.v45722StateExpiry=stateExpiry;
+  window.v45722ClockWord=clockWord;
+
+  /* 一行此刻感，替代原来那个多行读数区块。
+     不带【】标题、不带模式名、不带累计秒数，读起来像常识而不是通知。 */
+  window.v45722AmbientTime=function(chatId=currentChat){
+    try{
+      const now=Date.now();
+      const rows=L(data.chats?.[canonical(chatId)]);
+      const date=new Date(now);
+      const head=`此刻是 ${date.getMonth()+1}月${date.getDate()}日 星期${'日一二三四五六'[date.getDay()]} ${clockWord(now)}。`;
+      let last=null;
+      for(let index=rows.length-1;index>=0;index--){const at=finite(rows[index]?.timeMs);if(at!==null&&at!==undefined){last=at;break}}
+      if(last===null)return head;
+      const gapHours=(now-last)/3600000;
+      if(gapHours<1)return head;
+      const day=dayWord(last,now);
+      return`${head}你们上次说话是${day?day+' ':''}${clockWord(last)}。`;
+    }catch{return''}
+  };
   const V45721_GAP_MS=20*60*1000;
   function dayKey(ms){const value=finite(ms);if(value===null||value===undefined)return'';const date=new Date(value);return`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`}
   function significantRows(rows){
@@ -2382,7 +2472,12 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
   window.v45721TimeLabel=function(message,index,rows){
     try{
       const list=L(rows);if(!list.length)return'';
+      /* V45.7.22：USER 声明过的状态若已过期，直接标在那条消息上。
+         这样「我去睡了」不会再作为最新状态被继承，角色也就不会
+         隔了一整夜还问「你不是要睡觉吗」。 */
+      const expiry=stateExpiry(message,Date.now());
       const time=S(message?.worldTimeText||message?.timeContext?.text||message?.time||'');
+      if(expiry)return time?`[${time}]${expiry} `:`${expiry} `;
       if(!time)return'';
       if(index>=list.length-2)return`[${time}] `;
       const prev=list[index-1];if(!prev)return`[${time}] `;
@@ -2399,6 +2494,17 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
   };
   function buildTemporalContext(chatId=currentChat,{limit=100,maxChars=3200}={}){
     const rows=significantRows(temporalRows(chatId,limit));if(!rows.length)return'';
+    /* V45.7.22：普通短聊不再出现这个区块。
+       历史消息上的稀疏时间标签已经把「对话的形状」表达清楚了，
+       这里只在真的存在跨日或长间隔断点时才补一份节点表，避免重复注入。 */
+    const spans=[];
+    for(let index=1;index<rows.length;index++){
+      const cur=finite(rows[index].message?.timeMs)??finite(rows[index].entry?.timeMs);
+      const prev=finite(rows[index-1].message?.timeMs)??finite(rows[index-1].entry?.timeMs);
+      if(cur===null||cur===undefined||prev===null||prev===undefined)continue;
+      if(Math.abs(cur-prev)>=6*60*60*1000||dayKey(cur)!==dayKey(prev))spans.push(index);
+    }
+    if(!spans.length)return'';
     const selected=[];let used=0;
     for(let index=rows.length-1;index>=0;index--){
       const {entry,message}=rows[index],time=S(message?.worldTimeText||message?.timeContext?.text||entry.worldTimeText||'时间未记录');

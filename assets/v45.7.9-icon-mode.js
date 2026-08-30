@@ -51,6 +51,10 @@
     }catch{}
   })();
   function svgFor(key){return HOME_GLYPH_SVGS?.[key]||SVG_ICONS[key]||SVG_FALLBACK}
+  /* V45.7.22：把这张最完整的 SVG 表导出去。
+     app.js 自带的 HOME_GLYPH_SVGS 只有 4 个入口，应用选择器和图标兜底
+     以前会掉回 ♠ ✦ ⚙ 这类文字符号；现在统一走这里。 */
+  window.v45722IconSvg=function(key){return svgFor(key)};
   function setText(node,value){if(node&&node.textContent!==value)node.textContent=value}
   function miniIcon(key,mode){
     const source=mode===IMAGE_MODE&&typeof homeAppIcon==='function'?homeAppIcon(key):'';

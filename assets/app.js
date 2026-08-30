@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.7.21';
+const VERSION='45.7.22';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -338,7 +338,7 @@ async function installPWA(){
 function applyHomeBackground(){
   const home=document.querySelector('#home .p12-home');
   if(!home)return;
-  /* V45.7.21 keeps wallpaper data and controls, but the requested global
+  /* V45.7.22 keeps wallpaper data and controls, but the requested global
      monochrome presentation never paints an image or an overlay. */
   home.style.removeProperty('background-image');
   home.style.removeProperty('background-size');
@@ -395,7 +395,7 @@ function applyChatBackground(){
   const chat=document.getElementById('chat');
   if(!chat)return;
   /* Keep the saved conversation background data intact while honoring the
-     V45.7.21 plain-white presentation. */
+     V45.7.22 plain-white presentation. */
   chat.style.removeProperty('background-image');
   chat.style.removeProperty('background-size');
   chat.style.removeProperty('background-position');
@@ -467,15 +467,29 @@ function unlock(){show('home');clock();applyAppearance()}
 function clock(){const d=new Date(),t=d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),days=['日','一','二','三','四','五','六'];document.getElementById('statusTime').textContent=t;document.getElementById('lockTime').textContent=t;document.getElementById('lockDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;const h=document.getElementById('homeClock');if(h)h.textContent=t;const hl=document.getElementById('homeClockLarge');if(hl)hl.textContent=t;const hd=document.getElementById('homeDate');if(hd)hd.textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${days[d.getDay()]}`}
 function safeColor(value,fallback='#6e5540'){return /^#[0-9a-f]{6}$/i.test(String(value||''))?String(value):fallback}
 function safeImageSrc(value){const s=String(value||'').trim();return /^(?:data:image\/(?:jpeg|png|webp);base64,|\.\/assets\/|https:\/\/)/i.test(s)?s:''}
+/* V45.7.22 · 空状态图标统一成 SVG。
+   原来这里是 ♡ ◌ ❖ ◈ ✦ ⌁ 这些文字符号，不同字体渲染差别很大，
+   而且和已经全面 SVG 化的桌面对不上。这里只换呈现，不动任何文案与逻辑。 */
+const EMPTY_SVGS={
+ chat:'<path d="M7 9h18v12H14l-5 4v-4H7z"/>',
+ person:'<circle cx="16" cy="12" r="4.5"/><path d="M8 25c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
+ group:'<circle cx="12" cy="12" r="3.6"/><circle cx="22" cy="13.5" r="3"/><path d="M6 24c0-3.6 2.7-6 6-6s6 2.4 6 6"/><path d="M19 24c0-2.8 1.4-4.6 3.6-4.6S26 21.2 26 24"/>',
+ feed:'<circle cx="16" cy="16" r="9.5"/><path d="M16 11v5l4 2.5"/>',
+ bell:'<path d="M16 7a6 6 0 0 0-6 6v5l-2 3h16l-2-3v-5a6 6 0 0 0-6-6z"/><path d="M13.5 24a2.5 2.5 0 0 0 5 0"/>',
+ book:'<path d="M8 8h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H8z"/><path d="M24 8h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z"/>',
+ memory:'<rect x="8.5" y="8.5" width="15" height="15" rx="3"/><path d="M13 14h6M13 18h4"/>'
+};
+function emptyIcon(key){
+ const path=EMPTY_SVGS[key]||EMPTY_SVGS.chat;
+ return `<div class="big"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></div>`;
+}
+
 function homeAppIcon(key){return safeImageSrc(data.settings.homeAppIcons?.[key])||HOME_APP_CATALOG[key]?.icon||''}
-function applyHomeAvatar(){
- const image=document.getElementById('homeAvatarImage'),fallback=document.getElementById('homeAvatarFallback');if(!image||!fallback)return;
- const src=safeImageSrc(data.settings.homeAvatar);image.src=src;image.hidden=!src;fallback.hidden=!!src;
-}
-function chooseHomeAvatar(){
- const input=document.createElement('input');input.type='file';input.accept='image/*';
- input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;data.settings.homeAvatar=await readImageFile(file);save();applyHomeAvatar();toast('桌面头像已更换')}catch(error){errorDetail(error,'头像读取失败')}};input.click();
-}
+/* V45.7.22：桌面不再挂头像（连右上角那个「我」一起去掉）。
+   这两个函数保留成空实现，因为 render 流程里还在调用 applyHomeAvatar，
+   而 data.settings.homeAvatar 里可能已经存了用户上传过的图，不做删除。 */
+function applyHomeAvatar(){}
+function chooseHomeAvatar(){}
 async function applyCustomFont(){
  const cfg=data.settings.customFont||{};const root=document.documentElement;root.classList.toggle('font-custom',!!cfg.source);
  if(!cfg.source){root.style.removeProperty('--ui-font');return}
@@ -495,7 +509,7 @@ function homeItemMarkup(item){
  const style=`grid-column:${item.x+1}/span ${item.w};grid-row:${item.y+1}/span ${item.h};--widget-color:${safeColor(item.color)}`;
  if(item.kind==='app'){
   const app=HOME_APP_CATALOG[item.app],src=homeAppIcon(item.app),glyphSvg=HOME_GLYPH_SVGS[item.app];
-  const icon=src?`<span class="home-app-icon home-app-image"><img src="${attr(src)}" alt=""></span>`:`<span class="home-app-icon home-app-glyph">${glyphSvg?`<svg viewBox="0 0 32 32" aria-hidden="true">${glyphSvg}</svg>`:`<b aria-hidden="true">${esc(app.glyph||'')}</b>`}</span>`;
+  const icon=src?`<span class="home-app-icon home-app-image"><img src="${attr(src)}" alt=""></span>`:`<span class="home-app-icon home-app-glyph">${glyphSvg?`<svg viewBox="0 0 32 32" aria-hidden="true">${glyphSvg}</svg>`:`<svg viewBox="0 0 32 32" aria-hidden="true">${(typeof v45722IconSvg==='function'?v45722IconSvg(item.app):'')}</svg>`}</span>`;
   return `<button class="home-item home-app${homeEditMode?' is-editing':''}" style="${style}" data-home-id="${attr(item.id)}" aria-label="${attr(app.label)}" onpointerdown="homeItemPointerDown(event,'${attr(item.id)}')" onclick="activateHomeItem(event,'${attr(item.id)}')">${icon}<span class="home-app-label">${esc(app.label)}</span><i class="home-edit-badge">×</i></button>`;
  }
  const src=safeImageSrc(item.image),kind=item.widget==='cd'?' home-widget-cd':' home-widget-photo';
@@ -570,7 +584,7 @@ function createHomeWidget(type){
  const id=`widget_${type}_${v44UUID()}`;data.homeDesktop.items.push({id,kind:'widget',widget:type,page:homePage,x:slot.x,y:slot.y,w,h,color:type==='cd'?'#9c6f57':'#6e5540',image:''});save();closeHomeEditor();renderHomeDesktop();editHomeItem(id);
 }
 function showWidgetPicker(){modal(`<h2>添加图1尺寸组件</h2><div class="note">组件固定占一个 2×2 区块，创建后可立即上传图片。</div><div class="home-picker"><button onclick="createHomeWidget('photo')"><b>照片组件</b><span>上传自己的图片</span></button><button onclick="createHomeWidget('cd')"><b>CD 组件</b><span>图片作为唱片封面</span></button></div>`)}
-function showAppPicker(){const present=new Set(data.homeDesktop.items.filter(x=>x.kind==='app').map(x=>x.app)),missing=Object.entries(HOME_APP_CATALOG).filter(([key])=>!HOME_DOCK_APPS.has(key)&&!present.has(key));modal(`<h2>添加应用</h2>${missing.length?`<div class="home-app-picker">${missing.map(([key,app])=>`<button onclick="addHomeApp('${key}')"><span>${esc(app.glyph)}</span><b>${esc(app.label)}</b></button>`).join('')}</div>`:'<div class="empty">所有桌面功能都已放好</div>'}`)}
+function showAppPicker(){const present=new Set(data.homeDesktop.items.filter(x=>x.kind==='app').map(x=>x.app)),missing=Object.entries(HOME_APP_CATALOG).filter(([key])=>!HOME_DOCK_APPS.has(key)&&!present.has(key));modal(`<h2>添加应用</h2>${missing.length?`<div class="home-app-picker">${missing.map(([key,app])=>`<button onclick="addHomeApp('${key}')"><span class="tool-svg"><svg viewBox="0 0 32 32" aria-hidden="true">${(typeof v45722IconSvg==='function'?v45722IconSvg(key):HOME_GLYPH_SVGS[key]||'')}</svg></span><b>${esc(app.label)}</b></button>`).join('')}</div>`:'<div class="empty">所有桌面功能都已放好</div>'}`)}
 function addHomeApp(key){if(!HOME_APP_CATALOG[key]||HOME_DOCK_APPS.has(key))return;if(data.homeDesktop.items.some(item=>item.kind==='app'&&item.app===key))return toast('该功能已在桌面上');let slot=findHomeSlot(homePage,1,1);if(!slot)return toast('本页没有空位');data.homeDesktop.items.push({id:`app_${key}_${v44UUID()}`,kind:'app',app:key,page:homePage,x:slot.x,y:slot.y,w:1,h:1});save();closeModal();closeHomeEditor();renderHomeDesktop()}
 function editHomeItem(id){
  const item=data.homeDesktop.items.find(x=>x.id===id);if(!item)return;
@@ -697,7 +711,7 @@ function grantReversePhoneCheck(){if(!currentChat||isGroupChatId(currentChat))re
 function renderChats(){
  const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase();
  const arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));
- if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>${q?'没有匹配的角色':'还没有角色<br>请先创建角色。'}</div>`;return}
+ if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('chat')}${q?'没有匹配的角色':'还没有角色<br>请先创建角色。'}</div>`;return}
  e.innerHTML=arr.map(c=>{const chatId=directChatId(c.id),m=(data.chats[chatId]||[]).at(-1),proactive=data.settings.proactiveEnabled===true&&c.proactiveEnabled?'<span class="chat-live-badge">主动</span>':'';return `<div class="row card chat-channel-row"><button class="chat-row-main" onclick="openChat('${attr(c.id)}','online')">${avatar(c)}<span class="chat-row-copy"><b>${esc(c.name)} ${proactive}</b><span class="muted">${esc(m?.text||'尚未开始聊天')}</span></span><time>${esc(m?.time||'')}</time></button></div>`}).join('');
 }
 
@@ -706,7 +720,7 @@ function renderContacts(q=''){
  const characterCount=document.getElementById('characterCount'),personaCount=document.getElementById('personaCount');
  if(characterCount)characterCount.textContent=`${data.characters.length} 个角色`;
  if(personaCount)personaCount.textContent=`${data.personas.length} 张面具`;
- if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>${q?'没有匹配的角色':'还没有角色<br>从上方角色设置中心开始创建。'}</div>`;return}
+ if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('person')}${q?'没有匹配的角色':'还没有角色<br>从上方角色设置中心开始创建。'}</div>`;return}
  e.innerHTML=arr.map(c=>`<div class="row card character-list-row" onclick="openChat('${c.id}','online')">${avatar(c)}<div class="character-list-copy"><b>${esc(c.name)}</b><div class="muted">${esc(c.status||c.bio||'尚未填写角色摘要')}</div></div><button class="icon-btn" aria-label="编辑角色" onclick="event.stopPropagation();editCharacter('${c.id}')">⋯</button></div>`).join('')
 }
 
@@ -714,7 +728,7 @@ function renderContacts(q=''){
 function avatarStack(members){const rows=(Array.isArray(members)?members:[]).filter(Boolean).slice(0,4);if(!rows.length)return `<div class="avatar-stack v45710-group-grid is-empty" data-members="0"><div class="avatar"><b class="avatar-fallback">群</b></div></div>`;return `<div class="avatar-stack v45710-group-grid" data-members="${rows.length}">${rows.map(c=>avatar(c)).join('')}</div>`}
 function renderGroups(){
  const e=document.getElementById('groupList');
- if(!data.groups.length){e.innerHTML='<div class="empty"><div class="big">❖</div>还没有群聊<br>至少创建 2 个角色后即可建群。</div>';return}
+ if(!data.groups.length){e.innerHTML=`<div class="empty">${emptyIcon("group")}还没有群聊<br>至少创建 2 个角色后即可建群。</div>`;return}
  e.innerHTML=data.groups.map(g=>{
   const members=g.memberIds.map(id=>data.characters.find(c=>c.id===id)).filter(Boolean);
   const last=(data.chats[groupChatId(g.id)]||[]).at(-1);
@@ -876,7 +890,35 @@ function deletePersona(id){
  save();personaEditorDraft=null;show('personaManager');renderPersonaManager();toast('面具及其独立记录已删除');
 }
 function clearChat(id=currentChat){id=canonicalChatId(id);if(!id)return;if(!confirm('清空当前面具下的线上与线下记录？其他面具不会受影响。'))return;data.chats[id]=[];delete data.chatSummaries?.[id];save();if(currentChat===id)renderMessages();closeModal();renderChats();renderGroups();toast('当前面具的聊天记录已清空')}
-function clearCharacterConversations(id){const chatId=directChatId(id),name=data.characters.find(item=>item.id===id)?.name||'对方';if(!confirm(`清空${name}在当前面具下的线上与线下记录？其他面具不会受影响。`))return;data.chats[chatId]=[];delete data.chatSummaries?.[chatId];scheduleNextProactive(id,true);save();closeModal();if(currentChat===chatId)renderMessages();renderChats();toast('当前面具的聊天记录已清空')}
+function clearCharacterConversations(id){
+ /* V45.7.22：清空必须把「会被塞回提示词的痕迹」一起清掉。
+    旧版只清了 data.chats 与 chatSummaries，留下两类残留：
+      ① chatTimeHistory（时间账本）与 chatTimelines（会话时间线）
+      ② 同一角色在群聊里的记录，会通过 v45.6 的「跨入口会话记忆」漏回私信
+    ② 是用户看到「明明清空了还冒出以前写的东西」的主因，
+    所以群聊记录改成明确询问，而不是悄悄保留或悄悄删除。
+    记忆条目（记忆页里那些）属于用户自己的资料，不随聊天清空。 */
+ const chatId=directChatId(id),name=data.characters.find(item=>item.id===id)?.name||'对方';
+ if(!confirm(`清空${name}在当前面具下的线上与线下记录？其他面具不会受影响。`))return;
+ const wipe=key=>{
+  data.chats[key]=[];
+  if(data.chatSummaries)delete data.chatSummaries[key];
+  if(data.chatTimeHistory)delete data.chatTimeHistory[key];
+  if(data.chatTimelines)delete data.chatTimelines[key];
+  if(data.translationCache)delete data.translationCache[key];
+ };
+ wipe(chatId);
+ const persona=activePersonaFor(chatId),shared=(data.groups||[]).filter(group=>Array.isArray(group.memberIds)&&group.memberIds.includes(id));
+ if(shared.length){
+  const names=shared.map(group=>`「${group.name}」`).join('、');
+  if(confirm(`${name}还在 ${shared.length} 个群聊里：${names}。\n\n这些群聊记录是独立的，但${name}仍然能据此记得在群里发生的事。要不要一起清空？\n\n确定＝一起清空（会影响群里其他人的共同记录）\n取消＝只清私信，群聊保留`)){
+   for(const group of shared)wipe(groupChatId(group.id,persona?.id));
+  }
+ }
+ scheduleNextProactive(id,true);save();closeModal();
+ if(currentChat===chatId)renderMessages();
+ renderChats();toast('当前面具的聊天记录已清空');
+}
 
 /* ---------- chat: FIXED openChat ---------- */
 function openChat(id,mode='online',offlineStyle='direct'){
@@ -925,7 +967,7 @@ function messageReadButton(chatId,idx,message,show=true){if(!show||message.role!
 function renderMessages(){
  data.characters=Array.isArray(data.characters)?data.characters:[];
  const e=document.getElementById('messages'),arr=data.chats[currentChat]||[];
- if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有消息</div>`;return}
+ if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('chat')}还没有消息</div>`;return}
  const g=groupForChat(currentChat);
  const showAvatars=data.settings.chatAvatarMode!=='none',persona=activePersonaFor(currentChat),directCharacter=!g&&directCharacterForChat(currentChat);
  e.innerHTML=arr.map((m,i)=>{
@@ -1159,7 +1201,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V44_SW_URL='/sw-v44.js?build=45.7.21';
+const V44_SW_URL='/sw-v44.js?build=45.7.22';
 function isV44WorkerUrl(url){return /\/sw-v44\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v(?:38|42|43)\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -1538,7 +1580,7 @@ async function sendMessage(payload=null){
   }
   const history=data.chats[chatId].slice(-Math.max(4,Number(s.maxHistory)||40)).map((m,i,arr)=>{
    const modeLabel=!group&&m.mode==='offline'?`[此前处于面对面场景${m.sceneMode==='story'?'，含现场旁白':''}] `:(!group&&m.mode==='online'?'[此前通过私信交流] ':'');
-   /* V45.7.21：时间只在确实相关时才进上下文。
+   /* V45.7.22：时间只在确实相关时才进上下文。
       旧版每条历史都带完整时间前缀，模型于是句句报时、说话生硬。
       现在由 v45721TimeLabel 判断跨日、长间隔、模式切换和最后一条，其余留空；
       完整时刻仍然保存在消息本体里，随时可查。 */
@@ -1634,14 +1676,14 @@ function renderFeed(){
   const comments=Array.isArray(post.comments)?post.comments:[];
   return `<article class="feed-item"><div class="feed-author">${avatar(character)}<div><b>${esc(character.name)}</b>${post.generated?'<small>自行发布</small>':''}</div><button class="feed-more" onclick="showPostMenu('${attr(post.id)}')" aria-label="动态操作">⋯</button></div><div class="feed-body"><div class="feed-text">${esc(post.text)}</div>${postImagesMarkup(post)}${post.location?`<div class="feed-location">⌖ ${esc(post.location)}</div>`:''}<div class="feed-meta"><time>${esc(post.time||'刚刚')}</time><span>${post.createdAt?esc(new Date(post.createdAt).toLocaleDateString('zh-CN')):''}</span></div><div class="feed-actions"><button class="${post.likedByUser?'on':''}" onclick="like('${attr(post.id)}')">${post.likedByUser?'♥':'♡'} ${Math.max(0,Number(post.likes)||0)}</button><button onclick="commentPost('${attr(post.id)}')">○ ${comments.length}</button></div>${postCommentsMarkup(post)}</div></article>`;
  }).join('');
- e.innerHTML=hero+(posts||'<div class="empty feed-empty"><div class="big">◌</div>还没有动态<br>让角色生成第一条近况</div>');
+ e.innerHTML=hero+(posts||`<div class="empty feed-empty">${emptyIcon("person")}还没有动态<br>让角色生成第一条近况</div>`);
 }
 function like(id){const post=data.posts.find(item=>item.id===id);if(!post)return;post.likedByUser=!post.likedByUser;post.likes=Math.max(0,(Number(post.likes)||0)+(post.likedByUser?1:-1));save();renderFeed()}
 function commentPost(id){const post=data.posts.find(item=>item.id===id);if(!post)return;modal(`<h2>评论动态</h2><div class="field"><label>${esc(feedPersona().name||'USER')}</label><textarea id="postCommentText" maxlength="500" placeholder="写下评论…"></textarea></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="savePostComment('${attr(id)}')">发送</button></div>`)}
 function savePostComment(id){const post=data.posts.find(item=>item.id===id),text=document.getElementById('postCommentText')?.value.trim();if(!post||!text)return toast('请输入评论');post.comments??=[];post.comments.push({id:'comment_'+v44UUID(),author:feedPersona().name||'USER',text,time:'刚刚'});save();closeModal();renderFeed()}
 function showPostMenu(id){const post=data.posts.find(item=>item.id===id);if(!post)return;modal(`<h2>动态操作</h2><div class="about-meta"><div class="meta-row" onclick="commentPost('${attr(id)}')"><span>评论</span><span class="muted">›</span></div><div class="meta-row danger-row" onclick="deletePost('${attr(id)}')"><span>删除动态</span><span class="muted">›</span></div></div><div class="form-actions"><button onclick="closeModal()">取消</button></div>`)}
 function deletePost(id){if(!confirm('删除这条动态？'))return;data.posts=data.posts.filter(item=>item.id!==id);save();closeModal();renderFeed();toast('动态已删除')}
-function renderNotifications(){const e=document.getElementById('notificationList');if(!data.notifications.length){e.innerHTML='<div class="empty"><div class="big">◈</div>暂无通知</div>';return}e.innerHTML=data.notifications.map(n=>`<div class="row card" style="margin-bottom:9px"><span>${n.type==='chat'?'♡':'◌'}</span><div style="flex:1">${esc(n.text)}<div class="muted" style="margin-top:3px">${esc(n.time)}</div></div></div>`).join('')}
+function renderNotifications(){const e=document.getElementById('notificationList');if(!data.notifications.length){e.innerHTML=`<div class="empty">${emptyIcon("bell")}暂无通知</div>`;return}e.innerHTML=data.notifications.map(n=>`<div class="row card" style="margin-bottom:9px"><span class="tool-svg"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${n.type==='chat'?EMPTY_SVGS.chat:EMPTY_SVGS.bell}</svg></span><div style="flex:1">${esc(n.text)}<div class="muted" style="margin-top:3px">${esc(n.time)}</div></div></div>`).join('')}
 function clearNotifications(){data.notifications=[];save();renderNotifications();toast('已清空')}
 
 /* ---------- world & memory ---------- */
@@ -1653,7 +1695,7 @@ function validateWorldEntry(w){if(!w.name){toast('请填写名称');return false
 function newWorld(){modal(`<h2>创建世界书条目</h2><div class="note" style="padding:0 16px 14px">范围决定条目能进入哪些会话；常驻每轮进入，普通只有命中条件才进入。</div>${worldEditorFields()}<div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="createWorld()">创建</button></div>`)}
 function createWorld(){const w=collectWorldEditor();if(!validateWorldEntry(w))return;data.worlds.push({...w,id:'w_'+v44UUID(),enabled:true});save();closeModal();renderWorld();toast('世界书条目已创建')}
 function worldTargetNames(w){if(w.scope==='character')return (w.targetIds||[]).map(id=>data.characters.find(c=>c.id===id)?.name).filter(Boolean).join('、')||'未绑定人物';if(w.scope==='group')return (w.targetIds||[]).map(id=>data.groups.find(g=>g.id===id)?.name).filter(Boolean).join('、')||'未绑定群聊';return '全部对话'}
-function renderWorld(){const e=document.getElementById('worldList');if(!data.worlds.length){e.innerHTML='<div class="empty"><div class="big">✦</div>还没有世界书条目</div>';return}e.innerHTML=data.worlds.slice().sort((a,b)=>semanticWorldLayer(a)-semanticWorldLayer(b)).map(w=>`<div class="card world-card ${w.builtIn?'builtin-world-card':''}" onclick="editWorld('${w.id}')"><div class="module-head"><b>${esc(w.name)}</b><span class="pill">${w.enabled===false?'已停用':(w.builtIn?'内置启用':'已启用')}</span></div><div class="world-card-meta"><span>${w.mode==='online'?'仅线上':w.mode==='offline'?'仅线下':'全部入口'}</span><span>${esc(worldScopeLabel(w))}</span><span>${w.activation==='trigger'?'普通触发':'常驻'}</span></div><div class="muted">范围：${esc(worldTargetNames(w))}</div>${w.activation==='trigger'?`<div class="muted">触发：${esc(w.trigger)}</div>`:''}<div class="muted world-card-copy">${esc(w.desc||'')}</div></div>`).join('')}
+function renderWorld(){const e=document.getElementById('worldList');if(!data.worlds.length){e.innerHTML=`<div class="empty">${emptyIcon("book")}还没有世界书条目</div>`;return}e.innerHTML=data.worlds.slice().sort((a,b)=>semanticWorldLayer(a)-semanticWorldLayer(b)).map(w=>`<div class="card world-card ${w.builtIn?'builtin-world-card':''}" onclick="editWorld('${w.id}')"><div class="module-head"><b>${esc(w.name)}</b><span class="pill">${w.enabled===false?'已停用':(w.builtIn?'内置启用':'已启用')}</span></div><div class="world-card-meta"><span>${w.mode==='online'?'仅线上':w.mode==='offline'?'仅线下':'全部入口'}</span><span>${esc(worldScopeLabel(w))}</span><span>${w.activation==='trigger'?'普通触发':'常驻'}</span></div><div class="muted">范围：${esc(worldTargetNames(w))}</div>${w.activation==='trigger'?`<div class="muted">触发：${esc(w.trigger)}</div>`:''}<div class="muted world-card-copy">${esc(w.desc||'')}</div></div>`).join('')}
 function editWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;modal(`<h2>${w.builtIn?'内置活人感':'编辑世界书条目'}</h2>${worldEditorFields(w)}<div class="field"><label><input id="we" type="checkbox" style="width:auto" ${w.enabled!==false?'checked':''}> 启用条目</label></div><div class="form-actions">${w.builtIn?`<button onclick="resetBuiltInWorld('${id}')">恢复内置</button>`:`<button class="danger" onclick="deleteWorld('${id}')">删除</button>`}<button class="primary" onclick="updateWorld('${id}')">保存</button></div>`) }
 function updateWorld(id){const w=data.worlds.find(x=>x.id===id);if(!w)return;const updated=collectWorldEditor();if(!validateWorldEntry(updated))return;Object.assign(w,updated,{enabled:document.getElementById('we').checked});delete w.global;delete w.priority;delete w.weight;save();closeModal();renderWorld();toast('世界书范围与激活方式已保存')}
 function deleteWorld(id){const world=data.worlds.find(w=>w.id===id);if(world?.builtIn)return toast('内置世界书不能删除，可以停用或恢复');if(!confirm('删除这个世界书条目？'))return;data.worlds=data.worlds.filter(w=>w.id!==id);save();closeModal();renderWorld();toast('已删除')}
@@ -1665,7 +1707,7 @@ function renderMemory(){
  const e=document.getElementById('memoryList'),summaries=Object.entries(data.chatSummaries||{}).filter(([,value])=>value?.text);
  const summaryHtml=summaries.length?`<div class="group-title" style="margin:4px 0 10px">会话摘要</div>${summaries.map(([id,value])=>`<div class="card" style="padding:15px;margin-bottom:10px" onclick="viewConversationSummary('${attr(id)}')"><div class="module-head"><b>${esc(chatDisplayName(id))}</b><span class="pill">摘要模型</span></div><div class="muted memory-clamp" style="line-height:1.7;margin-top:7px">${esc(value.text)}</div><div class="muted" style="margin-top:7px">${esc(value.updatedAt?new Date(value.updatedAt).toLocaleString('zh-CN'):'')}</div></div>`).join('')}`:'';
  const manualHtml=data.memories.length?`<div class="group-title" style="margin:18px 0 10px">手动记忆</div>${data.memories.map(m=>`<div class="card" style="padding:15px;margin-bottom:10px" onclick="editMemory('${attr(m.id)}')"><b>${esc(m.title)}</b><div class="muted" style="line-height:1.7;margin-top:7px">${esc(m.text)}</div><div class="muted" style="margin-top:7px">${esc(m.time||'')}</div></div>`).join('')}`:'';
- e.innerHTML=summaryHtml+manualHtml||'<div class="empty"><div class="big">⌁</div>还没有保存的记忆或会话摘要</div>';
+ e.innerHTML=summaryHtml+manualHtml||`<div class="empty">${emptyIcon("memory")}还没有保存的记忆或会话摘要</div>`;
 }
 function manualSummaryPicker(){
  const chats=Object.entries(data.chats||{}).filter(([,messages])=>Array.isArray(messages)&&messages.length);
@@ -1684,24 +1726,24 @@ function deleteMemory(id){if(!confirm('删除这条记忆？'))return;data.memor
 
 /* ---------- engine ---------- */
 function engineTab(tab){['world','preset','regex','preview'].forEach(x=>document.getElementById('tab'+x[0].toUpperCase()+x.slice(1))?.classList.toggle('on',x===tab));const e=document.getElementById('engineBody');if(tab==='world')renderEngineWorld(e);if(tab==='preset')renderEnginePreset(e);if(tab==='regex')renderEngineRegex(e);if(tab==='preview')renderEnginePreview(e)}
-function renderEngineWorld(e){const rules=data.engine.worldRules||[],st=data.engine.state||{};e.innerHTML=`<div class="engine-card"><h3>♠ &nbsp;动态世界</h3><p>这里的规则属于全局动态层。常驻规则每轮进入，普通规则只有命中关键词、状态或正则时才进入请求。</p><div class="engine-flow"><div class="flowbox"><b>世界状态</b><span>地点：${esc(st.location||'未设置')}<br>天气：${esc(st.weather||'未设置')}<br>时间：${esc(st.time||'未设置')}</span></div><div class="flowbox"><b>当前规则</b><span>${rules.filter(x=>x.enabled!==false).length} 条</span></div></div><button class="primary" style="margin-top:10px" onclick="newWorldRule()">＋ 新建世界规则</button></div><div class="engine-card"><h3>♠ &nbsp;世界规则</h3>${rules.length?rules.map((r,i)=>`<div class="module"><div class="module-head"><b>${esc(r.name)}</b><span class="pill">${r.enabled===false?'停用':(r.activation==='trigger'?'普通触发':'常驻')}</span></div><small>${r.activation==='trigger'?esc(r.trigger||'尚未填写触发条件'):'所有会话每轮生效'}</small><div class="muted" style="margin-top:6px">${esc(r.content||'')}</div><div style="margin-top:9px;display:flex;gap:7px"><button class="icon-btn" onclick="editWorldRule(${i})">⋯</button><button class="icon-btn" onclick="toggleWorldRule(${i})">◉</button></div></div>`).join(''):'<div class="empty">还没有世界规则。</div>'}</div>`}
+function renderEngineWorld(e){const rules=data.engine.worldRules||[],st=data.engine.state||{};e.innerHTML=`<div class="engine-card"><h3>动态世界</h3><p>这里的规则属于全局动态层。常驻规则每轮进入，普通规则只有命中关键词、状态或正则时才进入请求。</p><div class="engine-flow"><div class="flowbox"><b>世界状态</b><span>地点：${esc(st.location||'未设置')}<br>天气：${esc(st.weather||'未设置')}<br>时间：${esc(st.time||'未设置')}</span></div><div class="flowbox"><b>当前规则</b><span>${rules.filter(x=>x.enabled!==false).length} 条</span></div></div><button class="primary" style="margin-top:10px" onclick="newWorldRule()">＋ 新建世界规则</button></div><div class="engine-card"><h3>世界规则</h3>${rules.length?rules.map((r,i)=>`<div class="module"><div class="module-head"><b>${esc(r.name)}</b><span class="pill">${r.enabled===false?'停用':(r.activation==='trigger'?'普通触发':'常驻')}</span></div><small>${r.activation==='trigger'?esc(r.trigger||'尚未填写触发条件'):'所有会话每轮生效'}</small><div class="muted" style="margin-top:6px">${esc(r.content||'')}</div><div style="margin-top:9px;display:flex;gap:7px"><button class="icon-btn" onclick="editWorldRule(${i})">⋯</button><button class="icon-btn" onclick="toggleWorldRule(${i})">◉</button></div></div>`).join(''):'<div class="empty">还没有世界规则。</div>'}</div>`}
 function engineWorldRuleFields(r={activation:'persistent'}){return `<div class="field"><label>名称</label><input id="erN" value="${attr(r.name||'')}"></div><div class="field"><label>激活方式</label><select id="erA" onchange="updateEngineWorldRuleVisibility()"><option value="persistent" ${r.activation!=='trigger'?'selected':''}>常驻 · 每轮生效</option><option value="trigger" ${r.activation==='trigger'?'selected':''}>普通 · 命中条件时生效</option></select></div><div class="field" id="engineWorldTrigger" style="display:${r.activation==='trigger'?'block':'none'}"><label>触发条件</label><input id="erT" value="${attr(r.trigger||'')}" placeholder="词语、逗号分隔或 /正则/i"></div><div class="field"><label>注入内容</label><textarea id="erC" placeholder="支持 {{state}} {{message}} {{character}} {{user}}">${esc(r.content||'')}</textarea></div>`}
 function updateEngineWorldRuleVisibility(){const field=document.getElementById('engineWorldTrigger');if(field)field.style.display=document.getElementById('erA')?.value==='trigger'?'block':'none'}
 function newWorldRule(){modal(`<h2>世界规则</h2><div class="note" style="padding:0 16px 14px">选择常驻或普通触发，系统会在发送请求前完成筛选。</div>${engineWorldRuleFields()}<div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveWorldRule()">保存</button></div>`)}
 function saveWorldRule(idx=null){const activation=document.getElementById('erA').value,r={name:document.getElementById('erN').value.trim(),activation,trigger:document.getElementById('erT')?.value.trim()||'',content:document.getElementById('erC').value,enabled:true};if(!r.name)return toast('请填写名称');if(activation==='trigger'&&!r.trigger)return toast('普通规则需要填写触发条件');if(idx===null)data.engine.worldRules.push(r);else data.engine.worldRules[idx]={...data.engine.worldRules[idx],...r};save();closeModal();engineTab('world')}
 function editWorldRule(i){const r=data.engine.worldRules[i];modal(`<h2>编辑世界规则</h2>${engineWorldRuleFields(r)}<div class="form-actions"><button class="danger" onclick="data.engine.worldRules.splice(${i},1);save();closeModal();engineTab('world')">删除</button><button class="primary" onclick="saveWorldRule(${i})">保存</button></div>`)}
 function toggleWorldRule(i){data.engine.worldRules[i].enabled=data.engine.worldRules[i].enabled===false;save();engineTab('world')}
-function renderEnginePreset(e){const ms=data.engine.presetModules||[];e.innerHTML=`<div class="engine-card"><h3>♣ &nbsp;预设编译器</h3><p>启用的模块按这里显示的顺序拼进系统上下文；越靠上越先进入，并在预算不足时先保留。支持 {{world}}、{{state}}、{{memory}}、{{character}}、{{user}}、{{message}}。</p><div class="engine-flow"><div class="flowbox"><b>启用</b><span>排除停用模块</span></div><div class="flowbox"><b>顺序</b><span>按列表实际编译</span></div><div class="flowbox"><b>系统层</b><span>发送最终文本</span></div><div class="flowbox"><b>正则</b><span>前后处理 + 状态</span></div></div><button class="primary" style="margin-top:10px" onclick="newPresetModule()">＋ 新建模块</button></div><div class="engine-card"><h3>♣ &nbsp;模块顺序</h3>${ms.length?ms.map((m,i)=>`<div class="module"><div class="module-head"><b>${esc(m.name)}</b><span class="pill">${m.enabled===false?'停用':'启用'}</span></div><small>${esc(m.kind||'自定义')} · 可用箭头调整真实编译顺序</small><div style="margin-top:7px;color:#777;font-size:11px">${esc(m.content||'')}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="icon-btn" onclick="movePreset(${i},-1)">↑</button><button class="icon-btn" onclick="movePreset(${i},1)">↓</button><button class="icon-btn" onclick="editPreset(${i})">⋯</button></div></div>`).join(''):'<div class="empty">还没有预设模块。</div>'}</div>`}
+function renderEnginePreset(e){const ms=data.engine.presetModules||[];e.innerHTML=`<div class="engine-card"><h3>预设编译器</h3><p>启用的模块按这里显示的顺序拼进系统上下文；越靠上越先进入，并在预算不足时先保留。支持 {{world}}、{{state}}、{{memory}}、{{character}}、{{user}}、{{message}}。</p><div class="engine-flow"><div class="flowbox"><b>启用</b><span>排除停用模块</span></div><div class="flowbox"><b>顺序</b><span>按列表实际编译</span></div><div class="flowbox"><b>系统层</b><span>发送最终文本</span></div><div class="flowbox"><b>正则</b><span>前后处理 + 状态</span></div></div><button class="primary" style="margin-top:10px" onclick="newPresetModule()">＋ 新建模块</button></div><div class="engine-card"><h3>模块顺序</h3>${ms.length?ms.map((m,i)=>`<div class="module"><div class="module-head"><b>${esc(m.name)}</b><span class="pill">${m.enabled===false?'停用':'启用'}</span></div><small>${esc(m.kind||'自定义')} · 可用箭头调整真实编译顺序</small><div style="margin-top:7px;color:#777;font-size:11px">${esc(m.content||'')}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="icon-btn" onclick="movePreset(${i},-1)">↑</button><button class="icon-btn" onclick="movePreset(${i},1)">↓</button><button class="icon-btn" onclick="editPreset(${i})">⋯</button></div></div>`).join(''):'<div class="empty">还没有预设模块。</div>'}</div>`}
 function presetFields(m={kind:'身份层'}){return `<div class="field"><label>名称</label><input id="pmN" value="${attr(m.name||'')}"></div><div class="field"><label>类型</label><select id="pmK">${['身份层','世界层','角色层','行为规则','风格层','输出格式','记忆层','动态上下文','自定义'].map(x=>`<option ${x===m.kind?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>内容</label><textarea id="pmC" placeholder="可使用 {{world}} {{state}} {{memory}} {{character}} {{user}} {{message}}">${esc(m.content||'')}</textarea></div>`}
 function newPresetModule(){modal(`<h2>预设模块</h2><div class="note" style="padding:0 16px 14px">保存后可在模块列表用上下箭头调整实际编译顺序。</div>${presetFields()}<div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="savePreset()">保存</button></div>`)}
 function savePreset(idx=null){const m={name:document.getElementById('pmN').value.trim(),kind:document.getElementById('pmK').value,content:document.getElementById('pmC').value,enabled:true};if(!m.name)return toast('请填写名称');if(idx===null)data.engine.presetModules.push(m);else data.engine.presetModules[idx]={...data.engine.presetModules[idx],...m};save();closeModal();engineTab('preset')}
 function editPreset(i){const m=data.engine.presetModules[i];modal(`<h2>编辑预设模块</h2>${presetFields(m)}<div class="form-actions"><button class="danger" onclick="data.engine.presetModules.splice(${i},1);save();closeModal();engineTab('preset')">删除</button><button class="primary" onclick="savePreset(${i})">保存</button></div>`)}
 function movePreset(i,d){const a=data.engine.presetModules,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();engineTab('preset')}
-function renderEngineRegex(e){const rs=data.engine.regexRules||[];e.innerHTML=`<div class="engine-card"><h3>♦ &nbsp;正则处理管线</h3><p>规则可以分别作用于用户消息、AI 回复、全部消息或状态解析。AI 回复会先解析状态，再清理展示标签。</p><div class="engine-flow"><div class="flowbox"><b>用户输入</b><span>预处理</span></div><div class="flowbox"><b>API</b><span>上下文编译</span></div><div class="flowbox"><b>AI 输出</b><span>后处理</span></div><div class="flowbox"><b>状态</b><span>反馈世界</span></div></div><button class="primary" style="margin-top:10px" onclick="newRegexRule()">＋ 新建规则</button></div><div class="engine-card"><h3>♦ &nbsp;规则链</h3>${rs.length?rs.map((r,i)=>`<div class="module"><div class="module-head"><b>${esc(r.name)}</b><span class="pill">${esc(r.target||'AI 回复')}</span></div><small>${r.enabled===false?'停用':'启用'} · 顺序 ${i+1}</small><div class="muted" style="margin-top:6px">/${esc(r.pattern)}/${esc(r.flags||'g')} → ${esc(r.replace||'')}</div><div style="margin-top:8px"><button class="icon-btn" onclick="editRegex(${i})">⋯</button></div></div>`).join(''):'<div class="empty">还没有正则规则。</div>'}</div>`}
+function renderEngineRegex(e){const rs=data.engine.regexRules||[];e.innerHTML=`<div class="engine-card"><h3>正则处理管线</h3><p>规则可以分别作用于用户消息、AI 回复、全部消息或状态解析。AI 回复会先解析状态，再清理展示标签。</p><div class="engine-flow"><div class="flowbox"><b>用户输入</b><span>预处理</span></div><div class="flowbox"><b>API</b><span>上下文编译</span></div><div class="flowbox"><b>AI 输出</b><span>后处理</span></div><div class="flowbox"><b>状态</b><span>反馈世界</span></div></div><button class="primary" style="margin-top:10px" onclick="newRegexRule()">＋ 新建规则</button></div><div class="engine-card"><h3>规则链</h3>${rs.length?rs.map((r,i)=>`<div class="module"><div class="module-head"><b>${esc(r.name)}</b><span class="pill">${esc(r.target||'AI 回复')}</span></div><small>${r.enabled===false?'停用':'启用'} · 顺序 ${i+1}</small><div class="muted" style="margin-top:6px">/${esc(r.pattern)}/${esc(r.flags||'g')} → ${esc(r.replace||'')}</div><div style="margin-top:8px"><button class="icon-btn" onclick="editRegex(${i})">⋯</button></div></div>`).join(''):'<div class="empty">还没有正则规则。</div>'}</div>`}
 function newRegexRule(){modal(`<h2>正则规则</h2><div class="field"><label>名称</label><input id="rxN"></div><div class="field"><label>匹配模式</label><input id="rxP" placeholder="例如：<state>([\\s\\S]*?)</state>"></div><div class="field"><label>替换内容</label><input id="rxR"></div><div class="field"><label>处理对象</label><select id="rxT"><option>AI 回复</option><option>用户消息</option><option>全部消息</option><option>状态解析</option></select></div><div class="field"><label>Flags</label><input id="rxG" value="g" placeholder="g / gi / gm / gis"></div><div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveRegex()">保存</button></div>`)}
 function saveRegex(idx=null){const r={name:document.getElementById('rxN').value.trim(),pattern:document.getElementById('rxP').value,replace:document.getElementById('rxR').value,target:document.getElementById('rxT').value,flags:document.getElementById('rxG').value||'g',enabled:true};if(!r.name||!r.pattern)return toast('名称和匹配模式不能为空');try{new RegExp(r.pattern,getRegexFlags(r))}catch{return toast('正则表达式无效')}if(idx===null)data.engine.regexRules.push(r);else data.engine.regexRules[idx]={...data.engine.regexRules[idx],...r};save();closeModal();engineTab('regex')}
 function editRegex(i){const r=data.engine.regexRules[i];modal(`<h2>编辑正则规则</h2><div class="field"><label>名称</label><input id="rxN" value="${attr(r.name)}"></div><div class="field"><label>匹配模式</label><input id="rxP" value="${attr(r.pattern)}"></div><div class="field"><label>替换内容</label><input id="rxR" value="${attr(r.replace||'')}"></div><div class="field"><label>处理对象</label><select id="rxT">${['AI 回复','用户消息','全部消息','状态解析'].map(x=>`<option ${x===r.target?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Flags</label><input id="rxG" value="${attr(r.flags||'g')}"></div><div class="form-actions"><button class="danger" onclick="data.engine.regexRules.splice(${i},1);save();closeModal();engineTab('regex')">删除</button><button class="primary" onclick="saveRegex(${i})">保存</button></div>`)}
-function renderEnginePreview(e){const g=currentChat&&groupForChat(currentChat),c=g?data.characters.find(x=>x.id===g.memberIds[g.turnIndex%g.memberIds.length]):currentChat&&directCharacterForChat(currentChat);const last=(currentChat&&data.chats[currentChat]?.filter(x=>x.role==='user').at(-1)?.text)||'',mode=g?'group':chatModeForId(currentChat);const x=c?buildEngineContext(c,last,currentChat,mode):null;const prompt=c?(g?buildGroupSystemPrompt(g,c,last,currentChat):(mode==='offline'?buildOfflineSystemPrompt(c,last,currentChat,currentOfflineStyle):buildSystemPrompt(c,last,currentChat))):'尚未进入聊天。创建角色并输入消息后，这里会显示本次上下文编译结果。';e.innerHTML=`<div class="engine-card"><h3>♥ &nbsp;上下文预览</h3><p>下面就是发送给 API 的系统内容预览，不会自动发送。</p>${x?`<div class="preview">USER PERSONA\n${esc(x.persona)}\n\nWORLD\n${esc(x.world)}\n\nSTATE\n${esc(x.state)}\n\nMEMORY\n${esc(x.memory)}\n\nPRESET\n${esc(x.preset)}</div>`:''}<div class="preview">${esc(prompt)}</div></div><div class="engine-card"><h3>♥ &nbsp;真实编译闭环</h3><div class="engine-flow"><div class="flowbox"><b>入口</b><span>线上 / 线下 / 群聊</span></div><div class="flowbox"><b>范围</b><span>全局 / 角色 / 分组</span></div><div class="flowbox"><b>激活</b><span>常驻 / 普通触发</span></div><div class="flowbox"><b>系统层</b><span>只发送命中内容</span></div></div><div class="arrow">↻ 状态反馈 → 下一次世界检索</div></div>`}
+function renderEnginePreview(e){const g=currentChat&&groupForChat(currentChat),c=g?data.characters.find(x=>x.id===g.memberIds[g.turnIndex%g.memberIds.length]):currentChat&&directCharacterForChat(currentChat);const last=(currentChat&&data.chats[currentChat]?.filter(x=>x.role==='user').at(-1)?.text)||'',mode=g?'group':chatModeForId(currentChat);const x=c?buildEngineContext(c,last,currentChat,mode):null;const prompt=c?(g?buildGroupSystemPrompt(g,c,last,currentChat):(mode==='offline'?buildOfflineSystemPrompt(c,last,currentChat,currentOfflineStyle):buildSystemPrompt(c,last,currentChat))):'尚未进入聊天。创建角色并输入消息后，这里会显示本次上下文编译结果。';e.innerHTML=`<div class="engine-card"><h3>上下文预览</h3><p>下面就是发送给 API 的系统内容预览，不会自动发送。</p>${x?`<div class="preview">USER PERSONA\n${esc(x.persona)}\n\nWORLD\n${esc(x.world)}\n\nSTATE\n${esc(x.state)}\n\nMEMORY\n${esc(x.memory)}\n\nPRESET\n${esc(x.preset)}</div>`:''}<div class="preview">${esc(prompt)}</div></div><div class="engine-card"><h3>真实编译闭环</h3><div class="engine-flow"><div class="flowbox"><b>入口</b><span>线上 / 线下 / 群聊</span></div><div class="flowbox"><b>范围</b><span>全局 / 角色 / 分组</span></div><div class="flowbox"><b>激活</b><span>常驻 / 普通触发</span></div><div class="flowbox"><b>系统层</b><span>只发送命中内容</span></div></div><div class="arrow">↻ 状态反馈 → 下一次世界检索</div></div>`}
 
 /* ---------- settings ---------- */
 const PROVIDER_HINTS={openai:'例：https://api.openai.com/v1 （或任意 OpenAI 兼容中转地址）',anthropic:'例：https://api.anthropic.com （原生 Claude Messages API）',gemini:'例：https://generativelanguage.googleapis.com （原生 Gemini API）',fish:'官网兼容地址：https://api.fish.audio/compat/v1',minimax:'官网地址或支持 MiniMax T2A 协议的中转地址',openai_image:'OpenAI Images 地址或兼容中转',gemini_image:'Gemini 原生地址',xai_image:'xAI Images 地址或兼容中转',novelai:'NovelAI 或兼容中转的生图地址'};
@@ -1985,13 +2027,13 @@ function openChatFromChatId(chatId,mode=null,sceneMode='direct'){
 }
 function renderChats(){
   const e=document.getElementById('chatList'),q=(document.getElementById('chatSearch')?.value||'').toLowerCase(),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q));
-  if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>${q?'没有匹配的角色':'还没有角色<br>请先创建角色。'}</div>`;return}
+  if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('chat')}${q?'没有匹配的角色':'还没有角色<br>请先创建角色。'}</div>`;return}
   e.innerHTML=arr.map(c=>{const chatId=directChatId(c.id),m=(data.chats[chatId]||[]).at(-1),proactive=data.settings.proactiveEnabled===true&&c.proactiveEnabled?'<span class="chat-live-badge">主动</span>':'',saved=v43ReadModeStore()[chatId]||{};return `<div class="row card chat-channel-row"><button class="chat-row-main" onclick="openChat('${attr(c.id)}')">${avatar(c)}<span class="chat-row-copy"><b>${esc(c.name)} ${proactive}</b><span class="muted">${saved.mode==='offline'?'线下 · ':''}${esc(m?.text||'尚未开始聊天')}</span></span><time>${esc(m?.time||'')}</time></button></div>`}).join('');
 }
 function renderContacts(q=''){
   const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase()));
   const characterCount=document.getElementById('characterCount'),personaCount=document.getElementById('personaCount');if(characterCount)characterCount.textContent=`${data.characters.length} 个角色`;if(personaCount)personaCount.textContent=`${data.personas.length} 张面具`;
-  if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>${q?'没有匹配的角色':'还没有角色<br>从上方角色设置中心开始创建。'}</div>`;return}
+  if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('person')}${q?'没有匹配的角色':'还没有角色<br>从上方角色设置中心开始创建。'}</div>`;return}
   e.innerHTML=arr.map(c=>`<div class="row card character-list-row" onclick="openChat('${attr(c.id)}')">${avatar(c)}<div class="character-list-copy"><b>${esc(c.name)}</b><div class="muted">${esc(c.status||c.bio||'尚未填写角色摘要')}</div></div><button class="icon-btn" aria-label="编辑角色" onclick="event.stopPropagation();editCharacter('${attr(c.id)}')">⋯</button></div>`).join('');
 }
 
@@ -2063,7 +2105,7 @@ function v43MessageItemMarkup(m,i,isLast,chatId){
   return`<div class="message-item" data-idx="${i}"><div class="bubble-line">${original}</div>${translation}${footer}</div>`;
 }
 function renderMessages(){
-  const e=document.getElementById('messages'),arr=data.chats[currentChat]||[];if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>还没有消息</div>`;return}
+  const e=document.getElementById('messages'),arr=data.chats[currentChat]||[];if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('chat')}还没有消息</div>`;return}
   const g=groupForChat(currentChat),showAvatars=data.settings.chatAvatarMode!=='none',persona=activePersonaFor(currentChat),directCharacter=!g&&directCharacterForChat(currentChat),html=[];
   for(let i=0;i<arr.length;){const m=arr[i];
     if(m.kind==='phoneEvent'){i++;continue}
@@ -2242,7 +2284,7 @@ async function v43FetchWorkerScript(){
  const response=await fetch('/sw-v44.js?build=45.7.9&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v45.7.21"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v45.7.22"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
@@ -2392,7 +2434,7 @@ function v435CharacterStatus(c){if(!c||c.statusMode==='off')return'';return c.st
 characterEditorHero=function(d){return`<div class="editor-hero"><div class="editor-avatar">${d.image?`<img src="${attr(d.image)}" alt="">`:'<span>♠</span>'}</div><div><small>${d.__new?'NEW PROFILE':'PERSON PROFILE'}</small><h2>${esc(d.name||'未命名人物')}</h2><p>${esc(v435CharacterStatus(d)||'未显示状态')}</p></div><button onclick="pickCharacterImage()">更换头像</button></div>`};
 characterProfilePage=function(d){return`<div class="editor-section-title"><span>01</span><div><b>基础档案</b><small>用于列表、聊天标题与身份识别</small></div></div><div class="editor-grid"><div class="field"><label>人物名称 *</label><input id="char_name" value="${attr(d.name)}"></div><div class="field"><label>昵称 / 称呼</label><input id="char_nickname" value="${attr(d.nickname)}"></div><div class="field"><label>代词 / 称谓</label><input id="char_pronouns" value="${attr(d.pronouns)}"></div><div class="field"><label>状态模式</label><select id="char_statusMode"><option value="off" ${d.statusMode==='off'?'selected':''}>关闭</option><option value="manual" ${d.statusMode==='manual'?'selected':''}>固定手写</option><option value="ai" ${d.statusMode==='ai'?'selected':''}>可智能更新</option></select></div><div class="field editor-wide"><label>手写状态短句</label><input id="char_status" value="${attr(d.status)}" placeholder="作为固定状态或智能更新的初始状态"><small>手写值始终保留；开启智能更新后只改变当前显示。</small></div>${d.statusMode==='ai'&&d.aiStatus?`<div class="field editor-wide"><label>当前动态状态</label><div class="status-current-preview">${esc(d.aiStatus)}</div></div>`:''}<div class="field editor-wide"><label>标签</label><input id="char_tags" value="${attr(d.tags)}"></div><div class="field editor-wide"><label>头像 URL（可选）</label><input id="char_image_url" value="${attr(String(d.image||'').startsWith('data:')?'':d.image)}" placeholder="https://..."></div></div><div class="editor-inline-actions"><button onclick="pickCharacterImage()">上传本机图片</button><button onclick="clearCharacterImage()">移除头像</button></div>`};
 collectCharacterEditorPage=function(){const d=characterEditorDraft;if(!d)return;const take=(key,id)=>{const el=document.getElementById(id);if(el)d[key]=el.value.trim()};if(characterEditorTab==='profile'){['name','nickname','status','pronouns','tags'].forEach(k=>take(k,'char_'+k));const mode=document.getElementById('char_statusMode'),imageUrl=document.getElementById('char_image_url');if(mode)d.statusMode=mode.value;if(imageUrl){const value=imageUrl.value.trim();if(value)d.image=value;else if(!String(d.image||'').startsWith('data:'))d.image=''}}if(characterEditorTab==='personality')['bio','personality','background','appearance','speechStyle','relationship'].forEach(k=>take(k,'char_'+k));if(characterEditorTab==='dialogue')['scenario','firstMessage','exampleDialogue','systemPrompt','boundaries'].forEach(k=>take(k,'char_'+k));if(characterEditorTab==='binding'){const persona=document.getElementById('char_persona'),proactive=document.getElementById('char_proactive'),voiceId=document.getElementById('char_voiceId'),voiceSpeed=document.getElementById('char_voiceSpeed');if(persona)d.boundPersonaId=persona.value;if(proactive)d.proactiveEnabled=proactive.checked===true;if(voiceId)d.voiceId=voiceId.value.trim();if(voiceSpeed)d.voiceSpeed=Math.min(2,Math.max(.5,Number(voiceSpeed.value)||1))}};
-renderContacts=function(q=''){const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase())),characterCount=document.getElementById('characterCount'),personaCount=document.getElementById('personaCount');if(characterCount)characterCount.textContent=`${data.characters.length} 个人物`;if(personaCount)personaCount.textContent=`${data.personas.length} 张面具`;if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>${q?'没有匹配的人物':'还没有人物<br>从上方人物设置中心开始创建。'}</div>`;return}e.innerHTML=arr.map(c=>`<div class="row card character-list-row" onclick="openChat('${attr(c.id)}')">${avatar(c)}<div class="character-list-copy"><b>${esc(c.name)}</b><div class="muted">${esc(v435CharacterStatus(c)||c.bio||'')}</div></div><button class="icon-btn" onclick="event.stopPropagation();editCharacter('${attr(c.id)}')">⋯</button></div>`).join('')};
+renderContacts=function(q=''){const e=document.getElementById('contactList'),arr=data.characters.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase())),characterCount=document.getElementById('characterCount'),personaCount=document.getElementById('personaCount');if(characterCount)characterCount.textContent=`${data.characters.length} 个人物`;if(personaCount)personaCount.textContent=`${data.personas.length} 张面具`;if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('person')}${q?'没有匹配的人物':'还没有人物<br>从上方人物设置中心开始创建。'}</div>`;return}e.innerHTML=arr.map(c=>`<div class="row card character-list-row" onclick="openChat('${attr(c.id)}')">${avatar(c)}<div class="character-list-copy"><b>${esc(c.name)}</b><div class="muted">${esc(v435CharacterStatus(c)||c.bio||'')}</div></div><button class="icon-btn" onclick="event.stopPropagation();editCharacter('${attr(c.id)}')">⋯</button></div>`).join('')};
 function v435StatusPrompt(c){if(!c||c.statusMode!=='ai')return'不要输出 status 标签，也不要修改角色状态短句。';return`只有当角色当前近况确实变化时，才可额外输出 <status>不超过24字的当前状态短句</status>。这会覆盖当前显示状态，但手写初始值仍保留。无需更新时不要输出。`}
 const v435BuildSystem=buildSystemPrompt,v435BuildOffline=buildOfflineSystemPrompt,v435BuildGroup=buildGroupSystemPrompt;
 buildSystemPrompt=function(c,...args){return v435BuildSystem(c,...args)+`\n\n【状态短句】\n${v435StatusPrompt(c)}`};buildOfflineSystemPrompt=function(c,...args){return v435BuildOffline(c,...args)+`\n\n【状态短句】\n${v435StatusPrompt(c)}`};buildGroupSystemPrompt=function(g,c,...args){return v435BuildGroup(g,c,...args)+`\n\n【状态短句】\n${v435StatusPrompt(c)}`};
@@ -2406,7 +2448,7 @@ function newPost(){postImageDrafts=[];const persona=feedPersona();modal(`<h2>我
 function createPost(){const text=document.getElementById('pt')?.value.trim(),persona=feedPersona();if(!text)return toast('请输入内容');data.posts.unshift({id:'p_'+v44UUID(),char:'',authorType:'persona',authorId:persona.id,text,time:'刚刚',createdAt:new Date().toISOString(),likes:0,likedByUser:false,images:[...postImageDrafts],location:document.getElementById('pl')?.value.trim()||'',comments:[],generated:false,personaId:persona.id});postImageDrafts=[];save();closeModal();renderFeed();toast('动态已发布')}
 function v435FeedAuthor(post,persona){if(post.authorType==='persona'||!post.char&&post.authorId)return{kind:'persona',entity:data.personas.find(item=>item.id===(post.authorId||post.personaId))||persona};return{kind:'character',entity:data.characters.find(item=>item.id===post.char)}}
 function renderFeed(){const e=document.getElementById('feedList');if(!e)return;const persona=feedPersona(),cover=safeImageSrc(data.feedCovers?.[persona.id]),tabs=`<div class="feed-persona-tabs">${data.personas.map(item=>`<button class="${item.id===persona.id?'on':''}" onclick="setFeedPersona('${attr(item.id)}')">${esc(item.name)}</button>`).join('')}</div>`,hero=`${tabs}<section class="feed-profile"><button class="feed-cover" onclick="chooseFeedCover()">${cover?`<img src="${attr(cover)}" alt="">`:'<span>更换封面</span>'}</button><div class="feed-profile-copy"><b>${esc(persona.name||'我')}</b>${feedProfileAvatar(persona)}</div></section><div class="feed-primary-actions feed-two-actions"><button class="primary" onclick="newPost()">＋ 我发动态</button><button onclick="showAutoPostPicker()">✦ 让人物发布动态</button></div>`;
- const posts=data.posts.filter(post=>post.personaId===persona.id).map(post=>{const author=v435FeedAuthor(post,persona),entity=author.entity;if(!entity)return'';const comments=Array.isArray(post.comments)?post.comments:[],avatarHtml=author.kind==='persona'?`<span class="avatar feed-self-avatar">${safeImageSrc(entity.image)?`<img src="${attr(safeImageSrc(entity.image))}" alt="">`:`<b>${esc(String(entity.name||'我').slice(0,1))}</b>`}</span>`:avatar(entity);return`<article class="feed-item"><div class="feed-author">${avatarHtml}<div><b>${esc(entity.name)}</b><small>${author.kind==='persona'?'我的动态':post.generated?`${esc(entity.name)}发布`:''}</small></div><button class="feed-more" onclick="showPostMenu('${attr(post.id)}')">⋯</button></div><div class="feed-body"><div class="feed-text">${esc(post.text)}</div>${postImagesMarkup(post)}${post.location?`<div class="feed-location">⌖ ${esc(post.location)}</div>`:''}<div class="feed-meta"><time>${esc(post.time||'刚刚')}</time></div><div class="feed-actions"><button class="${post.likedByUser?'on':''}" onclick="like('${attr(post.id)}')">${post.likedByUser?'♥':'♡'} ${Math.max(0,Number(post.likes)||0)}</button><button onclick="commentPost('${attr(post.id)}')">○ ${comments.length}</button></div>${postCommentsMarkup(post)}</div></article>`}).join('');e.innerHTML=hero+(posts||'<div class="empty feed-empty"><div class="big">◌</div>还没有动态</div>')}
+ const posts=data.posts.filter(post=>post.personaId===persona.id).map(post=>{const author=v435FeedAuthor(post,persona),entity=author.entity;if(!entity)return'';const comments=Array.isArray(post.comments)?post.comments:[],avatarHtml=author.kind==='persona'?`<span class="avatar feed-self-avatar">${safeImageSrc(entity.image)?`<img src="${attr(safeImageSrc(entity.image))}" alt="">`:`<b>${esc(String(entity.name||'我').slice(0,1))}</b>`}</span>`:avatar(entity);return`<article class="feed-item"><div class="feed-author">${avatarHtml}<div><b>${esc(entity.name)}</b><small>${author.kind==='persona'?'我的动态':post.generated?`${esc(entity.name)}发布`:''}</small></div><button class="feed-more" onclick="showPostMenu('${attr(post.id)}')">⋯</button></div><div class="feed-body"><div class="feed-text">${esc(post.text)}</div>${postImagesMarkup(post)}${post.location?`<div class="feed-location">⌖ ${esc(post.location)}</div>`:''}<div class="feed-meta"><time>${esc(post.time||'刚刚')}</time></div><div class="feed-actions"><button class="${post.likedByUser?'on':''}" onclick="like('${attr(post.id)}')">${post.likedByUser?'♥':'♡'} ${Math.max(0,Number(post.likes)||0)}</button><button onclick="commentPost('${attr(post.id)}')">○ ${comments.length}</button></div>${postCommentsMarkup(post)}</div></article>`}).join('');e.innerHTML=hero+(posts||`<div class="empty feed-empty">${emptyIcon("person")}还没有动态</div>`)}
 
 /* ---------- check phone / reverse check, in-page character reply ---------- */
 let v435PhoneSession={mode:'browse',owner:'',chatId:'',characterId:'',replies:{}};
@@ -2427,7 +2469,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 /* V44.1 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.21')}
+function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.22')}
 async function v43FetchWorkerScript(){
  const expected=v435ExpectedBuild(),response=await fetch(`/sw-v44.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
@@ -2526,10 +2568,17 @@ function v438Timeline(chatId=currentChat){chatId=canonicalChatId(chatId);data.ch
 function v438Duration(seconds){seconds=Math.max(0,Math.floor(Number(seconds)||0));const days=Math.floor(seconds/86400);seconds%=86400;const hours=Math.floor(seconds/3600);seconds%=3600;const minutes=Math.floor(seconds/60),secs=seconds%60;return[days&&`${days}天`,hours&&`${hours}小时`,minutes&&`${minutes}分钟`,`${secs}秒`].filter(Boolean).join('')}
 function v438DateText(ms){const date=new Date(Number(ms)||Date.now()),zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'本地时区';return`${date.toLocaleString('zh-CN',{hour12:false,year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',second:'2-digit'})} · ${zone}`}
 function v438TimeContext(chatId=currentChat){const timeline=v438Timeline(chatId);
- /* V45.7.21：时间是后台事实，不是播报稿。
+ /* V45.7.22：时间是后台事实，不是播报稿。
     保留虚拟/现实两种模式、跨日、等待、睡眠、移动的判断依据和 elapsed_seconds 推进能力，
     但不再要求角色理解并复述时间元数据。角色只在时间真的影响此刻要说的话时才提到它。 */
  const silent='时间是背景事实：只在它真的影响此刻的处境或心情时才自然带过，不要报时、不要说明时间来源，也不要把本区块内容告诉对方。';
+ /* V45.7.22：现实时间模式与 v45.4 的时钟保持一致——给一行常识，不给读数。
+    这个函数在 v45.4-next-stage.js 载入后会被 timeContextV454 覆盖，
+    但作为回退路径它也不该再输出「累计经过」这种读数。 */
+ if(timeline.mode==='real'&&typeof window!=='undefined'&&typeof window.v45722AmbientTime==='function'){
+  const ambient=String(window.v45722AmbientTime(chatId)||'');
+  if(ambient)return`${ambient}\n这是你本来就知道的事，不是刚收到的通知。不用特意报时，也不要解释时间从哪来；只有它真的让你想说点什么，才说。\n不要输出 elapsed_seconds 标签。`;
+ }
  if(timeline.mode==='virtual')return`时间模式：虚拟时间\n当前虚拟时间：${v438DateText(timeline.virtualTimeMs)}\n上一轮经过：${v438Duration(timeline.lastElapsedSeconds)}\n以该时间为人物所在世界的当前时间，不要引用设备现实时间。\n${silent}\n另外单独输出一次 <elapsed_seconds>非负整数秒数</elapsed_seconds> 表示本轮实际经过：短消息数秒到数分钟，明确的等待、睡眠或路程按内容估算。该标签只用于推进时间，不要在台词里解释。`;
  const now=Date.now(),elapsed=Math.max(0,Math.floor((now-(Number(timeline.lastRequestAt)||now))/1000));
  return`时间模式：现实时间\n当前现实时间：${v438DateText(now)}\n距上次对话真实经过：${v438Duration(elapsed)}\n${silent}\n不要输出 elapsed_seconds 标签。`}
@@ -2657,7 +2706,7 @@ function v45710GroupSpeaker(message,group){
 }
 function renderMessages(){
  data.characters=Array.isArray(data.characters)?data.characters:[];data.groups=Array.isArray(data.groups)?data.groups:[];data.personas=Array.isArray(data.personas)?data.personas:[];
- const container=document.getElementById('messages'),messages=v4310EnsureMessageIds(currentChat);if(!container)return;if(!messages.length){container.innerHTML='<div class="empty"><div class="big">♡</div>还没有消息</div>';return}
+ const container=document.getElementById('messages'),messages=v4310EnsureMessageIds(currentChat);if(!container)return;if(!messages.length){container.innerHTML=`<div class="empty">${emptyIcon("chat")}还没有消息</div>`;return}
  const groupChat=groupForChat(currentChat),showAvatars=data.settings.chatAvatarMode!=='none',persona=activePersonaFor(currentChat),directCharacter=!groupChat&&directCharacterForChat(currentChat),html=[];
  /* V45.7.11: renamed from `data`. The old name shadowed the global data object,
     so the group speaker lookup below always failed and every group bubble fell
@@ -2820,7 +2869,7 @@ function showMessageEditHistory(ref=msgMenuTarget){const resolved=v4310ResolveMe
     const e=document.getElementById('chatList');if(!e)return;
     const q=String(document.getElementById('chatSearch')?.value||'').toLowerCase();
     const arr=data.characters.filter(c=>String(c.name||'').toLowerCase().includes(q));
-    if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">♡</div>${q?'没有匹配的人物':'还没有人物<br>请先创建人物。'}</div>`;return}
+    if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('chat')}${q?'没有匹配的人物':'还没有人物<br>请先创建人物。'}</div>`;return}
     const modes=v43ReadModeStore();
     e.innerHTML=arr.map(c=>{
       const chatId=directChatId(c.id),m=(data.chats[chatId]||[]).filter(Boolean).at(-1),saved=modes[chatId]||data.chatSettings?.[chatId]||{};
@@ -2832,12 +2881,12 @@ function showMessageEditHistory(ref=msgMenuTarget){const resolved=v4310ResolveMe
     const e=document.getElementById('contactList');if(!e)return;
     const query=String(q||'').toLowerCase(),arr=data.characters.filter(c=>String(c.name||'').toLowerCase().includes(query));
     const cc=document.getElementById('characterCount'),pc=document.getElementById('personaCount');if(cc)cc.textContent=`${data.characters.length} 个人物`;if(pc)pc.textContent=`${data.personas.length} 张面具`;
-    if(!arr.length){e.innerHTML=`<div class="empty"><div class="big">◌</div>${query?'没有匹配的人物':'还没有人物<br>从上方人物设置中心开始创建。'}</div>`;return}
+    if(!arr.length){e.innerHTML=`<div class="empty">${emptyIcon('person')}${query?'没有匹配的人物':'还没有人物<br>从上方人物设置中心开始创建。'}</div>`;return}
     e.innerHTML=arr.map(c=>`<div class="row card character-list-row" onclick="openChat(${v44InlineArg(c.id)})">${avatar(c)}<div class="character-list-copy"><b>${esc(c.name)}</b><div class="muted">${esc(typeof v435CharacterStatus==='function'?v435CharacterStatus(c):(c.status||c.bio||'尚未填写简介'))}</div></div><button class="icon-btn" aria-label="编辑人物" onclick="event.stopPropagation();editCharacter(${v44InlineArg(c.id)})">⋯</button></div>`).join('');
   };
   renderGroups=function(){
     const e=document.getElementById('groupList');if(!e)return;
-    if(!data.groups.length){e.innerHTML='<div class="empty"><div class="big">❖</div>还没有群聊<br>至少创建 2 个人物后即可建群。</div>';return}
+    if(!data.groups.length){e.innerHTML=`<div class="empty">${emptyIcon("group")}还没有群聊<br>至少创建 2 个人物后即可建群。</div>`;return}
     e.innerHTML=data.groups.map(g=>{const members=g.memberIds.map(id=>data.characters.find(c=>c.id===id)).filter(Boolean),last=(data.chats[groupChatId(g.id)]||[]).filter(Boolean).at(-1);let preview=last?.text||'尚未开始聊天';if(last?.role==='assistant'){const speaker=data.characters.find(c=>c.id===last.speaker);preview=`${speaker?speaker.name+'：':''}${preview}`};return `<div class="row card" style="margin:0 16px 9px;cursor:pointer" onclick="openChat(${v44InlineArg(g.id)})">${avatarStack(members)}<div style="flex:1;min-width:0"><b>${esc(g.name)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${esc(preview)}</div></div><span class="muted">${esc(last?.time||'')}</span></div>`}).join('');
   };
 
