@@ -47,14 +47,8 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
     if(chat.style.getPropertyValue('--background-overlay-opacity')!=='0')chat.style.setProperty('--background-overlay-opacity','0');
   }
   function paintConversationBackground(){
-    const chat=document.getElementById('chat');if(!chat)return;
-    const settings=conversationSettings(typeof currentChat!=='undefined'?currentChat:'');
-    const src=imageOf(settings?.background);
-    if(!src){paintDefaultBackground();return}
-    chat.classList.add('has-custom-bg');
-    chat.style.backgroundSize='cover';chat.style.backgroundPosition='center';chat.style.backgroundRepeat='no-repeat';
-    /* Some installed WebViews reject the layered gradient form; keep a plain fallback. */
-    if(!S(chat.style.backgroundImage).trim())try{chat.style.backgroundImage=`url(${src})`}catch{}
+    /* V45.7.16 keeps the saved setting but intentionally paints no wallpaper. */
+    paintDefaultBackground();
   }
   const baseApplyChatBackground=typeof window.applyChatBackground==='function'?window.applyChatBackground:null;
   if(baseApplyChatBackground&&!baseApplyChatBackground.__v45710){
@@ -371,7 +365,7 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
         <button class="primary" onclick="v45710CompleteLines()">AI 补全缺失侧</button>
       </div>
       ${lines.length?`<div class="v45710-lines-actions wide" style="margin-top:7px"><button onclick="v45710OpenDrill()">开始复习 · ${lines.filter(row=>row.src&&row.dst).length} 条可用</button></div>`:''}
-      ${lines.length?`<div class="v457-learning-section-title" style="margin-top:12px"><div><small>LINE ENTRIES</small><b>已录入的行</b></div><span>${lines.length}</span></div>${lines.slice(-40).reverse().map(row=>`<article class="v45710-line-entry">
+      ${lines.length?`<div class="v457-learning-section-title" style="margin-top:12px"><div><small>行式录入</small><b>已录入的行</b></div><span>${lines.length}</span></div>${lines.slice(-40).reverse().map(row=>`<article class="v45710-line-entry">
           <div class="src">${E(row.src||'（待补原文）')}</div>
           <div class="dst${row.dst?'':' pending'}">${E(row.dst||'待补译文')}</div>
           <div class="tools"><button onclick="v45710CompleteOne(${A(row.id)})">补全这条</button><button onclick="v45710QueueLine(${A(row.id)})">加入复习</button><button onclick="v45710DeleteLine(${A(row.id)})">删除</button></div>
@@ -386,7 +380,7 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
       let extra='';
       try{extra=linePanelMarkup(learningStore())}catch(error){console.warn('V45.7.11 行式录入渲染失败',error)}
       if(!extra)return html;
-      const marker='<div class="v457-learning-section-title"><div><small>PERSONAL DICTIONARY</small>';
+      const marker='<div class="v457-learning-section-title"><div><small>个人词典</small>';
       return html.includes(marker)?html.replace(marker,extra+marker):html.replace(/<\/div>\s*$/,extra+'</div>');
     };
     wrapped.__v45710=true;window.dictionaryPanel=wrapped;try{dictionaryPanel=wrapped}catch{}
@@ -873,7 +867,7 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
     if(!stats.length)return '';
     return `<div class="v45712-vn-stats">${stats.map(s=>{
       const pct=Math.max(0,Math.min(100,s.cur/Math.max(1,s.max)*100));
-      return `<div class="v45712-vn-stat"><div class="top"><b>${E(s.name)}</b><span>${s.cur}/${s.max}</span></div><div class="bar"><i style="width:${pct}%;background:${AT(s.color)}"></i></div></div>`;
+      return `<div class="v45712-vn-stat"><div class="top"><b>${E(s.name)}</b><span>${s.cur}/${s.max}</span></div><div class="bar"><i style="width:${pct}%;background:#697077"></i></div></div>`;
     }).join('')}</div>`;
   }
   function stageMarkup(game,scene){
@@ -1141,14 +1135,14 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
     const stats=L(game.stage.stats);
     if(!stats.length)return '<div class="note">当前没有数值条。这部文游会是纯剧情向，顶部不显示任何条。</div>';
     return stats.map((s,i)=>`<div class="v45712-vn-stat-edit">
-      <div class="head"><i style="background:${AT(s.color)}"></i>
+      <div class="head"><i style="background:#697077"></i>
         <input value="${AT(s.name)}" placeholder="数值名称" oninput="v45712VNStatField(${A(game.id)},${i},'name',this.value)">
         <button onclick="v45712VNRemoveStat(${A(game.id)},${i})" aria-label="删除">×</button></div>
       <div class="fields">
         <label><span>当前值</span><input type="number" value="${s.cur}" oninput="v45712VNStatField(${A(game.id)},${i},'cur',this.value)"></label>
         <label><span>上限</span><input type="number" value="${s.max}" oninput="v45712VNStatField(${A(game.id)},${i},'max',this.value)"></label>
       </div>
-      <div class="swatches">${SWATCH.map(c=>`<button class="${c===s.color?'on':''}" style="background:${c}" onclick="v45712VNStatField(${A(game.id)},${i},'color','${c}')" aria-label="颜色"></button>`).join('')}</div>
+      <div class="swatches">${SWATCH.map(c=>`<button class="${c===s.color?'on':''}" style="background:#dfe2e5" onclick="v45712VNStatField(${A(game.id)},${i},'color','${c}')" aria-label="颜色"></button>`).join('')}</div>
     </div>`).join('');
   }
   function refreshStatEditor(game){
@@ -1363,7 +1357,7 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
   const money=n=>Number(n||0).toFixed(2);
   const V=()=>window.V455||null;
 
-  const TINT=['linear-gradient(150deg,#5c6b7a,#39424d)','linear-gradient(150deg,#7a6a5c,#4d423a)','linear-gradient(150deg,#6a7a68,#3d4a3c)','linear-gradient(150deg,#7a5c6a,#4d3a42)','linear-gradient(150deg,#5c5c7a,#3a3a4d)','linear-gradient(150deg,#7a745c,#4a463a)'];
+  const TINT=['#f1f3f4','#eceeef','#e7eaec','#f3f4f5','#e9ebed','#f5f6f7'];
   const tint=i=>TINT[Math.abs(Number(i)||0)%TINT.length];
   const state=()=>window.__pokejiShopState||{owner:'user',route:'home',goodId:'',specIndex:0,orderTab:'全部'};
   const store=()=>window.__pokejiShopStore?.()||{goods:[],list:[],cart:[],orders:[],favorites:[]};
@@ -1651,7 +1645,7 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
   const say=t=>{try{toast(t)}catch{}};
   const money=n=>Number(n||0).toFixed(2);
   const V=()=>window.V455||null;
-  const TINT=['linear-gradient(150deg,#5c6b7a,#39424d)','linear-gradient(150deg,#7a6a5c,#4d423a)','linear-gradient(150deg,#6a7a68,#3d4a3c)','linear-gradient(150deg,#7a5c6a,#4d3a42)','linear-gradient(150deg,#5c5c7a,#3a3a4d)','linear-gradient(150deg,#7a745c,#4a463a)'];
+  const TINT=['#f1f3f4','#eceeef','#e7eaec','#f3f4f5','#e9ebed','#f5f6f7'];
   const tint=i=>TINT[Math.abs(Number(i)||0)%TINT.length];
 
   const state={owner:'user',route:'home',goodId:'',specIndex:0,orderTab:'全部'};
@@ -1894,12 +1888,12 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
     root().innerHTML=`<section class="v45712-dream-hall">
       <header class="v45712-dream-head">
         <button onclick="openView('home')" aria-label="返回">‹</button>
-        <div><small>DREAM PAVILION</small><b>幻梦馆</b></div>
+        <div><small>幻梦馆</small><b>幻梦馆</b></div>
         <button onclick="v45712NewDream()" aria-label="生成新的梦">＋</button>
       </header>
       <main>
         <section class="v45712-dream-lead">
-          <small>THEIR OWN DREAMS</small>
+          <small>角色自生的梦</small>
           <h1>他们自己做的梦</h1>
           <p>这里的梦都由角色自己生成，来自他们的经历、心结和没说出口的东西。你可以走进去，也可以只在外面看。两种方式他们事后都不会知道你来过。</p>
         </section>
