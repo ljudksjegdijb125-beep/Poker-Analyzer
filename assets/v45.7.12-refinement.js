@@ -2955,36 +2955,60 @@ ${selected.join('\n')}`;
       </div>
     </section>`;
   }
-  function paintSquare(){
+  /* V45.7.27 修：广场一进就整页卡死。
+     原因不是 z-index 也不是数据，是 MutationObserver ↔ innerHTML 互喂：
+     回调里无条件写 seg.innerHTML → 产生新的 childList 记录 → 回调再跑，
+     微任务队列永不为空，主线程被锁死（与 V45.7.10 的 API 页卡死是同一个坑）。
+     三道闸：① 写入前先算目标 HTML，一致就不写（幂等）；
+             ② 重入锁 painting；③ 写 DOM 期间断开 observer，写完吃掉自己造成的记录再接回。 */
+  let squareObserver=null,painting=false,paintQueued=false;
+  function setHTML(node,html){if(node&&node.innerHTML!==html){node.innerHTML=html;return true}return false}
+  function paintSquareInner(){
     const body=document.querySelector('.v452-app-square');if(!body)return;
     const shell=body.querySelector(':scope > .v452-square');if(!shell||shell.classList.contains('v453-profile-shell'))return;
     const tabs=shell.querySelector(':scope > .v452-square-tabs');if(!tabs)return;
     const type=currentType(),view=viewOf(type);
     /* 页签按用户确认的顺序与叫法重排，onclick 仍走原函数 */
     const wanted=TYPES.map(([key,label])=>`<button class="${type===key?'on':''}" onclick="v452SetSquareTab('${key}')">${label}</button>`).join('');
-    if(tabs.dataset.v45726!==type){tabs.innerHTML=wanted;tabs.dataset.v45726=type}
+    setHTML(tabs,wanted);tabs.dataset.v45726=type;
     /* 二级切换 */
     let seg=shell.querySelector(':scope > .v45726-seg');
     if(!seg){seg=document.createElement('nav');seg.className='v45726-seg';tabs.after(seg)}
     const genLabel=view==='follow'?'✦ 让 TA 发':'✦ 生成主播';
     const genCall=view==='follow'?`v45726FollowGenerate('${type}')`:'v4571GenerateSquareCreators()';
-    seg.innerHTML=`<button class="${view==='follow'?'on':''}" onclick="v45726SquareView('${type}','follow')">关注</button>
-      <button class="${view==='find'?'on':''}" onclick="v45726SquareView('${type}','find')">发现</button>
-      <button class="v45726-seg-gen" onclick="${genCall}">${genLabel}</button>`;
+    setHTML(seg,`<button class="${view==='follow'?'on':''}" onclick="v45726SquareView('${type}','follow')">关注</button>`
+      +`<button class="${view==='find'?'on':''}" onclick="v45726SquareView('${type}','find')">发现</button>`
+      +`<button class="v45726-seg-gen" onclick="${genCall}">${genLabel}</button>`);
     /* 关注视图用自己的列表，发现视图保持原页面 */
     const main=shell.querySelector(':scope > .v452-square-view');if(!main)return;
     if(view==='follow'){
-      if(main.dataset.v45726!=='follow:'+type){main.dataset.v45726='follow:'+type;main.classList.remove('immersive');main.innerHTML=followPanel(type)}
+      if(main.dataset.v45726!=='follow:'+type){main.dataset.v45726='follow:'+type;main.classList.remove('immersive')}
+      setHTML(main,followPanel(type));
     }else if(main.dataset.v45726){delete main.dataset.v45726}
+  }
+  function paintSquare(){
+    if(painting)return;
+    painting=true;
+    try{squareObserver&&squareObserver.disconnect()}catch{}
+    try{paintSquareInner()}catch(e){try{console.warn('v45726 paintSquare',e)}catch{}}
+    finally{
+      painting=false;
+      try{if(squareObserver){squareObserver.takeRecords();squareObserver.observe(observerHost(),{childList:true,subtree:true})}}catch{}
+    }
+  }
+  function schedulePaint(){
+    if(paintQueued||painting)return;paintQueued=true;
+    setTimeout(()=>{paintQueued=false;if(document.querySelector('.v452-app-square'))paintSquare()},60);
   }
   window.v45726PaintSquare=paintSquare;
   for(const name of ['v452SetSquareTab','v452OpenPhoneApp','v43OpenPhoneApp']){
     const base=window[name];
-    if(typeof base==='function')window[name]=function(...args){const out=base.apply(this,args);setTimeout(paintSquare,20);return out};
+    if(typeof base==='function')window[name]=function(...args){const out=base.apply(this,args);schedulePaint();return out};
   }
+  function observerHost(){return document.getElementById('modalContent')||document.body}
   try{
-    const host=document.getElementById('modalContent')||document.body;
-    new MutationObserver(()=>{if(document.querySelector('.v452-app-square'))paintSquare()}).observe(host,{childList:true,subtree:true});
+    squareObserver=new MutationObserver(()=>{if(!painting&&document.querySelector('.v452-app-square'))schedulePaint()});
+    squareObserver.observe(observerHost(),{childList:true,subtree:true});
   }catch{}
 
   window.v45726FollowGenerate=async function(type){
@@ -3089,8 +3113,11 @@ ${selected.join('\n')}`;
     try{renderChats?.()}catch{}
     tell(`${name}已写进人物页`);
   };
-  /* 主播卡上补一个转正式入口：只在已是好友时出现 */
-  function paintCreatorCards(){
+  /* 主播卡上补一个转正式入口：只在已是好友时出现
+     V45.7.27 修：这里原本也是「observer 无条件写 innerHTML」的互喂结构，
+     打开广场关系页同样会锁死主线程。改成幂等写入＋重入锁＋写前断开 observer。 */
+  let cardObserver=null,cardPainting=false,cardQueued=false;
+  function paintCreatorCardsInner(){
     for(const card of document.querySelectorAll('.v4571-creator-card')){
       const btn=card.querySelector('footer button[onclick*="v4571ToggleCreatorFriend"]');
       const idMatch=S(btn?.getAttribute('onclick')).match(/'([^']+)'|decodeURIComponent\('([^']*)'\)/);
@@ -3100,14 +3127,29 @@ ${selected.join('\n')}`;
       if(isFriend&&cid){
         if(!row){row=document.createElement('div');row.className='v45726-promote';card.appendChild(row)}
         const on=followed().includes(cid);
-        row.innerHTML=`<p><b>转为正式人物</b>可以继续在广场里私信，也可以写进人物页、在聊天里正式私聊。</p>
-          <button onclick="v45726ToggleFollow(${A(cid)})">${on?'已关注':'关注'}</button>
-          <button class="primary" onclick="v45726Promote('creator',${A(cid)})">转为正式</button>`;
+        setHTML(row,`<p><b>转为正式人物</b>可以继续在广场里私信，也可以写进人物页、在聊天里正式私聊。</p>`
+          +`<button onclick="v45726ToggleFollow(${A(cid)})">${on?'已关注':'关注'}</button>`
+          +`<button class="primary" onclick="v45726Promote('creator',${A(cid)})">转为正式</button>`);
       }else if(row)row.remove();
     }
   }
-  try{new MutationObserver(()=>{if(document.querySelector('.v4571-creator-card'))paintCreatorCards()})
-    .observe(document.getElementById('modalContent')||document.body,{childList:true,subtree:true})}catch{}
+  function paintCreatorCards(){
+    if(cardPainting)return;
+    cardPainting=true;
+    try{cardObserver&&cardObserver.disconnect()}catch{}
+    try{paintCreatorCardsInner()}catch(e){try{console.warn('v45726 creatorCards',e)}catch{}}
+    finally{
+      cardPainting=false;
+      try{if(cardObserver){cardObserver.takeRecords();cardObserver.observe(observerHost(),{childList:true,subtree:true})}}catch{}
+    }
+  }
+  try{
+    cardObserver=new MutationObserver(()=>{
+      if(cardPainting||cardQueued||!document.querySelector('.v4571-creator-card'))return;
+      cardQueued=true;setTimeout(()=>{cardQueued=false;paintCreatorCards()},60);
+    });
+    cardObserver.observe(observerHost(),{childList:true,subtree:true});
+  }catch{}
 
   /* =======================================================
      ⑤⑥⑦ 文游：角色表、AI 生成数值与道具、横竖屏
@@ -3132,36 +3174,132 @@ ${selected.join('\n')}`;
   ].join('\n');
   function vnActive(){try{return !!document.querySelector('#v4571VNRoot .v4571-vn-player, .v4571-vn-player')}catch{return false}}
 
-  /* --- 横屏／竖屏 --- */
+  /* --- 横屏／竖屏 ---
+     V45.7.27 重做。上一版为什么「横竖屏一模一样」：
+     样式全写在 .v4571-vn-scene / .v4571-vn-player 这套类名上，
+     但 v45.7.12 的 repaint 会把 root.innerHTML 整个换成 .v45712-vn-* 版式，
+     那些元素在运行时根本不存在 → 19 条规则 0 条命中。
+     现在：① 样式改挂真实类名；② 竖屏设备也要真的看到横屏，
+     先试 screen.orientation.lock('landscape')，锁不上就把舞台旋转 90°。 */
+  let orientObserver=null,orientBusy=false,orientQueued=false;
   window.v45726VNOrient=function(id,mode){
     const stage=vnStage(id);if(!stage)return;
     stage.orient=mode==='landscape'?'landscape':mode==='portrait'?'portrait':(stage.orient==='landscape'?'portrait':'landscape');
-    keep();applyOrient();tell(stage.orient==='landscape'?'已切到横屏 · 视觉小说版式':'已切回竖屏');
+    keep();
+    if(stage.orient==='landscape'){
+      void lockLandscape().then(locked=>{
+        applyOrient();
+        tell(locked?'已切到横屏 · 视觉小说版式':'已切到横屏 · 请把手机横过来看');
+      });
+    }else{
+      unlockOrientation();applyOrient();tell('已切回竖屏');
+    }
   };
+  async function lockLandscape(){
+    try{
+      const so=screen&&screen.orientation;
+      if(!so||typeof so.lock!=='function')return false;
+      const el=document.getElementById('phone')||document.documentElement;
+      if(!document.fullscreenElement&&el.requestFullscreen){try{await el.requestFullscreen()}catch{}}
+      await so.lock('landscape');
+      return true;
+    }catch{return false}
+  }
+  function unlockOrientation(){
+    try{screen&&screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}catch{}
+  }
+  /* 竖屏设备上把舞台整体转 90°，宽高互换后内部就是真正的宽幅画面 */
+  function sizeRotation(shell,land){
+    if(!shell)return;
+    if(!land){
+      if(shell.dataset.rot!=='0'){shell.dataset.rot='0';shell.style.removeProperty('width');shell.style.removeProperty('height')}
+      return;
+    }
+    const host=document.getElementById('screen')||document.getElementById('phone')||document.documentElement;
+    const w=Math.round(host.clientWidth||window.innerWidth||360);
+    const h=Math.round(host.clientHeight||window.innerHeight||640);
+    if(w>=h){/* 设备已经是横的，不需要旋转 */
+      if(shell.dataset.rot!=='0'){shell.dataset.rot='0';shell.style.removeProperty('width');shell.style.removeProperty('height')}
+      return;
+    }
+    const want=`${h}px`,wantH=`${w}px`;
+    if(shell.dataset.rot!=='90')shell.dataset.rot='90';
+    if(shell.style.width!==want)shell.style.width=want;
+    if(shell.style.height!==wantH)shell.style.height=wantH;
+  }
   function applyOrient(){
+    if(orientBusy)return;
+    orientBusy=true;
+    try{orientObserver&&orientObserver.disconnect()}catch{}
+    try{applyOrientInner()}catch(e){try{console.warn('v45726 applyOrient',e)}catch{}}
+    finally{
+      orientBusy=false;
+      try{if(orientObserver){orientObserver.takeRecords();orientObserver.observe(document.body,{childList:true,subtree:true})}}catch{}
+    }
+  }
+  function applyOrientInner(){
     const g=vnGame();if(!g)return;
     const stage=vnStage(g.id);if(!stage)return;
-    const root=document.getElementById('v4571VNRoot')||document.querySelector('.v4571-vn-view')||document.querySelector('.v4571-vn-player')?.parentElement;
-    if(!root)return;
-    root.classList.toggle('v45726-vn-landscape',stage.orient==='landscape');
-    document.documentElement.classList.toggle('v45726-vn-landscape-on',stage.orient==='landscape');
-    let btn=root.querySelector('.v45726-vn-orient');
+    const root=document.getElementById('v4571VNRoot');if(!root)return;
+    const land=stage.orient==='landscape';
+    const view=document.getElementById('visualNovel');
+    for(const node of [root,view])if(node&&node.classList.contains('v45726-vn-land')!==land)node.classList.toggle('v45726-vn-land',land);
+    if(document.documentElement.classList.contains('v45726-vn-land-on')!==land)document.documentElement.classList.toggle('v45726-vn-land-on',land);
+    const shell=root.querySelector('.v45712-vn-shell');
+    sizeRotation(shell,land);
+    /* 常驻切换按钮：幂等，textContent 一致就不写，否则会自己喂 observer */
+    let btn=root.querySelector(':scope > .v45726-vn-orient');
     if(!btn){
       btn=document.createElement('button');btn.className='v45726-vn-orient';
       btn.setAttribute('aria-label','切换横竖屏');root.appendChild(btn);
     }
-    btn.textContent=stage.orient==='landscape'?'竖':'横';
+    const label=land?'竖':'横';
+    if(btn.textContent!==label)btn.textContent=label;
     btn.onclick=e=>{e.stopPropagation();window.v45726VNOrient(g.id)};
+    /* 横屏时输入框藏起来（CSS），补一个「自己写」按钮走正向浮层 */
+    const box=root.querySelector('.v45712-vn-box');
+    const custom=root.querySelector('.v45712-vn-custom');
+    let say=root.querySelector('.v45726-vn-saybtn');
+    if(land&&box&&custom){
+      if(!say){say=document.createElement('button');say.className='v45726-vn-saybtn';say.textContent='✎ 自己写一个选择';custom.after(say)}
+      say.onclick=e=>{e.stopPropagation();window.v45726VNSay(g.id)};
+    }else if(say)say.remove();
   }
   window.v45726ApplyVNOrient=applyOrient;
   const baseRepaint=window.v45712VNRepaint;
   if(typeof baseRepaint==='function'){
     window.v45712VNRepaint=function(...args){const out=baseRepaint.apply(this,args);setTimeout(applyOrient,10);return out};
   }
+  function scheduleOrient(){
+    if(orientQueued||orientBusy)return;orientQueued=true;
+    setTimeout(()=>{orientQueued=false;if(document.querySelector('#v4571VNRoot .v45712-vn-shell,.v4571-vn-player'))applyOrient()},60);
+  }
   try{
-    new MutationObserver(()=>{if(document.querySelector('.v4571-vn-player'))setTimeout(applyOrient,10)})
-      .observe(document.body,{childList:true,subtree:true});
+    orientObserver=new MutationObserver(()=>{if(!orientBusy)scheduleOrient()});
+    orientObserver.observe(document.body,{childList:true,subtree:true});
   }catch{}
+  try{
+    window.addEventListener('resize',scheduleOrient);
+    window.addEventListener('orientationchange',()=>setTimeout(scheduleOrient,120));
+  }catch{}
+  /* 横屏时输入不放在旋转层里打字，改成弹一个正向浮层 */
+  window.v45726VNSay=function(id){
+    const g=vnGame(id);if(!g)return;
+    modal(`<div class="v45726-vn-say"><h2>自己决定下一步</h2>
+      <div class="note compact">写你要做的事或要说的话，这一幕会顺着它往下走。</div>
+      <textarea id="v45726VNSayText" placeholder="推开门，先看清屋里有几个人…"></textarea>
+      <div class="form-actions"><button onclick="closeModal()">取消</button>
+        <button class="primary" onclick="v45726VNSaySend()">继续</button></div></div>`);
+    setTimeout(()=>{try{document.getElementById('v45726VNSayText')?.focus()}catch{}},80);
+  };
+  window.v45726VNSaySend=function(){
+    const text=S(document.getElementById('v45726VNSayText')?.value).trim();
+    if(!text)return tell('还没写内容');
+    closeModal();
+    const input=document.getElementById('v4571VNCustomChoice');
+    if(input){input.value=text;try{return window.v4571CustomVNChoice()}catch{}}
+    try{return window.v4571ChooseVN(text)}catch{}
+  };
 
   /* --- AI 生成数值条与道具 --- */
   window.v45726VNAutoStats=async function(id,silent){
@@ -3331,14 +3469,17 @@ ${selected.join('\n')}`;
     const persona=personaNow();
     return L(data.memories).filter(m=>m&&S(m.characterId)===S(person?.id)&&(!m.personaId||S(m.personaId)===S(persona?.id)));
   }
+  /* V45.7.27：人物设置页改成两个并排按钮，各自点进各自的页。
+     入口收下的是人物 id，这里换算成当前面具下的私信 chatId。 */
+  window.v45726WipeFor=function(characterId,tab){
+    let chatId='';try{chatId=directChatId(characterId)}catch{}
+    return window.v45726OpenWipe(chatId||currentChat,tab);
+  };
   window.v45726OpenWipe=function(chatId,tab){
     wipeChat=S(chatId||currentChat);wipeTab=tab==='memory'?'memory':'record';
     const person=chatCharacter(wipeChat);if(!person)return tell('请先进入一个人物的聊天');
     const persona=personaNow(),gids=groupChatIds(person);
     const sourced=memoryRows(person).filter(m=>S(m.source)),manual=memoryRows(person).filter(m=>!S(m.source));
-    const seg=`<div class="v45726-wipe-two">
-      <button class="${wipeTab==='record'?'on':''}" onclick="v45726OpenWipe(${A(wipeChat)},'record')"><b>清理记录</b><small>聊天里看得见的那些消息</small></button>
-      <button class="${wipeTab==='memory'?'on':''}" onclick="v45726OpenWipe(${A(wipeChat)},'memory')"><b>清理记忆</b><small>会被塞回提示词的痕迹</small></button></div>`;
     const body=wipeTab==='record'?`
       <div class="v45726-wipe-list">
         <label><input type="checkbox" class="v45726-wipe" value="online" checked><div><b>线上消息</b><small>普通聊天气泡、语音、图片、表情包</small></div><i>${countMode(wipeChat,'online')} 条</i></label>
@@ -3348,7 +3489,7 @@ ${selected.join('\n')}`;
       </div>
       <div class="v45726-wipe-why"><b>清完记录之后，TA 还是会记得</b>
         <p>因为记忆是另一套数据：压缩摘要、你查过的手机内容、通话记录、时间线都还在，它们仍然会进提示词。</p>
-        <p>要让 TA 真的不记得，切到「清理记忆」那一栏。</p></div>`
+        <p>要让 TA 真的不记得，回到人物设置页点旁边那个「清理记忆」。</p></div>`
       :`
       <div class="v45726-wipe-list">
         <label><input type="checkbox" class="v45726-wipe" value="summary" checked><div><b>压缩记忆（对话摘要）</b><small>记忆页里${E(person.name)}与${E(persona?.name||'当前面具')}那条摘要</small></div><i>${data.chatSummaries?.[wipeChat]?1:0} 条</i></label>
@@ -3361,9 +3502,9 @@ ${selected.join('\n')}`;
       <div class="v45726-wipe-why"><b>之前清空之后还记得，就是这里</b>
         <p>旧版「清空线上与线下」只清了聊天消息、摘要、时间线和译文，手机记录与通话记录都留着，所以用查手机看过的内容照样会进提示词。</p>
         <p>现在这四项默认勾上。带来源的条目和手写记忆默认不勾，那是你自己的资料，清了不可恢复。</p></div>`;
-    modal(`<div class="v45726-wipe"><h2>清理 · ${E(person.name)}</h2>
-      <div class="note">当前面具「${E(persona?.name||'未命名')}」下的${E(person.name)}。记录和记忆是两套数据，分开清。其他面具不受影响。</div>
-      ${seg}${body}
+    modal(`<div class="v45726-wipe"><h2>${wipeTab==='record'?'清理记录':'清理记忆'} · ${E(person.name)}</h2>
+      <div class="note">当前面具「${E(persona?.name||'未命名')}」下的${E(person.name)}。${wipeTab==='record'?'这一页只清聊天里看得见的消息。':'这一页只清会被塞回提示词的痕迹。'}其他面具不受影响。</div>
+      ${body}
       <div class="form-actions"><button onclick="closeModal()">取消</button>
         <button class="danger" onclick="v45726RunWipe()">${wipeTab==='record'?'清理所选记录':'清理所选记忆'}</button></div></div>`);
   };
