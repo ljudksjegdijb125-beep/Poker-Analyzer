@@ -104,8 +104,8 @@
     }
     let html=baseMessageMarkup(message,index,isLast,chatId);
     if(message.kind==='voice'&&T(message.transcript||message.text).trim()){
-      const transcript=`<div class="voice-transcript"><small>语音转文字</small><span>${esc(message.transcript||message.text)}</span></div>`;
-      html=html.replace(/(<button class="voice-strip[\s\S]*?<\/button>)/,`$1${transcript}`);
+      const transcript=`<div class=\"voice-transcript\"><small>语音转文字</small><span>${esc(message.transcript||message.text)}</span></div>`;
+      html=html.replace(/(<\/div><\/div>)$/,`${transcript}$1`);
     }
     return html;
   };
