@@ -2922,38 +2922,40 @@ ${selected.join('\n')}`;
   function followed(){return socialState().following}
   function itemAuthorId(item){return S(item.authorId||item.creatorId||item.authorToken||'')}
   function creatorName(id){const c=socialState().creators.find(x=>S(x.id)===S(id));return c?S(c.name):''}
-  function followedItems(type){
-    const store=squareStore(),ids=followed();
-    const rows=type==='feed'?store.posts:type==='short'?store.shorts:type==='long'?store.longs:store.threads;
-    return L(rows).filter(item=>item&&item.authorType!=='user'&&ids.includes(itemAuthorId(item)));
+  /* V45.7.28：关注与发现只做数据筛选，绝不替换四种内容的原渲染器。 */
+  function rowsForType(type){
+    const store=squareStore();
+    return type==='feed'?L(store.posts):type==='short'?L(store.shorts):type==='long'?L(store.longs):L(store.threads);
   }
-  function followRow(type,item){
-    const name=S(item.authorName||item.author||creatorName(itemAuthorId(item))||'广场主播');
-    const title=S(item.title||item.content||'未命名内容');
-    const body=S(item.summary||item.content||'');
-    const open=type==='long'?`v452OpenLongDetail(${A(item.id)})`:type==='feed'?`v452OpenPostDetail(${A(item.id)})`:type==='forum'?`v452OpenThread(${A(item.id)})`:`v452OpenShortArticle(${A(item.id)})`;
-    return `<article class="v45726-follow-row" onclick="${open}">
-      <span>${E(name.slice(0,1))}</span>
-      <div><b>${E(title).slice(0,60)}</b><small>${E(name)} · ${type==='long'?`${L(item.chapters).length||1} 幕`:type==='forum'?`${L(item.comments).length} 回复`:'刚刚'}</small><em>${E(body).slice(0,70)}</em></div>
-      <i>›</i></article>`;
+  function isFollowedItem(item){
+    return !!item&&item.authorType!=='user'&&followed().includes(itemAuthorId(item));
   }
-  function followPanel(type){
-    const rows=followedItems(type),ids=followed(),creators=socialState().creators.filter(c=>ids.includes(S(c.id)));
-    return `<section class="v45726-follow">
-      <div class="v45726-strip">
-        <div class="v45726-strip-head"><b>我关注的</b><small>${creators.length} 位</small></div>
-        <div class="v45726-strip-row">
-          ${creators.map(c=>`<button onclick="v4571OpenCreator(${A(c.id)})"><span>${E(S(c.name||'主').slice(0,1))}</span><small>${E(S(c.name||'主播').slice(0,4))}</small></button>`).join('')}
-          <button class="v45726-strip-add" onclick="v4571OpenSquareSocial()"><span>✦</span><small>找新的</small></button>
-        </div>
-      </div>
-      ${rows.length?`<div class="v45726-follow-list">${rows.map(item=>followRow(type,item)).join('')}</div>`
-        :`<div class="v45726-follow-empty"><span>◇</span><b>关注的人还没有${E(TYPES.find(t=>t[0]===type)?.[1]||'内容')}</b><p>可以让已关注的主播按自己的性格发一条，也可以先去发现页多关注几位。</p></div>`}
-      <div class="v45726-inline-gen">
-        <div><b>${rows.length?'想看新的':'关注的人今天还没发'}</b><small>让已关注主播按自己的性格发一条${E(TYPES.find(t=>t[0]===type)?.[1]||'内容')}</small></div>
-        <button onclick="v45726FollowGenerate('${type}')">✦ 让 TA 发一条</button>
-      </div>
-    </section>`;
+  function originalNodes(main,type){
+    if(type==='feed')return [...main.querySelectorAll('.v452-discover-card')];
+    if(type==='short')return [...main.querySelectorAll('.v452-short-card')];
+    if(type==='long'){
+      const mature=[...main.querySelectorAll('.v453-long-card')];
+      return mature.length?mature:[...main.querySelectorAll('.v452-long-card')];
+    }
+    return [...main.querySelectorAll('.v452-thread-list>button')];
+  }
+  function applyOriginalFilter(main,type,view){
+    for(const old of main.querySelectorAll(':scope > .v45728-square-filter-empty'))old.remove();
+    const rows=rowsForType(type),nodes=originalNodes(main,type);
+    let visible=0;
+    nodes.forEach((node,index)=>{
+      const show=view!=='follow'||isFollowedItem(rows[index]);
+      node.hidden=!show;node.classList.toggle('v45728-filter-hidden',!show);
+      if(show)visible++;
+    });
+    main.dataset.v45728Filter=`${type}:${view}`;
+    if(view==='follow'&&nodes.length&&visible===0){
+      const empty=document.createElement('div');
+      empty.className='v452-square-empty v45728-square-filter-empty';
+      const label=TYPES.find(row=>row[0]===type)?.[1]||'内容';
+      empty.innerHTML=`<span>◇</span><b>关注的人还没有${E(label)}</b><p>这里只筛选原来的${E(label)}页面，不会改成另一套列表。可以先去「主播与私信」关注主播。</p>`;
+      main.appendChild(empty);
+    }
   }
   /* V45.7.27 修：广场一进就整页卡死。
      原因不是 z-index 也不是数据，是 MutationObserver ↔ innerHTML 互喂：
@@ -2971,20 +2973,16 @@ ${selected.join('\n')}`;
     /* 页签按用户确认的顺序与叫法重排，onclick 仍走原函数 */
     const wanted=TYPES.map(([key,label])=>`<button class="${type===key?'on':''}" onclick="v452SetSquareTab('${key}')">${label}</button>`).join('');
     setHTML(tabs,wanted);tabs.dataset.v45726=type;
-    /* 二级切换 */
+    /* 二级切换只占自己的固定行；原来的主播工具条和四种内容 DOM 都不动。 */
     let seg=shell.querySelector(':scope > .v45726-seg');
     if(!seg){seg=document.createElement('nav');seg.className='v45726-seg';tabs.after(seg)}
-    const genLabel=view==='follow'?'✦ 让 TA 发':'✦ 生成主播';
-    const genCall=view==='follow'?`v45726FollowGenerate('${type}')`:'v4571GenerateSquareCreators()';
+    shell.classList.add('v45728-square-filter-enabled');
     setHTML(seg,`<button class="${view==='follow'?'on':''}" onclick="v45726SquareView('${type}','follow')">关注</button>`
       +`<button class="${view==='find'?'on':''}" onclick="v45726SquareView('${type}','find')">发现</button>`
-      +`<button class="v45726-seg-gen" onclick="${genCall}">${genLabel}</button>`);
-    /* 关注视图用自己的列表，发现视图保持原页面 */
+      +`<small>只筛选当前${E(TYPES.find(row=>row[0]===type)?.[1]||'内容')}</small>`);
     const main=shell.querySelector(':scope > .v452-square-view');if(!main)return;
-    if(view==='follow'){
-      if(main.dataset.v45726!=='follow:'+type){main.dataset.v45726='follow:'+type;main.classList.remove('immersive')}
-      setHTML(main,followPanel(type));
-    }else if(main.dataset.v45726){delete main.dataset.v45726}
+    delete main.dataset.v45726;
+    applyOriginalFilter(main,type,view);
   }
   function paintSquare(){
     if(painting)return;
@@ -3035,7 +3033,9 @@ ${selected.join('\n')}`;
       else if(type==='short')store.shorts.unshift(item);
       else if(type==='long'){item.chapters=[{title:'第 1 幕',text:item.content}];store.longs.unshift(item)}
       else store.threads.unshift({...item,board:'综合讨论'});
-      keep();paintSquare();tell(`${who.name}发了一条${label}`);
+      keep();
+      try{if(typeof window.v452SetSquareTab==='function')window.v452SetSquareTab(type)}catch{}
+      setTimeout(paintSquare,80);tell(`${who.name}发了一条${label}`);
     }catch(error){tell(error?.name==='AbortError'?'生成已取消':'这条内容没生成成功')}
     finally{try{releaseController(controller)}catch{}}
   };
@@ -3587,4 +3587,582 @@ ${selected.join('\n')}`;
     return window.v45726OpenWipe(chatId||currentChat,'record');
   };
   try{clearChat=window.clearChat;clearCharacterConversations=window.clearCharacterConversations}catch{}
+})();
+
+
+/* =========================================================
+   V45.7.28 · 广场保留原组件后的文游最终层
+   四种参与来源／戏外戏内分层／整张场景图／文字图回退／杀青名单
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiV45728VN)return;
+  window.__pokejiV45728VN=true;
+
+  const S=(v,f='')=>String(v??f);
+  const O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const NOW=()=>new Date().toISOString();
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const keep=()=>{try{save()}catch{}};
+  const tell=t=>{try{toast(t)}catch{}};
+  const clone=v=>{try{return JSON.parse(JSON.stringify(v))}catch{return v}};
+  const safeImg=v=>{try{return typeof safeImageSrc==='function'?safeImageSrc(v):S(v)}catch{return''}};
+  const personaNow=()=>{try{return activePersonaFor(currentChat)}catch{return L(data.personas).find(p=>S(p.id)===S(data.activePersonaId))||L(data.personas)[0]||null}};
+  const allEntities=()=>{
+    const map=new Map();
+    for(const row of [...L(data.characters),...L(data.mpcs)])if(row&&row.id&&!map.has(S(row.id)))map.set(S(row.id),row);
+    return [...map.values()];
+  };
+  const entity=id=>allEntities().find(row=>S(row.id)===S(id))||null;
+  const games=()=>{data.visualNovelsV4571=O(data.visualNovelsV4571);data.visualNovelsV4571.games=L(data.visualNovelsV4571.games);return data.visualNovelsV4571.games};
+  const gameById=id=>games().find(g=>S(g.id)===S(id))||null;
+  const activeGame=()=>gameById(S(data.visualNovelsV4571?.activeId));
+  const normalizeMode=v=>['self','borrow','none'].includes(v)?v:'self';
+  const normalizeTurn=v=>['outside','inside','both'].includes(v)?v:'both';
+  const participantName=p=>S(entity(p.characterId)?.name||p.name||'人物');
+
+  const legacy={
+    create:window.v4571CreateVN,
+    saveNew:window.v4571SaveNewVN,
+    choose:window.v4571ChooseVN,
+    custom:window.v4571CustomVNChoice,
+    menu:window.v4571VNMenu,
+    open:window.v4571OpenVN,
+    delete:window.v4571DeleteVN,
+    invoke:window.invokeModel,
+    saveSlot:window.v45712VNDoSave,
+    loadSlot:window.v45712VNDoLoad,
+    promote:window.v45726Promote,
+    ending:window.v45726VNEnding
+  };
+
+  function ensureGame(g){
+    if(!g)return null;
+    g.stage=O(g.stage);g.stage.stats=L(g.stage.stats);g.stage.items=L(g.stage.items);g.stage.saves=L(g.stage.saves);g.stage.cast=L(g.stage.cast);
+    const fresh=!g.v45728;
+    g.v45728=O(g.v45728);
+    const v=g.v45728;
+    if(fresh||!Array.isArray(v.participants)){
+      const map=new Map();
+      for(const id of L(g.participantIds).map(S).filter(Boolean))map.set(id,{characterId:id,outside:false,insideMode:'self',role:{}});
+      if(g.companionId){
+        const id=S(g.companionId),row=map.get(id)||{characterId:id,outside:false,insideMode:'none',role:{}};
+        row.outside=true;map.set(id,row);
+      }
+      v.participants=[...map.values()];
+    }
+    v.participants=L(v.participants).map(row=>{
+      const p=O(row),role=O(p.role);
+      return {characterId:S(p.characterId||p.id),outside:p.outside===true,insideMode:normalizeMode(p.insideMode),role:{name:S(role.name),identity:S(role.identity),brief:S(role.brief)}};
+    }).filter(p=>p.characterId&&entity(p.characterId));
+    if(v.allowGeneratedRoles===undefined)v.allowGeneratedRoles=true;
+    if(v.allowGeneratedNpcs===undefined)v.allowGeneratedNpcs=true;
+    if(v.imageWanted===undefined)v.imageWanted=g.imageEnabled===true||L(g.scenes).some(scene=>safeImg(scene?.image));
+    if(v.visualAuto===undefined)v.visualAuto=true;
+    if(v.nonCanon===undefined)v.nonCanon=true;
+    if(v.turnMode===undefined)v.turnMode=v.participants.some(p=>p.outside)?'both':'inside';
+    v.turnMode=normalizeTurn(v.turnMode);
+    v.generatedCast=L(v.generatedCast);
+    v.referenceDescriptions=O(v.referenceDescriptions);
+    v.dismissedEndings=L(v.dismissedEndings);
+    if(!v.createdAt)v.createdAt=g.createdAt||NOW();
+    if(g.contextMode==='linked'&&!v.legacyLinked)v.legacyLinked=true;
+    /* 新规则：默认非正史，旧引擎不得在每一幕把戏内遭遇写回现实记忆。 */
+    g.contextMode='isolated';
+    g.imageEnabled=false; /* 画面由本层按“场景显著变化”统一管理。 */
+    syncLegacyShape(g);
+    mergeStageCast(g);
+    return g;
+  }
+  function syncLegacyShape(g){
+    const v=g.v45728||{},inside=L(v.participants).filter(p=>p.insideMode!=='none'),outside=L(v.participants).filter(p=>p.outside);
+    g.participantIds=[...new Set(inside.map(p=>S(p.characterId)).filter(Boolean))];
+    g.companionId=S(outside[0]?.characterId||'');
+    g.playMode=outside.length?'companion':'cast';
+  }
+  function mergeStageCast(g){
+    const v=g.v45728;if(!v)return;
+    for(const raw of L(g.stage?.cast)){
+      if(!raw||raw.promotedTo)continue;
+      const name=S(raw.name).trim();if(!name)continue;
+      let row=v.generatedCast.find(x=>S(x.id)===S(raw.id)||S(x.name).trim()===name);
+      if(!row){row={id:S(raw.id)||ID('vn_cast'),name,kind:raw.kind==='npc'?'npc':'story',createdAt:raw.createdAt||NOW()};v.generatedCast.push(row)}
+      row.brief=S(row.brief||raw.brief);row.lines=Math.max(Number(row.lines)||0,Number(raw.lines)||0);row.firstAct=Math.min(Number(row.firstAct)||999,Number(raw.act)||999);row.promotedTo=S(row.promotedTo||raw.promotedTo);
+    }
+  }
+  for(const g of games())ensureGame(g);
+  keep();
+
+  function entityContext(row){
+    if(!row)return'';
+    try{if(typeof characterContext==='function')return characterContext(row)}catch{}
+    return [row.name,row.bio,row.personality,row.background,row.appearance,row.speechStyle,row.relationship].filter(Boolean).join('\n');
+  }
+  function participantPrompt(g){
+    const v=ensureGame(g).v45728,blocks=[];
+    for(const p of v.participants){
+      const ch=entity(p.characterId),name=participantName(p),layers=[];
+      if(p.outside)layers.push(`戏外陪玩：${name}知道自己正在和 USER 玩一部文游，可以讨论、表达偏好，但最终选择只能由 USER 决定；戏外内容不能被戏内人物知道。`);
+      if(p.insideMode==='self')layers.push(`戏内本人进入：${name}保留原姓名、关系、经历、性格与认知，以本人身份进入故事。`);
+      if(p.insideMode==='borrow')layers.push(`戏内借角色入戏：借用${name}的性格、外貌和说话方式，扮演新身份“${p.role.name||'待定身份'}”。戏中身份资料：${p.role.identity||p.role.brief||'按开局生成'}。戏中身份不知道自己在演，也看不到任何戏外讨论；戏内称呼必须使用戏中身份，不得叫${name}。`);
+      blocks.push(`【现有人物：${name}】\n${layers.join('\n')}\n人物资料：\n${entityContext(ch)}`);
+    }
+    if(v.allowGeneratedRoles)blocks.push('允许剧情自然生成有名有姓、跨幕行动并有对白的剧情角色；完结前只属于本作。');
+    if(v.allowGeneratedNpcs)blocks.push('允许剧情自然生成店主、路人、守卫等场景 NPC；完结前只属于本作。');
+    return blocks.join('\n\n');
+  }
+  function generatedCastPrompt(g){
+    const rows=L(g.v45728?.generatedCast).filter(row=>!row.promotedTo);
+    if(!rows.length)return'目前还没有登记的剧情生成角色。';
+    return rows.map(row=>`${row.id}｜${row.name}｜${row.kind==='npc'?'场景 NPC':'剧情角色'}｜${row.brief||''}｜当前状态=${row.currentState||'未知'}`).join('\n');
+  }
+  function parseJson(raw){
+    if(raw&&typeof raw==='object')return O(raw);
+    let text=S(raw);try{if(typeof stripReplyTags==='function')text=stripReplyTags(text)}catch{}
+    try{return O(JSON.parse(text))}catch{}
+    const match=text.match(/\{[\s\S]*\}/);if(match)try{return O(JSON.parse(match[0]))}catch{}
+    return {};
+  }
+  function sceneText(g,limit=12){
+    const rows=L(g.scenes).slice(-limit);
+    return rows.map((scene,index)=>`第 ${L(g.scenes).length-rows.length+index+1} 幕｜${S(scene.title)}\n旁白：${S(scene.narration)}\n对白：${L(scene.dialogue).map(line=>`${S(line.speaker)}：${S(line.text)}`).join('\n')}\nUSER选择：${S(scene.selectedChoice||'尚未选择')}`).join('\n\n').slice(-36000);
+  }
+
+  /* ---------- 创建：戏外开关与戏内身份分别保存 ---------- */
+  function participantRows(selected=[]){
+    const byId=new Map(L(selected).map(row=>[S(row.characterId),row]));
+    const rows=allEntities();
+    if(!rows.length)return'<div class="v45728-vn-no-people">还没有已建立人物。仍可只开启“剧情生成人物／NPC”开始。</div>';
+    return rows.map(ch=>{
+      const old=O(byId.get(S(ch.id))),used=!!byId.get(S(ch.id)),outside=old.outside===true,mode=normalizeMode(old.insideMode||'self'),role=O(old.role);
+      return `<article class="v45728-vn-person-row ${used?'':'is-off'}" data-character="${AT(ch.id)}">
+        <header><label><input type="checkbox" class="v45728-use" ${used?'checked':''} onchange="v45728VNUseChanged(this)"><span>${E(S(ch.name||'人物').slice(0,1))}</span><b>${E(ch.name||'未命名人物')}</b></label><small>每位单独设置</small></header>
+        <div class="v45728-vn-layer"><label><input type="checkbox" class="v45728-outside" ${outside?'checked':''}><span><b>戏外陪玩</b><small>讨论并表达偏好，最终由 USER 决定</small></span></label></div>
+        <div class="v45728-vn-layer"><span><b>戏内参与</b><small>与戏外严格分层</small></span><select class="v45728-inside" onchange="v45728VNModeChanged(this)"><option value="self" ${mode==='self'?'selected':''}>角色本人进入</option><option value="borrow" ${mode==='borrow'?'selected':''}>借角色入戏</option><option value="none" ${mode==='none'?'selected':''}>不进入戏内</option></select></div>
+        <div class="v45728-borrow ${mode==='borrow'?'on':''}"><input class="v45728-role-name" value="${AT(role.name)}" placeholder="戏中姓名／身份名"><textarea class="v45728-role-identity" placeholder="戏中身份、经历和在故事里的位置；戏中本人不知道在演">${E(role.identity||role.brief)}</textarea></div>
+      </article>`;
+    }).join('');
+  }
+  function createModal(){
+    const imageReady=typeof validModel==='function'&&validModel('image');
+    modal(`<div class="v45728-vn-create"><h2>创建文游</h2>
+      <div class="v45728-create-note"><b>四种参与来源可以混用</b><span>戏外陪玩是独立开关；同一人物进入戏内时，再选本人入戏、借角色入戏或不进入戏内。</span></div>
+      <div class="field"><label>标题</label><input id="v4571VNTitle" placeholder="给这部故事起名"></div>
+      <div class="field"><label>开局设定</label><textarea id="v4571VNPremise" placeholder="时间、地点、身份、最初发生了什么"></textarea></div>
+      <div class="field"><label>指定发展方向</label><textarea id="v4571VNDirection" placeholder="主题、矛盾、目标、禁区或想体验的题材"></textarea></div>
+      <section class="v45728-create-section"><header><b>现有人物</b><small>可同时开启戏外与戏内</small></header><div class="v45728-vn-people">${participantRows()}</div></section>
+      <section class="v45728-create-section"><header><b>剧情自然生成人物</b><small>完结前只属于本作</small></header>
+        <label class="v45728-create-toggle"><span><b>剧情角色</b><small>有名有姓、跨幕、有对白</small></span><input id="v45728GeneratedRoles" type="checkbox" checked></label>
+        <label class="v45728-create-toggle"><span><b>场景 NPC</b><small>店主、路人、守卫等功能人物</small></span><input id="v45728GeneratedNpcs" type="checkbox" checked></label>
+      </section>
+      <section class="v45728-create-section"><header><b>舞台画面</b><small>无图片模型会自动回退文字图</small></header>
+        <label class="v45728-create-toggle"><span><b>按场景生成整张画面</b><small>背景、人物和动作融为一张图；人物图片只作为参考</small></span><input id="v45728ImageWanted" type="checkbox" ${imageReady?'checked':''}></label>
+      </section>
+      <div hidden><input type="radio" name="v4571VNMode" id="v45728LegacyCast" value="cast" checked><input type="radio" name="v4571VNMode" id="v45728LegacyCompanion" value="companion"><input id="v4571VNCompanion"><input id="v4571VNImage" type="checkbox"><input id="v4571VNLinked" type="checkbox"><div id="v45728LegacyPeople"></div></div>
+      <div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="v45728SaveNewVN()">创建并生成第一幕</button></div>
+    </div>`);
+  }
+  window.v45728VNUseChanged=function(input){input?.closest('.v45728-vn-person-row')?.classList.toggle('is-off',!input.checked)};
+  window.v45728VNModeChanged=function(select){select?.closest('.v45728-vn-person-row')?.querySelector('.v45728-borrow')?.classList.toggle('on',select.value==='borrow')};
+  function collectParticipants(scope=document){
+    return [...scope.querySelectorAll('.v45728-vn-person-row')].filter(row=>row.querySelector('.v45728-use')?.checked).map(row=>({
+      characterId:S(row.dataset.character),outside:row.querySelector('.v45728-outside')?.checked===true,insideMode:normalizeMode(row.querySelector('.v45728-inside')?.value),
+      role:{name:S(row.querySelector('.v45728-role-name')?.value).trim(),identity:S(row.querySelector('.v45728-role-identity')?.value).trim()}
+    }));
+  }
+  function validateParticipants(parts,allowRoles,allowNpcs){
+    for(const p of parts){
+      if(!p.outside&&p.insideMode==='none'){tell(`${participantName(p)}既没有开启戏外，也没有进入戏内`);return false}
+      if(p.insideMode==='borrow'&&!p.role.name){tell(`请填写${participantName(p)}借角色入戏时的戏中姓名或身份名`);return false}
+    }
+    if(!parts.length&&!allowRoles&&!allowNpcs){tell('至少选择一位现有人物，或允许剧情生成人物／NPC');return false}
+    return true;
+  }
+  let pendingCreate=null;
+  function saveNew(){
+    if(typeof legacy.saveNew!=='function')return tell('文游创建入口不可用');
+    const title=S(document.getElementById('v4571VNTitle')?.value).trim(),premise=S(document.getElementById('v4571VNPremise')?.value).trim();
+    if(!title||!premise)return tell('请填写标题和开局设定');
+    const parts=collectParticipants(),allowRoles=document.getElementById('v45728GeneratedRoles')?.checked===true,allowNpcs=document.getElementById('v45728GeneratedNpcs')?.checked===true;
+    if(!validateParticipants(parts,allowRoles,allowNpcs))return;
+    const outside=parts.filter(p=>p.outside),inside=parts.filter(p=>p.insideMode!=='none');
+    const legacyPeople=document.getElementById('v45728LegacyPeople');if(legacyPeople)legacyPeople.innerHTML=inside.map(p=>`<input class="v4571-vn-person" type="checkbox" value="${AT(p.characterId)}" checked>`).join('');
+    const castRadio=document.getElementById('v45728LegacyCast'),compRadio=document.getElementById('v45728LegacyCompanion');if(castRadio)castRadio.checked=!outside.length;if(compRadio)compRadio.checked=!!outside.length;
+    const companion=document.getElementById('v4571VNCompanion');if(companion)companion.value=S(outside[0]?.characterId||'');
+    const oldImage=document.getElementById('v4571VNImage'),oldLinked=document.getElementById('v4571VNLinked');if(oldImage)oldImage.checked=false;if(oldLinked)oldLinked.checked=false;
+    pendingCreate={participants:clone(parts),allowGeneratedRoles:allowRoles,allowGeneratedNpcs:allowNpcs,imageWanted:document.getElementById('v45728ImageWanted')?.checked===true,visualAuto:true,nonCanon:true,turnMode:outside.length?'both':'inside',generatedCast:[],referenceDescriptions:{},dismissedEndings:[],createdAt:NOW()};
+    const before=new Set(games().map(g=>S(g.id)));
+    const out=legacy.saveNew.call(this);
+    const created=games().find(g=>!before.has(S(g.id)));
+    if(created){created.v45728=clone(pendingCreate);ensureGame(created);try{window.v45710VNSnapshot?.(created.id)}catch{}keep()}
+    pendingCreate=null;
+    return out;
+  }
+  window.v4571CreateVN=createModal;window.v45728SaveNewVN=saveNew;window.v4571SaveNewVN=saveNew;
+  try{v4571CreateVN=createModal;v4571SaveNewVN=saveNew}catch{}
+
+  function editorModal(g){
+    ensureGame(g);const v=g.v45728;
+    modal(`<div class="v45728-vn-create"><h2>${E(g.title)} · 参与方式</h2><div class="v45728-create-note"><b>每位人物单独设置</b><span>戏外反应不进正文，戏内人物不可见；戏内可选本人进入或借角色入戏。</span></div><div class="v45728-vn-people">${participantRows(v.participants)}</div>
+      <section class="v45728-create-section"><label class="v45728-create-toggle"><span><b>允许剧情角色</b><small>完结后才可加入人物</small></span><input id="v45728GeneratedRoles" type="checkbox" ${v.allowGeneratedRoles?'checked':''}></label><label class="v45728-create-toggle"><span><b>允许场景 NPC</b><small>完结后才可加入人物</small></span><input id="v45728GeneratedNpcs" type="checkbox" ${v.allowGeneratedNpcs?'checked':''}></label></section>
+      <div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="v45728SaveParticipants(${A(g.id)})">保存</button></div></div>`);
+  }
+  window.v45728EditParticipants=id=>{const g=gameById(id);if(g)editorModal(g)};
+  window.v45728SaveParticipants=function(id){
+    const g=ensureGame(gameById(id));if(!g)return;
+    const parts=collectParticipants(),roles=document.getElementById('v45728GeneratedRoles')?.checked===true,npcs=document.getElementById('v45728GeneratedNpcs')?.checked===true;
+    if(!validateParticipants(parts,roles,npcs))return;
+    g.v45728.participants=parts;g.v45728.allowGeneratedRoles=roles;g.v45728.allowGeneratedNpcs=npcs;if(!parts.some(p=>p.outside)&&g.v45728.turnMode!=='inside')g.v45728.turnMode='inside';syncLegacyShape(g);keep();closeModal();renderStage(false);tell('参与方式已保存');
+  };
+
+  /* ---------- 文游模型输出补充：分层反应、画面变化、角色表、结局建议 ---------- */
+  const pendingMeta=new Map();
+  function turnInstruction(g){
+    const mode=normalizeTurn(g.v45728.turnMode),outside=g.v45728.participants.filter(p=>p.outside);
+    if(mode==='outside')return'本回合只处理戏外讨论，不应生成新场景。';
+    if(mode==='inside')return'本回合只推进戏内故事；oocReactions 必须为空。';
+    return outside.length?'本回合同时推进戏内故事，并为每位开启戏外陪玩的现有人物生成独立戏外反应；戏外内容不可出现在 narration 或 dialogue 中。':'本回合只推进戏内故事。';
+  }
+  function extraPrompt(g){
+    const outside=g.v45728.participants.filter(p=>p.outside).map(p=>`${p.characterId}｜${participantName(p)}`).join('\n')||'无';
+    return `\n\n【V45.7.28 本文游参与规则｜优先级高】\n${participantPrompt(g)}\n\n【本回合层级】\n${turnInstruction(g)}\n开启戏外陪玩的对象：\n${outside}\nUSER 永远拥有最终选择权；戏外人物只讨论、提出偏好，不能替 USER 点击选择。戏内人物可以依据性格自主行动、表达犹豫、改变计划或主动采取符合自身动机的行动，但不能替 USER 决定 USER 的选择。\n\n【视觉小说叙事】\n每一幕先写具体环境（光线、声音、气味、温度与周围行动），再写人物动作和身体细节，再写对白与心理余味；对白要带动作、停顿和语气。旁白与对白比例接近，不要连续甩台词，不要写成“角色：台词”的剧本，也不要写成聊天气泡。每一幕只推进到下一个有意义的节点，选择必须是当下真正能做出的不同方向。\n\n【场景画面】\nimagePrompt 必须描述一整张完整剧情场景：地点、背景、所有在场人物、人物动作、距离、光线与氛围融为一张图。禁止“透明立绘”“角色站在背景前”“单人证件照”或任何 UI、文字、对话框。已有角色图片只作为人物一致性参考。另输出 visualChanged（布尔值）：只有地点、主要在场人物、时间段、关键动作或氛围构图发生显著改变时才为 true；普通对话延续必须为 false。\n\n【剧情生成角色与 NPC】\n目前登记：\n${generatedCastPrompt(g)}\n如果本幕自然出现新的有名剧情角色或场景 NPC，或旧角色状态改变，输出 generatedCastUpdates 数组；每项 {id,name,kind:"story|npc",brief,currentState,relationships,keyChoice,injury,items,endingWhere}。没有变化就输出空数组。\n\n【结局判断】\n只在主要矛盾确实收束、人物去向已经明确时输出 endingProposal:{reached:true,reason,title}；否则 reached=false。AI 只能提出完结，绝不能自动完结。\n\n在原有 JSON 字段之外追加："oocReactions":[{"characterId":"现有人物ID","text":"戏外反应","preference":"偏好但不替USER决定"}],"visualChanged":false,"visualChangeReason":"原因","generatedCastUpdates":[],"endingProposal":{"reached":false,"reason":"","title":""}。仍然只输出一个合法 JSON 对象。`;
+  }
+  if(typeof legacy.invoke==='function'){
+    const wrapped=async function(kind,options={}){
+      if(options?.activityArea!=='文游')return legacy.invoke.call(this,kind,options);
+      /* 创建函数会在旧引擎发起请求后的同一调用栈补上 v45728；让出一个微任务再读取。 */
+      await Promise.resolve();
+      const g=ensureGame(activeGame());if(!g)return legacy.invoke.call(this,kind,options);
+      const before=L(g.scenes).length,mode=g.v45728.turnMode;
+      const enhanced={...options,system:S(options.system)+extraPrompt(g)};
+      const raw=await legacy.invoke.call(this,kind,enhanced);
+      pendingMeta.set(S(g.id),{raw:parseJson(raw),before,mode,at:Date.now(),tries:0});
+      setTimeout(()=>enrichPending(g.id),0);
+      return raw;
+    };
+    wrapped.__v45728=true;window.invokeModel=wrapped;try{invokeModel=wrapped}catch{}
+  }
+  function mergeGeneratedUpdates(g,updates,scene){
+    const v=g.v45728,knownInside=new Set(v.participants.map(p=>p.insideMode==='borrow'?S(p.role.name).trim():participantName(p)).filter(Boolean));
+    const personaName=S(personaNow()?.name).trim();
+    const rows=L(updates).map(O);
+    /* 模型没返回角色表时，至少从新出现的对白姓名建立待补全记录。 */
+    for(const line of L(scene?.dialogue)){
+      const name=S(line?.speaker).trim();
+      if(!name||knownInside.has(name)||name===personaName||['我','USER','用户','旁白'].includes(name))continue;
+      if(!rows.some(row=>S(row.name).trim()===name))rows.push({name,kind:/路人|店员|守卫|司机|服务员|老板|看守|NPC/i.test(name)?'npc':'story',brief:'由本幕对白自然出现'});
+    }
+    for(const raw of rows){
+      const name=S(raw.name).trim();if(!name)continue;
+      let row=v.generatedCast.find(x=>(raw.id&&S(x.id)===S(raw.id))||S(x.name).trim()===name);
+      if(!row){row={id:S(raw.id)||ID('vn_cast'),name,kind:raw.kind==='npc'?'npc':'story',createdAt:NOW(),firstScene:L(g.scenes).length};v.generatedCast.push(row)}
+      row.kind=raw.kind==='npc'?'npc':row.kind||'story';
+      for(const key of ['brief','currentState','relationships','keyChoice','injury','items','endingWhere'])if(S(raw[key]).trim())row[key]=S(raw[key]).trim();
+      row.lines=(Number(row.lines)||0)+L(scene?.dialogue).filter(line=>S(line?.speaker).trim()===name).length;row.lastScene=L(g.scenes).length;
+      let old=L(g.stage.cast).find(x=>S(x.id)===S(row.id)||S(x.name).trim()===name);
+      if(!old){old={id:row.id,name:row.name,kind:row.kind==='npc'?'npc':'role',brief:row.brief||'',act:row.firstScene||L(g.scenes).length,lines:row.lines,createdAt:row.createdAt};g.stage.cast.push(old)}
+      else{old.brief=row.brief||old.brief;old.lines=row.lines;old.kind=row.kind==='npc'?'npc':'role'}
+    }
+  }
+  function allowedOoc(g,raw,scene,mode){
+    if(mode==='inside')return [];
+    const outside=g.v45728.participants.filter(p=>p.outside),byId=new Map(outside.map(p=>[S(p.characterId),p]));
+    const out=[];
+    for(const item of L(raw.oocReactions).map(O)){
+      let p=byId.get(S(item.characterId));if(!p&&item.name)p=outside.find(x=>participantName(x)===S(item.name));if(!p)continue;
+      const text=S(item.text).trim();if(!text)continue;out.push({characterId:p.characterId,text:text.slice(0,1200),preference:S(item.preference).slice(0,400),at:NOW()});
+    }
+    if(!out.length&&S(scene?.companionComment).trim()&&outside[0])out.push({characterId:outside[0].characterId,text:S(scene.companionComment).slice(0,1200),preference:'',at:NOW()});
+    return out;
+  }
+  function rememberPlayed(g){
+    data.memories=L(data.memories);const user=personaNow()?.name||'USER';
+    for(const p of g.v45728.participants.filter(row=>row.outside)){
+      let m=data.memories.find(row=>row.source==='visual-novel-play'&&S(row.sourceGameId)===S(g.id)&&S(row.characterId)===S(p.characterId));
+      if(!m){m={id:ID('memory'),source:'visual-novel-play',sourceGameId:g.id,characterId:p.characterId,personaId:g.personaId||personaNow()?.id||'',title:`一起玩过文游 · ${g.title}`,createdAt:NOW()};data.memories.unshift(m)}
+      m.text=`${participantName(p)}记得与${user}一起玩过文游《${g.title}》。这是共同游玩的虚构故事；${participantName(p)}知道自己在戏外陪玩，不会把戏内身份、伤病、关系或遭遇当成现实。当前玩到第 ${L(g.scenes).length} 幕${g.v45728.endedAt?'，已经完结':'。'}`;m.updatedAt=NOW();
+    }
+  }
+  function endingMeta(raw){
+    const e=O(raw.endingProposal);return {reached:e.reached===true||raw.endingReached===true,reason:S(e.reason||raw.endingReason),title:S(e.title||raw.endingTitle)};
+  }
+  function enrichPending(id){
+    const key=S(id),pending=pendingMeta.get(key),g=ensureGame(gameById(key));if(!pending||!g)return;
+    if(L(g.scenes).length<=pending.before){if(pending.tries++<20)setTimeout(()=>enrichPending(id),40);else pendingMeta.delete(key);return}
+    pendingMeta.delete(key);const scene=L(g.scenes).at(-1),raw=O(pending.raw);if(!scene)return;
+    scene.v45728=O(scene.v45728);scene.v45728.turnMode=pending.mode;scene.v45728.ooc=allowedOoc(g,raw,scene,pending.mode);
+    scene.companionComment='';
+    scene.v45728.visualChanged=typeof raw.visualChanged==='boolean'?raw.visualChanged:null;scene.v45728.visualChangeReason=S(raw.visualChangeReason);
+    const ending=endingMeta(raw);if(ending.reached&&!g.v45728.dismissedEndings.includes(S(scene.id)))scene.v45728.endingProposal=ending;
+    mergeGeneratedUpdates(g,raw.generatedCastUpdates||raw.storyCast||raw.castUpdates,scene);rememberPlayed(g);keep();renderStage(false);void ensureSceneVisual(g,scene,false);
+  }
+
+  async function referenceDescriptions(g){
+    const cache=g.v45728.referenceDescriptions;
+    for(const p of g.v45728.participants.filter(row=>row.insideMode!=='none')){
+      if(cache[p.characterId])continue;const ch=entity(p.characterId),fallback=S(ch?.appearance||ch?.imagePrompt||ch?.description||ch?.bio).slice(0,700),image=safeImg(ch?.image);
+      cache[p.characterId]=fallback;
+      if(image&&typeof validModel==='function'&&validModel('vision')&&typeof describeStickerWithVision==='function'){
+        try{const seen=await describeStickerWithVision(image);if(S(seen).trim())cache[p.characterId]=`${fallback?fallback+'；':''}参考图识别：${S(seen).trim()}`.slice(0,1000)}catch{}
+      }
+    }
+    keep();return cache;
+  }
+  function imagePromptFor(g,scene,refs){
+    const people=g.v45728.participants.filter(p=>p.insideMode!=='none').map(p=>{
+      const label=p.insideMode==='borrow'?(p.role.name||participantName(p)):participantName(p);return `${label}：${S(refs[p.characterId]||entity(p.characterId)?.appearance||'按人物资料保持一致')}`;
+    }).join('\n');
+    return `为原创视觉小说《${g.title}》生成一整张完整场景插画。\n本幕：${scene.title}\n画面描述：${scene.imagePrompt||scene.narration}\n在场人物参考：\n${people||'按剧情生成的人物'}\n要求：背景、人物、动作、人物之间的距离与环境光线必须融为同一张画面；人物自然处在环境中。不要透明立绘，不要角色站在空背景前，不要证件照，不要 UI、文字、字幕、边框或对话框。画面要能承载上层旁白，主体不要全部挤在底部。`;
+  }
+  function previousScene(g,scene){const index=L(g.scenes).findIndex(row=>row===scene||S(row.id)===S(scene.id));return index>0?g.scenes[index-1]:null}
+  async function ensureSceneVisual(g,scene,force){
+    ensureGame(g);scene.v45728=O(scene.v45728);if(scene.v45728.visualBusy)return;
+    if(!force&&scene.v45728.visualAttempted){if(!safeImg(scene.image))renderStage(false);return}
+    scene.v45728.visualAttempted=true;
+    if(safeImg(scene.image)&&!force){scene.v45728.visualKind='generated';keep();renderStage(false);return}
+    if(!g.v45728.imageWanted){scene.v45728.visualKind='text';scene.v45728.fallbackReason='已选择文字图';keep();renderStage(false);return}
+    if(typeof validModel!=='function'||!validModel('image')){scene.v45728.visualKind='text';scene.v45728.fallbackReason='没有可用的图片模型';keep();renderStage(false);return}
+    const prev=previousScene(g,scene),changed=force||!prev||scene.v45728.visualChanged===true;
+    if(!changed&&safeImg(prev?.image)){
+      scene.image=prev.image;scene.v45728.visualKind='reused';scene.v45728.reusedFrom=S(prev.id);scene.v45728.fallbackReason='';keep();renderStage(false);return;
+    }
+    if(!changed&&prev&&!safeImg(prev.image)){
+      scene.v45728.visualKind='text';scene.v45728.fallbackReason='场景延续，沿用文字图';keep();renderStage(false);return;
+    }
+    scene.v45728.visualBusy=true;scene.v45728.fallbackReason='场景图生成中';keep();renderStage(true);
+    try{
+      const refs=await referenceDescriptions(g),prompt=imagePromptFor(g,scene,refs);
+      if(typeof generateImageFromProfile!=='function')throw Error('图片生成函数不可用');
+      const image=await generateImageFromProfile(prompt,{source:'visual-novel',character:entity(g.v45728.participants.find(p=>p.insideMode!=='none')?.characterId),persona:personaNow()});
+      if(!safeImg(image))throw Error('图片模型没有返回可显示画面');scene.image=image;scene.imagePrompt=scene.imagePrompt||prompt;scene.v45728.visualKind='generated';scene.v45728.fallbackReason='';scene.imageError='';if(!g.cover)g.cover=image;
+    }catch(error){scene.image='';scene.imageError=S(error?.message||'画面生成失败');scene.v45728.visualKind='text';scene.v45728.fallbackReason='生图失败：已回退文字图'}
+    finally{scene.v45728.visualBusy=false;keep();renderStage(false)}
+  }
+  window.v45728RegenerateSceneImage=function(id){
+    const g=ensureGame(gameById(id)),scene=L(g?.scenes).at(-1);if(!g||!scene)return;
+    if(typeof validModel!=='function'||!validModel('image'))return tell('没有可用图片模型，当前继续显示文字图');
+    g.v45728.imageWanted=true;scene.image='';scene.v45728=O(scene.v45728);scene.v45728.visualChanged=true;keep();void ensureSceneVisual(g,scene,true);
+  };
+  window.v45728ToggleImageWanted=function(id){const g=ensureGame(gameById(id));if(!g)return;g.v45728.imageWanted=!g.v45728.imageWanted;const scene=L(g.scenes).at(-1);if(scene&&!safeImg(scene.image)){scene.v45728=O(scene.v45728);scene.v45728.visualAttempted=false}keep();closeModal();renderStage(false);tell(g.v45728.imageWanted?'已开启场景图；场景明显变化时自动生成':'已切换为文字图；已有场景图缓存不会删除')};
+
+  /* ---------- 真正的舞台：整张图、画面旁白、底部只放对白 ---------- */
+  function wrapLines(text,max=18,limit=7){
+    const clean=S(text).replace(/\s+/g,' ').trim(),out=[];let line='';
+    for(const ch of clean){line+=ch;if(line.length>=max){out.push(line);line='';if(out.length>=limit)break}}
+    if(line&&out.length<limit)out.push(line);return out;
+  }
+  function xml(v){return S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]))}
+  function textImageData(g,scene){
+    const title=wrapLines(scene?.title||g.title,12,2),body=wrapLines(scene?.imagePrompt||scene?.narration||'这一幕还没有画面描述',19,8);
+    const titleSvg=title.map((line,i)=>`<text x="66" y="${150+i*48}" font-size="34" fill="#f2eee3" font-family="serif">${xml(line)}</text>`).join('');
+    const bodySvg=body.map((line,i)=>`<text x="68" y="${300+i*40}" font-size="23" fill="#d4d7d4" font-family="serif">${xml(line)}</text>`).join('');
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#74878e"/><stop offset=".52" stop-color="#40565f"/><stop offset="1" stop-color="#18252b"/></linearGradient><radialGradient id="r"><stop stop-color="#e7dcc0" stop-opacity=".25"/><stop offset="1" stop-color="#e7dcc0" stop-opacity="0"/></radialGradient></defs><rect width="900" height="1200" fill="url(#g)"/><circle cx="690" cy="170" r="210" fill="url(#r)"/><path d="M0 830 240 610l160 140 170-230 330 310v370H0z" fill="#1e3036" opacity=".72"/><rect x="45" y="68" width="810" height="1064" rx="8" fill="#111a1f" fill-opacity=".2" stroke="#eee3c7" stroke-opacity=".32"/><text x="67" y="105" font-size="18" fill="#eee3c7" fill-opacity=".65" font-family="sans-serif" letter-spacing="5">TEXT SCENE · 本地文字图</text>${titleSvg}<line x1="68" y1="258" x2="832" y2="258" stroke="#eee3c7" stroke-opacity=".2"/>${bodySvg}<text x="68" y="1080" font-size="18" fill="#ffffff" fill-opacity=".48" font-family="sans-serif">无图片模型或生图失败时自动回退</text></svg>`;
+    return`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+  function statsMarkup(g){
+    const rows=L(g.stage?.stats).slice(0,4);if(!rows.length)return'';
+    return `<div class="v45728-stats">${rows.map(row=>{const max=Math.max(1,Number(row.max)||100),cur=Math.max(0,Number(row.cur)||0),pct=Math.min(100,cur/max*100);return`<div><header><b>${E(row.name||'数值')}</b><span>${cur}/${max}</span></header><i><em style="width:${pct}%;background:${AT(row.color||'#d9c89f')}"></em></i></div>`}).join('')}</div>`;
+  }
+  function dialogueMarkup(scene){
+    const rows=L(scene?.dialogue).filter(line=>S(line?.text).trim());
+    if(!rows.length)return'<div class="v45728-dialogue-empty">这一幕没有角色对白</div>';
+    return rows.map((line,index)=>`<p class="${index?'more':''}">${index||rows.length>1?`<b>${E(line.speaker||'角色')}</b>`:''}<span>${E(line.text)}</span></p>`).join('');
+  }
+  function oocRows(g,scene){
+    const outside=g.v45728.participants.filter(p=>p.outside),saved=L(scene?.v45728?.ooc),map=new Map(saved.map(row=>[S(row.characterId),row]));
+    return outside.map(p=>({p,row:map.get(S(p.characterId))}));
+  }
+  function oocMarkup(g,scene){
+    const rows=oocRows(g,scene);if(!rows.length)return'';
+    return `<button class="v45728-ooc-trigger" onclick="v45728ToggleOoc()">戏外陪玩 <i>${rows.filter(x=>x.row?.text).length||rows.length}</i></button><aside class="v45728-ooc-panel" id="v45728OocPanel"><header><div><small>戏外陪玩</small><b>不进入正文 · 戏内人物不可见</b></div><button onclick="v45728ToggleOoc(false)">×</button></header>${rows.map(({p,row})=>`<article><span>${E(participantName(p).slice(0,1))}</span><div><b>${E(participantName(p))}</b><p>${E(row?.text||'还没有戏外反应。选择“戏外”或“同时”后，可以先和 TA 讨论。')}</p>${row?.preference?`<small>偏好：${E(row.preference)}</small>`:''}</div></article>`).join('')}<footer>陪玩者只记得和你玩过这部故事，不把戏内遭遇当现实。</footer></aside>`;
+  }
+  function turnMarkup(g){
+    const outside=g.v45728.participants.some(p=>p.outside);if(!outside)return'';const mode=g.v45728.turnMode;
+    return `<nav class="v45728-turn"><span>本回合</span>${[['outside','戏外'],['inside','戏内'],['both','同时']].map(([id,label])=>`<button class="${mode===id?'on':''}" onclick="v45728SetTurnMode(${A(g.id)},'${id}')">${label}</button>`).join('')}</nav>`;
+  }
+  function sourceLabel(g,scene){
+    if(scene?.v45728?.visualBusy)return'场景图生成中';
+    if(safeImg(scene?.image))return scene?.v45728?.visualKind==='reused'?'场景图 · 沿用上一幕':'场景图 · 已缓存';
+    return`文字图 · ${scene?.v45728?.fallbackReason||(!g.v45728.imageWanted?'已选择本地':'自动回退')}`;
+  }
+  function sceneVisual(g,scene){
+    const source=safeImg(scene?.image)||textImageData(g,scene||{}),kind=safeImg(scene?.image)?'generated':'text';
+    return `<div class="v45728-visual ${kind}"><img src="${AT(source)}" alt="${AT(scene?.title||g.title)}"><div class="v45728-visual-shade"></div></div>`;
+  }
+  function endingBanner(g,scene){
+    const e=O(scene?.v45728?.endingProposal);if(!e.reached||g.v45728.endedAt)return'';
+    return `<button class="v45728-ending-banner" onclick="v45728EndingPrompt(${A(g.id)},false)"><small>AI 认为故事已到结局</small><b>${E(e.title||'查看完结建议')}</b><span>由你确认 ›</span></button>`;
+  }
+  function stageHtml(g,scene,busy){
+    const orient=g.stage.orient==='landscape'?'landscape':'portrait',step=`第 ${Math.max(1,L(g.scenes).length)} 幕`,first=L(scene?.dialogue).find(line=>S(line?.text).trim()),custom=S(document.getElementById('v4571VNCustomChoice')?.value);
+    return `<section class="v45728-vn-shell is-${orient}"><i class="v45712-vn-shell v45728-observer-marker" hidden></i>
+      ${sceneVisual(g,scene)}<div class="v45728-vignette"></div>
+      <header class="v45728-stage-head"><button onclick="v4571VNBack()" aria-label="返回">‹</button><div><small>${E(step)}</small><b>${E(scene?.title||g.title)}</b></div><nav><button onclick="v45712VNSaves(${A(g.id)})" title="存档">▤</button><button onclick="v45712VNLoads(${A(g.id)})" title="读档">↶</button><button onclick="v45712VNItems(${A(g.id)})" title="道具">◇</button><button onclick="v45712VNStatSheet(${A(g.id)})" title="数值">▥</button><button onclick="v4571VNMenu(${A(g.id)})" title="更多">⋯</button></nav></header>
+      ${statsMarkup(g)}<div class="v45728-place">${E(scene?.title||'场景')}</div>
+      <div class="v45728-source"><span>${E(sourceLabel(g,scene))}</span><button onclick="v45728RegenerateSceneImage(${A(g.id)})" title="重新生成本幕画面">↻</button><button onclick="v45728SaveVisual(${A(g.id)})" title="保存当前画面">↓</button></div>
+      ${scene?.narration?`<aside class="v45728-narration"><small>旁白 · 写在画面上</small>${S(scene.narration).split(/\n\n+/).filter(Boolean).slice(0,5).map(text=>`<p>${E(text)}</p>`).join('')}</aside>`:''}
+      ${oocMarkup(g,scene)}${endingBanner(g,scene)}
+      <div class="v45728-choices">${busy?'<div class="v45728-wait"><i></i><span>正在生成下一幕…</span></div>':L(scene?.choices).map(choice=>`<button onclick="v45728ChooseVN(${A(choice)})">${E(choice)}</button>`).join('')}</div>
+      ${turnMarkup(g)}
+      <section class="v45728-dialogue"><span class="v45728-speaker">${E(first?.speaker||'对白')}</span><div class="v45728-lines">${dialogueMarkup(scene)}</div><footer><span>${E(step)} · ${String(L(g.scenes).length).padStart(2,'0')}</span><div><input id="v4571VNCustomChoice" value="${AT(custom)}" placeholder="写下对白、行动或想讨论的事…"><button onclick="v45728SubmitVN()">继续</button></div><i>▾</i></footer></section>
+      <button class="v45728-orient" onclick="v45728VNOrient(${A(g.id)})">${orient==='landscape'?'竖屏':'横屏'}</button>
+    </section>`;
+  }
+  let rendering=false,lastBusy=false;
+  function renderStage(busy=lastBusy){
+    const root=document.getElementById('v4571VNRoot'),g=ensureGame(activeGame());if(!root||!g||root.querySelector('.v4571-vn-library,.v45728-wrap'))return false;
+    if(rendering)return false;rendering=true;lastBusy=!!busy;
+    try{
+      const scene=L(g.scenes).at(-1)||null;root.innerHTML=stageHtml(g,scene,lastBusy);
+      if(scene&&!lastBusy&&g.v45728.imageWanted&&!safeImg(scene.image)){
+        scene.v45728=O(scene.v45728);
+        if(!scene.v45728.visualAttempted&&!scene.v45728.visualBusy)setTimeout(()=>void ensureSceneVisual(g,scene,false),0);
+      }
+      return true;
+    }finally{rendering=false}
+  }
+  window.v45728RenderVN=renderStage;
+  window.v45728ToggleOoc=function(force){const panel=document.getElementById('v45728OocPanel');if(panel)panel.classList.toggle('open',typeof force==='boolean'?force:!panel.classList.contains('open'))};
+  window.v45728SetTurnMode=function(id,mode){const g=ensureGame(gameById(id));if(!g)return;g.v45728.turnMode=normalizeTurn(mode);keep();renderStage(false)};
+  window.v45728VNOrient=function(id){
+    const g=ensureGame(gameById(id));if(!g)return;g.stage.orient=g.stage.orient==='landscape'?'portrait':'landscape';keep();
+    if(g.stage.orient==='landscape'){
+      try{const so=screen?.orientation;if(so?.lock){const el=document.getElementById('phone')||document.documentElement;Promise.resolve(!document.fullscreenElement&&el.requestFullscreen?el.requestFullscreen():null).then(()=>so.lock('landscape')).catch(()=>tell('请把手机横过来查看宽屏舞台'))}else tell('请把手机横过来查看宽屏舞台')}catch{tell('请把手机横过来查看宽屏舞台')}
+    }else try{screen?.orientation?.unlock?.()}catch{}
+    renderStage(false);
+  };
+  window.v45728SaveVisual=function(id){
+    const g=ensureGame(gameById(id)),scene=L(g?.scenes).at(-1);if(!g||!scene)return;const generated=safeImg(scene.image),source=generated||textImageData(g,scene),a=document.createElement('a'),ext=generated&&/^data:image\/(?:jpeg|jpg)/i.test(generated)?'jpg':generated?'png':'svg';a.href=source;a.download=`${S(g.title||'文游').replace(/[\\/:*?"<>|]/g,'_')}-${S(scene.title||'场景').replace(/[\\/:*?"<>|]/g,'_')}.${ext}`;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();tell('已尝试保存当前画面');
+  };
+
+  /* ---------- 戏外不推进剧情；戏内／同时才由 USER 最终提交选择 ---------- */
+  let oocBusy=false;
+  async function generateOocOnly(g,text){
+    const outside=g.v45728.participants.filter(p=>p.outside);if(!outside.length)return tell('没有开启戏外陪玩的角色');
+    if(oocBusy)return tell('戏外陪玩者还在讨论');
+    if(typeof validModel==='function'&&!validModel('chat')&&!outside.some(p=>window.v4571CharacterModelReady?.(p.characterId)))return tell('请先配置主聊天线路或陪玩人物的专属线路');
+    const scene=L(g.scenes).at(-1);oocBusy=true;tell('戏外陪玩者正在讨论…');
+    try{
+      const raw=await legacy.invoke('chat',{activityArea:'文游戏外',characterId:outside[0].characterId,system:`这是视觉小说《${g.title}》的戏外陪玩区。下列人物知道自己在和 USER 玩文游；他们只能讨论剧情、表达偏好，不能替 USER 做最终选择，也不能把戏外内容传给戏内人物。只输出 JSON：{"oocReactions":[{"characterId":"ID","text":"反应","preference":"偏好"}]}。\n${participantPrompt(g)}`,history:[{role:'user',content:`当前场景：${scene?.title}\n旁白：${scene?.narration}\n可选方向：${L(scene?.choices).join('；')}\nUSER 在戏外说：${text}`}],temperature:.82,maxTokens:1200});
+      const obj=parseJson(raw);scene.v45728=O(scene.v45728);scene.v45728.ooc=allowedOoc(g,obj,scene,'outside');rememberPlayed(g);keep();renderStage(false);
+    }catch(error){tell(error?.name==='AbortError'?'戏外讨论已停止':'戏外讨论没有生成成功')}finally{oocBusy=false}
+  }
+  window.v45728ChooseVN=function(choice){
+    const g=ensureGame(activeGame());if(!g||typeof legacy.choose!=='function')return;const mode=g.v45728.turnMode;
+    if(mode==='outside')return void generateOocOnly(g,`我正在考虑这个选择：${S(choice)}。你怎么看？`);
+    g.v45728.pendingTurnMode=mode;keep();return legacy.choose.call(this,choice);
+  };
+  window.v45728SubmitVN=function(){const input=document.getElementById('v4571VNCustomChoice'),text=S(input?.value).trim(),g=ensureGame(activeGame());if(!text)return tell('先写下想说的话、动作或讨论内容');if(!g)return;if(g.v45728.turnMode==='outside'){if(input)input.value='';return void generateOocOnly(g,text)}if(input)input.value='';window.v45728ChooseVN(text)};
+
+  /* ---------- 结局只提议；确认后进入杀青名单 ---------- */
+  window.v45728EndingPrompt=function(id,manual){
+    const g=ensureGame(gameById(id));if(!g)return;const scene=L(g.scenes).at(-1),proposal=O(scene?.v45728?.endingProposal);
+    modal(`<div class="v45728-ending-confirm"><small>${manual?'手动完结':'AI 的完结建议'}</small><h2>${E(proposal.title||g.title)}</h2><p>${E(proposal.reason||'确认后结束当前剧情推进并进入杀青名单。已有存档、场景、数值和道具都会保留。')}</p><div class="note">AI 只能提出完结。只有你确认后才会真正结束；取消后仍可继续下一幕。</div><div class="form-actions"><button onclick="v45728DismissEnding(${A(g.id)})">继续故事</button><button class="primary" onclick="v45728ConfirmEnding(${A(g.id)})">确认完结并杀青</button></div></div>`);
+  };
+  window.v45728DismissEnding=function(id){const g=ensureGame(gameById(id)),scene=L(g?.scenes).at(-1);if(scene){scene.v45728=O(scene.v45728);g.v45728.dismissedEndings.push(S(scene.id));delete scene.v45728.endingProposal}keep();closeModal();renderStage(false)};
+  window.v45728ConfirmEnding=function(id){const g=ensureGame(gameById(id));if(!g)return;g.v45728.endedAt=NOW();g.v45728.endingSceneId=S(L(g.scenes).at(-1)?.id);g.v45728.endingSummary=S(L(g.scenes).at(-1)?.narration).slice(0,1200);rememberPlayed(g);mergeStageCast(g);keep();closeModal();window.v45728OpenWrap(g.id)};
+
+  function existingCastMarkup(g){
+    return g.v45728.participants.map(p=>{const mode=p.insideMode==='borrow'?`借角色入戏：${p.role.name||'戏中身份'}`:p.insideMode==='self'?'角色本人进入':'不进入戏内',tags=[p.outside?'戏外陪玩':'',mode].filter(Boolean);return`<article class="v45728-existing-cast"><span>${E(participantName(p).slice(0,1))}</span><div><b>${E(participantName(p))}</b><div>${tags.map(tag=>`<i>${E(tag)}</i>`).join('')}</div><p>${p.outside?'只记得和 USER 玩过这部故事，不把戏内遭遇当现实。':''}${p.insideMode==='self'?'本作默认非正史；只有另行确认纳入正史后，戏内经历才写入本人现实记忆。':''}${p.insideMode==='borrow'?'戏中身份不知道在演；其遭遇不会变成现有人物的现实经历。':''}</p></div></article>`}).join('')||'<div class="v45728-wrap-empty">本作没有现有人物参与。</div>';
+  }
+  function castCard(g,row){
+    const complete=!!row.completedProfile,p=O(row.completedProfile);
+    return `<article class="v45728-cast-card ${complete?'completed':''}"><header><span>${E(S(row.name||'角').slice(0,1))}</span><div><b>${E(row.name||'未命名角色')}</b><small>第 ${Number(row.firstScene)||1} 幕登场 · ${Number(row.lines)||0} 句对白</small></div><i>${row.kind==='npc'?'场景 NPC':'剧情角色'}</i></header><div class="v45728-cast-evidence">${E(row.brief||row.currentState||'需要依据完整剧情补全资料。')}</div>${complete?`<div class="v45728-cast-profile"><b>已依据完整剧情补全</b><p>${E(p.summary||p.experience||p.currentState||'')}</p></div><div class="v45728-cast-actions"><button onclick="v45728EditCast(${A(g.id)},${A(row.id)})">编辑</button>${row.promotedTo?'<button disabled>已加入人物</button>':`<button class="primary" onclick="v45728AddCast(${A(g.id)},${A(row.id)})">加入人物</button>`}</div>`:`<button class="v45728-complete" onclick="v45728CompleteCast(${A(g.id)},${A(row.id)})">✦ 一键补全本作经历与当前状况</button>`}</article>`;
+  }
+  function wrapHtml(g){
+    mergeStageCast(g);const rows=L(g.v45728.generatedCast).filter(row=>!row.promotedTo||row.completedProfile);
+    return `<section class="v45728-wrap"><i class="v45712-vn-shell v45728-observer-marker" hidden></i><header class="v45728-wrap-head"><button onclick="v4571VNBack()">‹</button><div><small>THE END</small><b>杀青名单</b></div><button onclick="v4571VNMenu(${A(g.id)})">⋯</button></header><main><section class="v45728-wrap-hero"><small>已由 USER 确认完结</small><h1>${E(g.title)}</h1><p>${E(g.v45728.endingSummary||'本作已经完结。')}</p><div><span>${L(g.scenes).length} 幕</span><span>${g.v45728.participants.length+rows.length} 位出场人物</span><span>${g.v45728.canon?'已纳入正史':'默认非正史'}</span></div></section><h2>现有人物参与</h2><div class="v45728-existing-list">${existingCastMarkup(g)}</div><div class="v45728-wrap-title"><h2>剧情生成角色与 NPC</h2><small>先补全，再编辑、加入</small></div>${rows.length?rows.map(row=>castCard(g,row)).join(''):'<div class="v45728-wrap-empty">没有待处理的剧情生成角色或 NPC。</div>'}<h2>正史处理</h2><button class="v45728-canon" onclick="v45728CanonPreview(${A(g.id)})"><span><b>${g.v45728.canon?'已纳入现有人物正史':'将本作纳入现有人物正史'}</b><small>只影响“本人入戏”的现有人物；借角色入戏仍然是演过的故事</small></span><i>${g.v45728.canon?'已完成':'影响预览 ›'}</i></button></main></section>`;
+  }
+  function renderWrap(g){const root=document.getElementById('v4571VNRoot');if(root&&g)root.innerHTML=wrapHtml(g)}
+  window.v45728OpenWrap=function(id){const g=ensureGame(gameById(id));if(!g)return;if(!g.v45728.endedAt)return window.v45728EndingPrompt(g.id,true);data.visualNovelsV4571.activeId=g.id;keep();try{show('visualNovel')}catch{}renderWrap(g)};
+
+  async function completeCast(id,castId){
+    const g=ensureGame(gameById(id)),row=g?.v45728.generatedCast.find(x=>S(x.id)===S(castId));if(!g||!row||!g.v45728.endedAt)return tell('只有完结后的剧情角色与 NPC 才能补全');
+    if(typeof validModel==='function'&&!validModel('chat'))return tell('请先配置主聊天线路');tell(`正在依据全部剧情补全${row.name}…`);
+    try{
+      const raw=await legacy.invoke('chat',{activityArea:'文游杀青',system:'你负责从一部已经完结的文游中整理一名角色。只能依据给出的完整剧情，不得编造戏外经历。只输出 JSON：{"name":"","identity":"身份","personality":"性格与说话方式","experience":"完整经历","relationships":"与各人的关系","keyChoices":"关键选择","injuries":"伤病","items":"持有物品","endingWhere":"结局去向","currentState":"当前状态","summary":"可直接写入人物页的完整摘要"}。',history:[{role:'user',content:`作品：${g.title}\n待补全对象：${JSON.stringify(row)}\n完整剧情：\n${sceneText(g,80)}`}],temperature:.45,maxTokens:2200});
+      const obj=parseJson(raw);row.completedProfile={name:S(obj.name||row.name),identity:S(obj.identity),personality:S(obj.personality),experience:S(obj.experience),relationships:S(obj.relationships),keyChoices:S(obj.keyChoices),injuries:S(obj.injuries),items:S(obj.items),endingWhere:S(obj.endingWhere),currentState:S(obj.currentState),summary:S(obj.summary||obj.experience||row.brief),completedAt:NOW()};keep();renderWrap(g);
+    }catch(error){tell(error?.name==='AbortError'?'补全已停止':'角色资料补全失败')}
+  }
+  window.v45728CompleteCast=(id,castId)=>void completeCast(id,castId);
+  window.v45728EditCast=function(id,castId){
+    const g=ensureGame(gameById(id)),row=g?.v45728.generatedCast.find(x=>S(x.id)===S(castId)),p=O(row?.completedProfile);if(!g||!row||!p.completedAt)return tell('请先一键补全');
+    modal(`<div class="v45728-cast-editor"><h2>编辑杀青资料 · ${E(row.name)}</h2>${[['name','名字',p.name||row.name],['identity','身份',p.identity],['personality','性格与说话方式',p.personality],['experience','完整经历',p.experience],['relationships','关系',p.relationships],['keyChoices','关键选择',p.keyChoices],['injuries','伤病',p.injuries],['items','持有物品',p.items],['endingWhere','结局去向',p.endingWhere],['currentState','当前状态',p.currentState],['summary','人物摘要',p.summary]].map(([key,label,value],index)=>`<div class="field"><label>${label}</label>${index?`<textarea data-cast-field="${key}">${E(value)}</textarea>`:`<input data-cast-field="${key}" value="${AT(value)}">`}</div>`).join('')}<div class="form-actions"><button onclick="closeModal();v45728OpenWrap(${A(g.id)})">取消</button><button class="primary" onclick="v45728SaveCastEdit(${A(g.id)},${A(row.id)})">保存</button></div></div>`);
+  };
+  window.v45728SaveCastEdit=function(id,castId){const g=ensureGame(gameById(id)),row=g?.v45728.generatedCast.find(x=>S(x.id)===S(castId));if(!g||!row)return;const p=O(row.completedProfile);for(const input of document.querySelectorAll('[data-cast-field]'))p[S(input.dataset.castField)]=S(input.value).trim();if(!p.name)return tell('请填写名字');row.name=p.name;row.completedProfile=p;keep();closeModal();window.v45728OpenWrap(g.id);tell('杀青资料已保存')};
+  window.v45728AddCast=function(id,castId){
+    const g=ensureGame(gameById(id)),row=g?.v45728.generatedCast.find(x=>S(x.id)===S(castId)),p=O(row?.completedProfile);if(!g||!row||!p.completedAt)return tell('请先一键补全并确认资料');if(row.promotedTo)return tell('已经加入人物');
+    if(!confirm(`将“${p.name||row.name}”加入人物？整部《${g.title}》会成为 TA 的真实经历。`))return;
+    data.characters=L(data.characters);const person={id:ID('char'),name:S(p.name||row.name),description:S(p.identity),bio:S(p.summary||p.experience),personality:S(p.personality),background:S(p.experience),relationship:S(p.relationships),status:S(p.currentState),origin:`文游《${g.title}》杀青名单`,originKind:'visual-novel-cast',sourceGameId:g.id,createdAt:NOW()};data.characters.unshift(person);data.memories=L(data.memories);data.memories.unshift({id:ID('memory'),characterId:person.id,personaId:g.personaId||personaNow()?.id||'',source:'visual-novel-promoted',sourceGameId:g.id,title:`真实经历 · ${g.title}`,text:`《${g.title}》是${person.name}的真实过去。\n身份：${p.identity}\n完整经历：${p.experience}\n关系：${p.relationships}\n关键选择：${p.keyChoices}\n伤病：${p.injuries}\n物品：${p.items}\n结局去向：${p.endingWhere}\n当前状态：${p.currentState}\n\n本作场景记录：\n${sceneText(g,80).slice(0,22000)}`,createdAt:NOW()});row.promotedTo=person.id;const stageRow=L(g.stage.cast).find(x=>S(x.id)===S(row.id)||S(x.name)===S(row.name));if(stageRow)stageRow.promotedTo=person.id;keep();try{renderCharacters?.();renderChats?.()}catch{}renderWrap(g);tell(`${person.name}已加入人物`);
+  };
+  window.v45728CanonPreview=function(id){
+    const g=ensureGame(gameById(id));if(!g||!g.v45728.endedAt)return;const direct=g.v45728.participants.filter(p=>p.insideMode==='self');
+    modal(`<div class="v45728-canon-preview"><h2>纳入正史 · 影响预览</h2><div class="note">只有“角色本人进入”的现有人物会把戏内经历写入现实记忆。戏外陪玩只记得一起玩过；借角色入戏仍然只是一段演过的故事。剧情生成角色加入人物后本来就把本作视为真实过去。</div>${direct.length?direct.map(p=>`<article><b>${E(participantName(p))}</b><p>写入《${E(g.title)}》的完整本人经历、关键选择、关系和结局状态。</p></article>`).join(''):'<div class="v45728-wrap-empty">本作没有“本人入戏”的现有人物，不会改写现有人物现实经历。</div>'}<div class="form-actions"><button onclick="closeModal()">保持非正史</button>${g.v45728.canon?'<button disabled>已经纳入正史</button>':`<button class="primary" onclick="v45728ApplyCanon(${A(g.id)})">继续并再次确认</button>`}</div></div>`);
+  };
+  window.v45728ApplyCanon=function(id){
+    const g=ensureGame(gameById(id));if(!g||g.v45728.canon)return;if(!confirm(`最后确认：把《${g.title}》写入“本人入戏”角色的现实记忆？`))return;
+    data.memories=L(data.memories);for(const p of g.v45728.participants.filter(row=>row.insideMode==='self')){let m=data.memories.find(row=>row.source==='visual-novel-canon'&&S(row.sourceGameId)===S(g.id)&&S(row.characterId)===S(p.characterId));if(!m){m={id:ID('memory'),source:'visual-novel-canon',sourceGameId:g.id,characterId:p.characterId,personaId:g.personaId||personaNow()?.id||'',title:`正史经历 · ${g.title}`,createdAt:NOW()};data.memories.unshift(m)}m.text=`《${g.title}》已由 USER 确认纳入正史。${participantName(p)}以本人身份真实经历了本作。\n${sceneText(g,80)}`;m.updatedAt=NOW()}
+    g.v45728.canon=true;g.v45728.nonCanon=false;keep();closeModal();renderWrap(g);tell('已纳入“本人入戏”角色的正史记忆');
+  };
+
+  /* ---------- 设置菜单、存读档与旧入口的兼容 ---------- */
+  window.v4571VNMenu=function(id){
+    const g=ensureGame(gameById(id));if(!g)return;const scene=L(g.scenes).at(-1);
+    modal(`<div class="v45728-vn-menu"><h2>${E(g.title)}</h2><div class="about-meta"><div class="meta-row"><span>场景</span><span>${L(g.scenes).length} 幕</span></div><div class="meta-row"><span>参与者</span><span>${g.v45728.participants.length} 位 · 可混合四种来源</span></div><div class="meta-row"><span>正史</span><span>${g.v45728.canon?'已纳入':'默认非正史'}</span></div><div class="meta-row"><span>画面</span><span>${g.v45728.imageWanted?'整张场景图＋自动回退':'文字图'}</span></div></div><div class="v45728-menu-grid"><button onclick="closeModal();v45728EditParticipants(${A(g.id)})">参与方式</button><button onclick="closeModal();v45710OpenVNBinding(${A(g.id)})">规则绑定</button><button onclick="closeModal();v45726VNCast(${A(g.id)})">本作人物</button><button onclick="closeModal();v45712VNItems(${A(g.id)})">道具</button><button onclick="closeModal();v45712VNStatSheet(${A(g.id)})">数值</button><button onclick="v45728ToggleImageWanted(${A(g.id)})">${g.v45728.imageWanted?'切到文字图':'开启场景图'}</button><button onclick="closeModal();v45728RegenerateSceneImage(${A(g.id)})">重做画面</button></div><div class="form-actions"><button onclick="closeModal()">关闭</button><button onclick="closeModal();${g.v45728.endedAt?`v45728OpenWrap(${A(g.id)})`:`v45728EndingPrompt(${A(g.id)},true)`}">${g.v45728.endedAt?'杀青名单':'手动完结'}</button><button onclick="closeModal();v4571RegenerateVNScene(${A(g.id)})">重做当前幕</button><button class="danger" onclick="v4571DeleteVN(${A(g.id)})">删除存档</button></div></div>`);
+  };
+  try{v4571VNMenu=window.v4571VNMenu}catch{}
+  window.v45726VNEnding=id=>window.v45728EndingPrompt(id,true);
+  if(typeof legacy.promote==='function'){
+    window.v45726Promote=function(kind,id){
+      if(kind==='cast'){
+        const g=games().find(game=>L(game.stage?.cast).some(row=>S(row.id)===S(id))||L(game.v45728?.generatedCast).some(row=>S(row.id)===S(id)));
+        if(!g||!ensureGame(g).v45728.endedAt)return tell('剧情角色与 NPC 只有完结进入杀青名单后才能加入人物');
+        const row=g.v45728.generatedCast.find(item=>S(item.id)===S(id));
+        if(!row?.completedProfile?.completedAt)return tell('请先在杀青名单中一键补全本作经历与当前状况');
+        return window.v45728OpenWrap(g.id);
+      }
+      return legacy.promote.apply(this,arguments);
+    };
+  }
+  if(typeof legacy.saveSlot==='function'){
+    window.v45712VNDoSave=function(id,slot){const g=ensureGame(gameById(id)),out=legacy.saveSlot.apply(this,arguments);const row=L(g?.stage?.saves).find(s=>Number(s.slot)===Number(slot));if(row&&g){row.v45728=clone(g.v45728);row.cast=clone(g.stage.cast);keep()}return out};
+  }
+  if(typeof legacy.loadSlot==='function'){
+    window.v45712VNDoLoad=function(id,slot){const g=ensureGame(gameById(id)),row=L(g?.stage?.saves).find(s=>Number(s.slot)===Number(slot)),extra=row?{v:clone(row.v45728),cast:clone(row.cast)}:null,out=legacy.loadSlot.apply(this,arguments);if(g&&extra){if(extra.v)g.v45728=extra.v;if(extra.cast)g.stage.cast=extra.cast;ensureGame(g);keep();setTimeout(()=>renderStage(false),30)}return out};
+  }
+
+  function patchLibrary(root){
+    const library=root?.querySelector('.v4571-vn-library');if(!library||library.dataset.v45728==='true')return;library.dataset.v45728='true';
+    const hero=library.querySelector('.v4571-vn-hero');if(hero){const small=hero.querySelector('small'),title=hero.querySelector('h1'),p=hero.querySelector('p');if(small)small.textContent='VISUAL STORY';if(title)title.textContent='把人物放进一场可以选择的故事';if(p)p.textContent='整张场景图、画面旁白、戏外陪玩、戏内角色与剧情生成角色共同推进；默认非正史。'}
+    const sorted=games().slice().sort((a,b)=>S(b.updatedAt).localeCompare(S(a.updatedAt)));[...library.querySelectorAll('.v4571-vn-list>article')].forEach((card,index)=>{const g=ensureGame(sorted[index]),small=card.querySelector('section>small');if(g&&small){const outside=g.v45728.participants.filter(p=>p.outside).length,inside=g.v45728.participants.filter(p=>p.insideMode!=='none').length;small.textContent=`${outside?`戏外 ${outside} · `:''}戏内 ${inside} · ${L(g.scenes).length} 幕`}});
+  }
+  let observer=null,queued=false;
+  function inspect(){
+    const root=document.getElementById('v4571VNRoot');if(!root)return;
+    if(root.querySelector('.v4571-vn-library'))return patchLibrary(root);
+    if(root.querySelector('.v45728-wrap,.v45728-vn-shell'))return;
+    const busy=!!root.querySelector('.v4571-vn-generating,.v4571-vn-loading,.v45712-vn-wait');
+    renderStage(busy);
+  }
+  function watch(){
+    const view=document.getElementById('visualNovel');if(!view)return;
+    try{observer?.disconnect()}catch{}observer=new MutationObserver(()=>{if(queued)return;queued=true;setTimeout(()=>{queued=false;inspect()},0)});observer.observe(view,{childList:true,subtree:true});inspect();
+  }
+  setTimeout(watch,0);
+  const baseOpenVisual=window.openVisualNovel;if(typeof baseOpenVisual==='function'){
+    const open=function(...args){const out=baseOpenVisual.apply(this,args);setTimeout(watch,0);return out};window.openVisualNovel=open;try{openVisualNovel=open}catch{}
+  }
+  if(typeof legacy.open==='function'){
+    window.v4571OpenVN=function(id){const out=legacy.open.apply(this,arguments),g=ensureGame(gameById(id));setTimeout(()=>{if(g?.v45728?.endedAt)window.v45728OpenWrap(g.id);else watch()},0);return out};
+    try{v4571OpenVN=window.v4571OpenVN}catch{}
+  }
+  window.v4571VNBack=function(){const root=document.getElementById('v4571VNRoot');if(root?.querySelector('.v45728-vn-shell,.v45728-wrap'))return window.openVisualNovel?.();try{return openView('home')}catch{}};
+  try{v4571VNBack=window.v4571VNBack}catch{}
+  /* V45.7.27 的旋转兜底不再使用：锁不住方向时只提示用户横放，不旋转竖屏壳。 */
+  window.v45726VNOrient=window.v45728VNOrient;
+  window.v45712VNRepaint=()=>renderStage(lastBusy);
 })();
