@@ -2823,3 +2823,627 @@ ${selected.join('\n')}`;
   });
   try{observer.observe(document.body||document.documentElement,{childList:true,subtree:true})}catch{}
 })();
+
+
+/* =========================================================
+   POKEJI V45.7.26 · 本轮新增（追加进现有文件，不新增文件）
+   ① 清理拆成「清理记录」与「清理记忆」两栏
+   ② 广场四种内容都带关注／发现二级切换
+   ③ 广场生成内置平台风格提示词（带避嫌约束）
+   ④ 广场主播与文游角色可转为人物页里的正式人物
+   ⑤ 文游剧情角色／场景 NPC 生成、本作角色表、完结升级
+   ⑥ 文游数值条与道具由 AI 按剧情生成
+   ⑦ 文游横屏（橙光式 AVG 版式）／竖屏双模式
+   ========================================================= */
+(function(){
+  'use strict';
+  if(window.__pokejiV45726)return;window.__pokejiV45726=true;
+  const S=(v,f='')=>String(v??f),O=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{},L=v=>Array.isArray(v)?v:[];
+  const E=v=>typeof esc==='function'?esc(S(v)):S(v),AT=v=>typeof attr==='function'?attr(S(v)):E(v);
+  const A=v=>`decodeURIComponent('${encodeURIComponent(S(v)).replace(/'/g,'%27')}')`;
+  const ID=p=>`${p}_${typeof v44UUID==='function'?v44UUID():Math.random().toString(36).slice(2)}`;
+  const NOW=()=>new Date().toISOString();
+  const keep=()=>{try{save()}catch{}};
+  const tell=t=>{try{toast(t)}catch{}};
+  const num=v=>Number(v)||0;
+
+  data.runtime=O(data.runtime);data.runtime.v45726=O(data.runtime.v45726);
+  const rt=()=>{const r=data.runtime.v45726;r.squareView=O(r.squareView);return r};
+
+  function personaNow(){try{return activePersonaFor(currentChat)}catch{return data.personas?.find(p=>p.id===data.activePersonaId)||data.personas?.[0]}}
+  function socialState(){
+    data.squareSocialV4571=O(data.squareSocialV4571);data.squareSocialV4571.personas=O(data.squareSocialV4571.personas);
+    const id=personaNow()?.id||data.activePersonaId||'persona_default';
+    const v=data.squareSocialV4571.personas[id]=O(data.squareSocialV4571.personas[id]);
+    v.creators=L(v.creators);v.friends=L(v.friends);v.blocked=L(v.blocked);v.following=L(v.following);return v;
+  }
+  function squareStore(){
+    data.squareV452=O(data.squareV452);data.squareV452.personas=O(data.squareV452.personas);
+    const id=personaNow()?.id||data.activePersonaId||'persona_default';
+    const v=data.squareV452.personas[id]=O(data.squareV452.personas[id]);
+    for(const k of ['posts','shorts','longs','threads','drafts','viewHistory'])v[k]=L(v[k]);
+    return v;
+  }
+
+  /* =======================================================
+     ③ 平台风格提示词 · 只描述内容形态，明确避嫌
+     ======================================================= */
+  const SAFE_RULE=[
+    '【内容边界｜必须遵守】',
+    '一 只写日常、爱好、手作、学习、吃喝、宠物、旅行、影音书评、生活观察这类普通内容。',
+    '二 不要出现真实平台名、真实公司名、真实公众人物、真实事件、真实地名以外的可指认信息。',
+    '三 不涉及政治、宗教、民族、国家、领土、军事、灾难、暴力、色情、赌博、毒品、医疗诊断、投资建议、违法与灰产。',
+    '四 不做人身攻击、不引战、不带脏话、不写擦边或性暗示、不写自伤内容。',
+    '五 不写手机号、地址、身份证、账号密码等个人信息，出现的联系方式一律虚构且明显不可用。',
+    '六 全部内容都是虚构的，不假装是真实新闻或真实爆料。'
+  ].join('\n');
+  const PLATFORM={
+    feed:'【内容形态｜图文笔记】一到两句钩子开头，正文分短段，口语化，允许 emoji 与「｜」分隔，结尾三到六个话题标签。像生活方式社区里的图文笔记：探店、开箱、手作过程、学习方法、穿搭、食谱、收纳。标题短、具体、有画面。',
+    short:'【内容形态｜短视频】一句抓人的开场白，正文是这条视频里实际发生的事，节奏快、口语、有转折或反差。结尾一句互动引导。配一句画面描述说明镜头里能看到什么。不要写运镜术语和脚本格式。',
+    long:'【内容形态｜长视频】有正式标题和简介，分若干幕，每幕一个小标题加一段内容，像知识区、生活区或故事区的中长视频。整体有起承转合，最后一幕给结论或回味。不要伪造播放器、弹幕、进度条。',
+    forum:'【内容形态｜论坛主题】一个明确的讨论标题，正文提出真实困惑、经验或对比，允许分点。语气像论坛长贴，会自问自答、会承认自己不确定。方便别人逐层回复。'
+  };
+  let styleKind='';
+  const baseInvoke=window.invokeModel;
+  if(typeof baseInvoke==='function'){
+    window.invokeModel=function(kind,options={}){
+      let opts=options;
+      const extra=[];
+      if(styleKind&&PLATFORM[styleKind])extra.push(PLATFORM[styleKind],SAFE_RULE);
+      if(vnNarrative)extra.push(vnNarrative);
+      if(extra.length)opts={...options,system:`${S(options.system)}\n\n${extra.join('\n\n')}`};
+      return baseInvoke.call(this,kind,opts);
+    };
+    try{invokeModel=window.invokeModel}catch{}
+  }
+  function withStyle(kind,fn){styleKind=S(kind);try{const out=fn();if(out&&typeof out.finally==='function')return out.finally(()=>{styleKind=''});styleKind='';return out}catch(e){styleKind='';throw e}}
+  for(const name of ['v4571GenerateSquareDiscovery','v4571GenerateSquareCreators']){
+    const base=window[name];
+    if(typeof base==='function')window[name]=function(...args){return withStyle(currentType(),()=>base.apply(this,args))};
+  }
+
+  /* =======================================================
+     ② 广场：四种内容 × 关注／发现
+     ======================================================= */
+  const TYPES=[['feed','图文'],['short','短视频'],['long','长视频'],['forum','论坛']];
+  const TYPE_KEYS=TYPES.map(t=>t[0]);
+  function currentType(){const t=S(squareStore().tab||'short');return TYPE_KEYS.includes(t)?t:'short'}
+  function viewOf(type){return rt().squareView[type]==='follow'?'follow':'find'}
+  window.v45726SquareView=function(type,view){
+    rt().squareView[S(type)]=view==='follow'?'follow':'find';keep();
+    if(typeof v452SetSquareTab==='function')v452SetSquareTab(S(type));
+    setTimeout(paintSquare,30);
+  };
+  window.v45726ToggleFollow=function(id){
+    const st=socialState(),key=S(id);
+    st.following=st.following.includes(key)?st.following.filter(x=>x!==key):[...st.following,key];
+    keep();tell(st.following.includes(key)?'已关注':'已取消关注');setTimeout(paintSquare,20);
+  };
+  function followed(){return socialState().following}
+  function itemAuthorId(item){return S(item.authorId||item.creatorId||item.authorToken||'')}
+  function creatorName(id){const c=socialState().creators.find(x=>S(x.id)===S(id));return c?S(c.name):''}
+  function followedItems(type){
+    const store=squareStore(),ids=followed();
+    const rows=type==='feed'?store.posts:type==='short'?store.shorts:type==='long'?store.longs:store.threads;
+    return L(rows).filter(item=>item&&item.authorType!=='user'&&ids.includes(itemAuthorId(item)));
+  }
+  function followRow(type,item){
+    const name=S(item.authorName||item.author||creatorName(itemAuthorId(item))||'广场主播');
+    const title=S(item.title||item.content||'未命名内容');
+    const body=S(item.summary||item.content||'');
+    const open=type==='long'?`v452OpenLongDetail(${A(item.id)})`:type==='feed'?`v452OpenPostDetail(${A(item.id)})`:type==='forum'?`v452OpenThread(${A(item.id)})`:`v452OpenShortArticle(${A(item.id)})`;
+    return `<article class="v45726-follow-row" onclick="${open}">
+      <span>${E(name.slice(0,1))}</span>
+      <div><b>${E(title).slice(0,60)}</b><small>${E(name)} · ${type==='long'?`${L(item.chapters).length||1} 幕`:type==='forum'?`${L(item.comments).length} 回复`:'刚刚'}</small><em>${E(body).slice(0,70)}</em></div>
+      <i>›</i></article>`;
+  }
+  function followPanel(type){
+    const rows=followedItems(type),ids=followed(),creators=socialState().creators.filter(c=>ids.includes(S(c.id)));
+    return `<section class="v45726-follow">
+      <div class="v45726-strip">
+        <div class="v45726-strip-head"><b>我关注的</b><small>${creators.length} 位</small></div>
+        <div class="v45726-strip-row">
+          ${creators.map(c=>`<button onclick="v4571OpenCreator(${A(c.id)})"><span>${E(S(c.name||'主').slice(0,1))}</span><small>${E(S(c.name||'主播').slice(0,4))}</small></button>`).join('')}
+          <button class="v45726-strip-add" onclick="v4571OpenSquareSocial()"><span>✦</span><small>找新的</small></button>
+        </div>
+      </div>
+      ${rows.length?`<div class="v45726-follow-list">${rows.map(item=>followRow(type,item)).join('')}</div>`
+        :`<div class="v45726-follow-empty"><span>◇</span><b>关注的人还没有${E(TYPES.find(t=>t[0]===type)?.[1]||'内容')}</b><p>可以让已关注的主播按自己的性格发一条，也可以先去发现页多关注几位。</p></div>`}
+      <div class="v45726-inline-gen">
+        <div><b>${rows.length?'想看新的':'关注的人今天还没发'}</b><small>让已关注主播按自己的性格发一条${E(TYPES.find(t=>t[0]===type)?.[1]||'内容')}</small></div>
+        <button onclick="v45726FollowGenerate('${type}')">✦ 让 TA 发一条</button>
+      </div>
+    </section>`;
+  }
+  function paintSquare(){
+    const body=document.querySelector('.v452-app-square');if(!body)return;
+    const shell=body.querySelector(':scope > .v452-square');if(!shell||shell.classList.contains('v453-profile-shell'))return;
+    const tabs=shell.querySelector(':scope > .v452-square-tabs');if(!tabs)return;
+    const type=currentType(),view=viewOf(type);
+    /* 页签按用户确认的顺序与叫法重排，onclick 仍走原函数 */
+    const wanted=TYPES.map(([key,label])=>`<button class="${type===key?'on':''}" onclick="v452SetSquareTab('${key}')">${label}</button>`).join('');
+    if(tabs.dataset.v45726!==type){tabs.innerHTML=wanted;tabs.dataset.v45726=type}
+    /* 二级切换 */
+    let seg=shell.querySelector(':scope > .v45726-seg');
+    if(!seg){seg=document.createElement('nav');seg.className='v45726-seg';tabs.after(seg)}
+    const genLabel=view==='follow'?'✦ 让 TA 发':'✦ 生成主播';
+    const genCall=view==='follow'?`v45726FollowGenerate('${type}')`:'v4571GenerateSquareCreators()';
+    seg.innerHTML=`<button class="${view==='follow'?'on':''}" onclick="v45726SquareView('${type}','follow')">关注</button>
+      <button class="${view==='find'?'on':''}" onclick="v45726SquareView('${type}','find')">发现</button>
+      <button class="v45726-seg-gen" onclick="${genCall}">${genLabel}</button>`;
+    /* 关注视图用自己的列表，发现视图保持原页面 */
+    const main=shell.querySelector(':scope > .v452-square-view');if(!main)return;
+    if(view==='follow'){
+      if(main.dataset.v45726!=='follow:'+type){main.dataset.v45726='follow:'+type;main.classList.remove('immersive');main.innerHTML=followPanel(type)}
+    }else if(main.dataset.v45726){delete main.dataset.v45726}
+  }
+  window.v45726PaintSquare=paintSquare;
+  for(const name of ['v452SetSquareTab','v452OpenPhoneApp','v43OpenPhoneApp']){
+    const base=window[name];
+    if(typeof base==='function')window[name]=function(...args){const out=base.apply(this,args);setTimeout(paintSquare,20);return out};
+  }
+  try{
+    const host=document.getElementById('modalContent')||document.body;
+    new MutationObserver(()=>{if(document.querySelector('.v452-app-square'))paintSquare()}).observe(host,{childList:true,subtree:true});
+  }catch{}
+
+  window.v45726FollowGenerate=async function(type){
+    const creators=socialState().creators.filter(c=>followed().includes(S(c.id)));
+    if(!creators.length)return tell('还没有关注任何主播，可以先去发现页关注');
+    if(typeof validModel==='function'&&!validModel('feed')&&!validModel('chat'))return tell('请先配置广场生成或主聊天线路');
+    const who=creators[Math.floor(Math.random()*creators.length)],label=TYPES.find(t=>t[0]===type)?.[1]||'内容';
+    tell(`${who.name}正在准备一条${label}…`);
+    const controller=typeof withTimeout==='function'?withTimeout(num(data.settings.timeout)||60000):{signal:undefined};
+    try{
+      const raw=await withStyle(type,()=>invokeModel(validModel('feed')?'feed':'chat',{
+        system:`你现在是广场里的内容创作者「${who.name}」（@${S(who.handle||'creator')}），领域是${S(who.niche||'生活')}。简介：${S(who.bio||'')}。\n只输出 JSON：{"title":"标题","content":"正文","visual":"这条内容的画面描述","tags":["标签"]}。不要输出解释。`,
+        history:[{role:'user',content:`按你自己的性格和领域，发一条${label}。`}],
+        temperature:num(data.settings.temperature)||.9,maxTokens:900,signal:controller.signal
+      }));
+      const text=typeof stripReplyTags==='function'?stripReplyTags(S(raw)):S(raw);
+      let obj={};try{obj=JSON.parse(text.match(/\{[\s\S]*\}/)?.[0]||'{}')}catch{}
+      const item={id:ID('square'),authorType:'creator',authorId:S(who.id),authorName:S(who.name),
+        title:S(obj.title||`${who.name}的${label}`),content:S(obj.content||text).slice(0,2000),
+        summary:S(obj.content||'').slice(0,140),article:S(obj.content||''),visual:S(obj.visual||''),
+        tags:L(obj.tags).map(S).slice(0,6),likes:0,shares:0,views:0,comments:[],createdAt:NOW()};
+      const store=squareStore();
+      if(type==='feed')store.posts.unshift(item);
+      else if(type==='short')store.shorts.unshift(item);
+      else if(type==='long'){item.chapters=[{title:'第 1 幕',text:item.content}];store.longs.unshift(item)}
+      else store.threads.unshift({...item,board:'综合讨论'});
+      keep();paintSquare();tell(`${who.name}发了一条${label}`);
+    }catch(error){tell(error?.name==='AbortError'?'生成已取消':'这条内容没生成成功')}
+    finally{try{releaseController(controller)}catch{}}
+  };
+
+  /* =======================================================
+     ④ 转为人物页里的正式人物（广场主播与文游角色共用）
+     ======================================================= */
+  let draft=null;
+  window.v45726Promote=async function(kind,id){
+    const src=kind==='creator'?creatorSource(id):castSource(id);
+    if(!src)return tell('找不到这个对象');
+    if(typeof validAPI==='function'&&!validAPI())return tell('请先配置主聊天模型');
+    tell('正在整理资料草稿…');
+    const controller=typeof withTimeout==='function'?withTimeout(num(data.settings.timeout)||60000):{signal:undefined};
+    try{
+      const raw=await invokeModel('chat',{
+        system:`把下面这个对象整理成一份可以直接用的人物资料。只输出 JSON：{"name":"聊天里叫的名字","relation":"身份与关系","personality":"性格与说话方式","impression":"写进记忆的初始印象"}。\n资料必须只依据给出的来源，不要编造没有依据的经历。${SAFE_RULE}`,
+        history:[{role:'user',content:src.brief}],temperature:.7,maxTokens:700,signal:controller.signal});
+      const text=typeof stripReplyTags==='function'?stripReplyTags(S(raw)):S(raw);
+      let obj={};try{obj=JSON.parse(text.match(/\{[\s\S]*\}/)?.[0]||'{}')}catch{}
+      draft={kind,id,source:src.label,name:S(obj.name||src.name),relation:S(obj.relation||''),personality:S(obj.personality||''),impression:S(obj.impression||'')};
+      promoteEditor();
+    }catch(error){tell(error?.name==='AbortError'?'已取消':'草稿没生成成功，可以手动填写');draft={kind,id,source:src.label,name:src.name,relation:'',personality:'',impression:''};promoteEditor()}
+    finally{try{releaseController(controller)}catch{}}
+  };
+  function creatorSource(id){
+    const st=socialState(),c=st.creators.find(x=>S(x.id)===S(id));if(!c)return null;
+    const dm=L(O(st.threads)[S(id)]).length;
+    return {name:S(c.name),label:`广场主播 · ${S(c.name)}（@${S(c.handle||'creator')}）`,
+      brief:`来源：广场主播。昵称：${S(c.name)}。账号：@${S(c.handle||'')}。领域：${S(c.niche||'')}。简介：${S(c.bio||'')}。与我的关系：${st.friends.includes(S(id))?'已经是好友':'只关注过'}，广场私信 ${dm} 条。`};
+  }
+  function castSource(id){
+    for(const g of L(data.visualNovelsV4571?.games)){
+      const row=L(g.stage?.cast).find(x=>S(x.id)===S(id));
+      if(row)return {name:S(row.name),label:`文游《${S(g.title)}》· ${row.kind==='npc'?'场景 NPC':'剧情角色'}`,
+        brief:`来源：文游《${S(g.title)}》，身份是${row.kind==='npc'?'场景 NPC':'剧情角色'}。名字：${S(row.name)}。设定：${S(row.brief)}。第 ${num(row.act)||1} 幕登场，共 ${num(row.lines)} 句对白。这部文游的开局：${S(g.premise)}`};
+    }
+    return null;
+  }
+  function promoteEditor(){
+    if(!draft)return;
+    modal(`<div class="v45726-draft"><h2>转为正式人物</h2>
+      <div class="v45726-source"><b>来源：${E(draft.source)}</b><span>确认后写进人物页，出现在聊天列表里可以直接私聊，也能进群聊与虚拟手机联系人。原来的身份和记录都保留。</span></div>
+      <div class="field"><label>名字</label><input id="v45726Name" value="${AT(draft.name)}"></div>
+      <div class="field"><label>身份与关系</label><textarea id="v45726Relation" style="min-height:76px">${E(draft.relation)}</textarea></div>
+      <div class="field"><label>性格与说话方式</label><textarea id="v45726Personality" style="min-height:96px">${E(draft.personality)}</textarea></div>
+      <div class="field"><label>初始印象（写进记忆）</label><textarea id="v45726Impression" style="min-height:66px">${E(draft.impression)}</textarea></div>
+      <div class="note">不确认就不写入，也不会先建一个空人物。</div>
+      <div class="form-actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="v45726PromoteSave()">确认写入</button></div></div>`);
+  }
+  window.v45726PromoteSave=function(){
+    if(!draft)return;
+    const name=S(document.getElementById('v45726Name')?.value).trim();
+    if(!name)return tell('请填写名字');
+    const relation=S(document.getElementById('v45726Relation')?.value).trim();
+    const personality=S(document.getElementById('v45726Personality')?.value).trim();
+    const impression=S(document.getElementById('v45726Impression')?.value).trim();
+    data.characters=L(data.characters);
+    const person={id:ID('char'),name,description:relation,personality,
+      bio:relation,createdAt:NOW(),origin:draft.source,originKind:draft.kind};
+    data.characters.unshift(person);
+    if(impression){
+      data.memories=L(data.memories);
+      data.memories.unshift({id:ID('memory'),characterId:person.id,personaId:personaNow()?.id||'',
+        text:impression,source:draft.source,createdAt:NOW()});
+    }
+    if(draft.kind==='cast'){
+      for(const g of L(data.visualNovelsV4571?.games)){
+        const row=L(g.stage?.cast).find(x=>S(x.id)===S(draft.id));
+        if(row){row.promotedTo=person.id;break}
+      }
+    }
+    keep();draft=null;closeModal();
+    try{renderCharacters?.()}catch{}
+    try{renderChats?.()}catch{}
+    tell(`${name}已写进人物页`);
+  };
+  /* 主播卡上补一个转正式入口：只在已是好友时出现 */
+  function paintCreatorCards(){
+    for(const card of document.querySelectorAll('.v4571-creator-card')){
+      const btn=card.querySelector('footer button[onclick*="v4571ToggleCreatorFriend"]');
+      const idMatch=S(btn?.getAttribute('onclick')).match(/'([^']+)'|decodeURIComponent\('([^']*)'\)/);
+      let cid='';try{cid=decodeURIComponent(S(idMatch?.[2]??idMatch?.[1]))}catch{cid=S(idMatch?.[2]??idMatch?.[1])}
+      const isFriend=/已是好友/.test(S(btn?.textContent));
+      let row=card.querySelector(':scope > .v45726-promote');
+      if(isFriend&&cid){
+        if(!row){row=document.createElement('div');row.className='v45726-promote';card.appendChild(row)}
+        const on=followed().includes(cid);
+        row.innerHTML=`<p><b>转为正式人物</b>可以继续在广场里私信，也可以写进人物页、在聊天里正式私聊。</p>
+          <button onclick="v45726ToggleFollow(${A(cid)})">${on?'已关注':'关注'}</button>
+          <button class="primary" onclick="v45726Promote('creator',${A(cid)})">转为正式</button>`;
+      }else if(row)row.remove();
+    }
+  }
+  try{new MutationObserver(()=>{if(document.querySelector('.v4571-creator-card'))paintCreatorCards()})
+    .observe(document.getElementById('modalContent')||document.body,{childList:true,subtree:true})}catch{}
+
+  /* =======================================================
+     ⑤⑥⑦ 文游：角色表、AI 生成数值与道具、横竖屏
+     ======================================================= */
+  const vnGames=()=>{data.visualNovelsV4571=O(data.visualNovelsV4571);data.visualNovelsV4571.games=L(data.visualNovelsV4571.games);return data.visualNovelsV4571.games};
+  function vnGame(id){return vnGames().find(g=>S(g.id)===S(id||data.visualNovelsV4571?.activeId))||null}
+  function vnStage(id){
+    const g=vnGame(id);if(!g)return null;
+    g.stage=O(g.stage);g.stage.stats=L(g.stage.stats);g.stage.items=L(g.stage.items);
+    g.stage.saves=L(g.stage.saves);g.stage.cast=L(g.stage.cast);
+    g.stage.orient=g.stage.orient==='landscape'?'landscape':'portrait';
+    return g.stage;
+  }
+  let vnNarrative='';
+  const NARRATIVE=[
+    '【叙事要求｜视觉小说，不是聊天】',
+    '一 每一幕都要有完整的场景：先交代环境（光线、声音、气味、温度、周围有什么人在做什么），再写人物的动作与身体细节，再写对白，最后落到当下的心理或余味。',
+    '二 对白要带说话时的动作、停顿和语气，不要连续甩台词。旁白与对白的比例接近，不要整幕只有对话。',
+    '三 用长句和短句交替，段落之间留出呼吸。不要写成「角色：台词」的剧本格式，也不要写成聊天气泡。',
+    '四 选项是这一刻真的能做出的具体行动或话，四个方向要有明显差别，不要都是同一种态度的换句话说。',
+    '五 只推进到下一个有意义的节点就停，不要一幕写完整个故事。'
+  ].join('\n');
+  function vnActive(){try{return !!document.querySelector('#v4571VNRoot .v4571-vn-player, .v4571-vn-player')}catch{return false}}
+
+  /* --- 横屏／竖屏 --- */
+  window.v45726VNOrient=function(id,mode){
+    const stage=vnStage(id);if(!stage)return;
+    stage.orient=mode==='landscape'?'landscape':mode==='portrait'?'portrait':(stage.orient==='landscape'?'portrait':'landscape');
+    keep();applyOrient();tell(stage.orient==='landscape'?'已切到横屏 · 视觉小说版式':'已切回竖屏');
+  };
+  function applyOrient(){
+    const g=vnGame();if(!g)return;
+    const stage=vnStage(g.id);if(!stage)return;
+    const root=document.getElementById('v4571VNRoot')||document.querySelector('.v4571-vn-view')||document.querySelector('.v4571-vn-player')?.parentElement;
+    if(!root)return;
+    root.classList.toggle('v45726-vn-landscape',stage.orient==='landscape');
+    document.documentElement.classList.toggle('v45726-vn-landscape-on',stage.orient==='landscape');
+    let btn=root.querySelector('.v45726-vn-orient');
+    if(!btn){
+      btn=document.createElement('button');btn.className='v45726-vn-orient';
+      btn.setAttribute('aria-label','切换横竖屏');root.appendChild(btn);
+    }
+    btn.textContent=stage.orient==='landscape'?'竖':'横';
+    btn.onclick=e=>{e.stopPropagation();window.v45726VNOrient(g.id)};
+  }
+  window.v45726ApplyVNOrient=applyOrient;
+  const baseRepaint=window.v45712VNRepaint;
+  if(typeof baseRepaint==='function'){
+    window.v45712VNRepaint=function(...args){const out=baseRepaint.apply(this,args);setTimeout(applyOrient,10);return out};
+  }
+  try{
+    new MutationObserver(()=>{if(document.querySelector('.v4571-vn-player'))setTimeout(applyOrient,10)})
+      .observe(document.body,{childList:true,subtree:true});
+  }catch{}
+
+  /* --- AI 生成数值条与道具 --- */
+  window.v45726VNAutoStats=async function(id,silent){
+    const g=vnGame(id),stage=vnStage(id);if(!g||!stage)return;
+    if(typeof validAPI==='function'&&!validAPI()){if(!silent)tell('请先配置主聊天模型');return}
+    if(!silent)tell('正在按剧情设计数值条与初始道具…');
+    const controller=typeof withTimeout==='function'?withTimeout(num(data.settings.timeout)||60000):{signal:undefined};
+    try{
+      const scenes=L(g.scenes).slice(-2).map(s=>S(s.text||s.body||'')).join('\n').slice(0,1200);
+      const raw=await invokeModel('chat',{
+        system:`你在为一部视觉小说设计仪表盘。依据它的题材与开局，决定这部作品真正需要哪些数值，以及主角开场会带着哪些道具。\n只输出 JSON：{"stats":[{"name":"名称","cur":数字,"max":数字,"reason":"为什么需要这条"}],"items":[{"name":"道具名","glyph":"一个符号","desc":"它是什么、能做什么","count":数字}]}\n规则：数值最多四条，可以零条（纯剧情向就返回空数组）；名称贴合题材，不要一律生命值精神值；道具最多六件，必须是这个开局里主角合理会有的东西。${SAFE_RULE}`,
+        history:[{role:'user',content:`标题：${S(g.title)}\n开局：${S(g.premise)}\n发展方向：${S(g.direction||'未指定')}\n已发生：${scenes||'还没开始'}`}],
+        temperature:.8,maxTokens:900,signal:controller.signal});
+      const text=typeof stripReplyTags==='function'?stripReplyTags(S(raw)):S(raw);
+      let obj={};try{obj=JSON.parse(text.match(/\{[\s\S]*\}/)?.[0]||'{}')}catch{}
+      const SW=['#c96a5e','#7d94c0','#8fae95','#c9a05e'];
+      const stats=L(obj.stats).slice(0,4).map((s,i)=>{
+        const max=Math.max(1,num(s.max)||100);
+        return {id:ID('stat'),name:S(s.name||`数值${i+1}`).slice(0,8),max,cur:Math.max(0,Math.min(max,num(s.cur))),color:SW[i%SW.length],reason:S(s.reason||'')};
+      });
+      const items=L(obj.items).slice(0,6).map(it=>({id:ID('item'),name:S(it.name||'道具').slice(0,10),
+        glyph:S(it.glyph||'◈').slice(0,2),desc:S(it.desc||''),count:Math.max(1,num(it.count)||1),usable:true,fromAI:true}));
+      if(stats.length){stage.stats=stats;stage.statPreset='ai'}else{stage.stats=[];stage.statPreset='none'}
+      if(items.length)stage.items=[...items,...L(stage.items).filter(x=>!x.fromAI)];
+      stage.statsAuto=true;keep();
+      try{window.v45712VNRepaint?.()}catch{}
+      if(!silent)tell(stats.length?`已生成 ${stats.length} 条数值、${items.length} 件道具`:'这部按纯剧情向处理，不显示数值条');
+    }catch(error){if(!silent)tell(error?.name==='AbortError'?'已取消':'没生成成功，可以手动设置')}
+    finally{try{releaseController(controller)}catch{}}
+  };
+  const baseNewVN=window.v4571SaveNewVN;
+  if(typeof baseNewVN==='function'){
+    window.v4571SaveNewVN=function(...args){
+      const out=baseNewVN.apply(this,args);
+      setTimeout(()=>{const g=vnGame();if(g&&!vnStage(g.id)?.statsAuto)void window.v45726VNAutoStats(g.id,true)},900);
+      return out;
+    };
+  }
+
+  /* --- 剧情角色 / 场景 NPC --- */
+  window.v45726VNCast=function(id){
+    const g=vnGame(id),stage=vnStage(id);if(!g||!stage)return;
+    const roles=stage.cast.filter(x=>x.kind!=='npc'),npcs=stage.cast.filter(x=>x.kind==='npc');
+    const row=x=>`<article class="v45726-role ${x.kind==='npc'?'is-npc':''}">
+      <span>${E(S(x.name||'？').slice(0,1))}</span>
+      <div><b>${E(x.name)}</b><small>${x.promotedTo?'已成为正式人物 · ':''}第 ${num(x.act)||1} 幕登场 · ${num(x.lines)} 句对白<br>${E(S(x.brief).slice(0,60))}</small></div>
+      <i class="${x.kind==='npc'?'npc':''}">${x.kind==='npc'?'NPC':'剧情角色'}</i></article>`;
+    modal(`<div class="v45726-vn-cast"><h2>本作人物</h2>
+      <div class="note">《${E(g.title)}》· ${L(g.scenes).length} 幕。这里的人只存在这次文游的存档里，跟着存档保存与读取，不写世界书、不自动变正式人物。</div>
+      <div class="v45726-vn-gen">
+        <button onclick="v45726VNMakeCast(${A(g.id)},'role')"><span>◈</span><div><b>生成剧情角色</b><small>有名有姓、会反复出现、有对白</small></div><i>›</i></button>
+        <button onclick="v45726VNMakeCast(${A(g.id)},'npc')"><span>◌</span><div><b>生成场景 NPC</b><small>店主、路人、守卫这类功能性配角</small></div><i>›</i></button>
+      </div>
+      <div class="v45726-roster-title"><b>剧情角色</b><small>${roles.length} 位</small></div>
+      ${roles.map(row).join('')||'<div class="note compact">还没有本作生成的剧情角色。</div>'}
+      <div class="v45726-roster-title"><b>场景 NPC</b><small>${npcs.length} 位</small></div>
+      ${npcs.map(row).join('')||'<div class="note compact">还没有场景 NPC。</div>'}
+      <div class="form-actions"><button onclick="v45726VNEnding(${A(g.id)})">完结并挑选留下的人</button><button class="primary" onclick="closeModal()">完成</button></div></div>`);
+  };
+  window.v45726VNMakeCast=async function(id,kind){
+    const g=vnGame(id),stage=vnStage(id);if(!g||!stage)return;
+    if(typeof validAPI==='function'&&!validAPI())return tell('请先配置主聊天模型');
+    tell(kind==='npc'?'正在生成这一幕的配角…':'正在生成剧情角色…');
+    const controller=typeof withTimeout==='function'?withTimeout(num(data.settings.timeout)||60000):{signal:undefined};
+    try{
+      const scenes=L(g.scenes).slice(-2).map(s=>S(s.text||s.body||'')).join('\n').slice(0,1200);
+      const known=stage.cast.map(x=>S(x.name)).join('、')||'无';
+      const raw=await invokeModel('chat',{
+        system:kind==='npc'
+          ?`为当前这一幕生成一位场景 NPC：店主、路人、守卫、服务生这类功能性配角，只服务这一幕，不需要复杂背景。只输出 JSON：{"name":"称呼","brief":"他是谁、在做什么、说话什么调子"}。${SAFE_RULE}`
+          :`为这部视觉小说生成一位剧情角色：有名有姓、会反复出现、有自己的立场和对白。只输出 JSON：{"name":"姓名","brief":"身份、与主角的关系、动机、说话方式"}。${SAFE_RULE}`,
+        history:[{role:'user',content:`标题：${S(g.title)}\n开局：${S(g.premise)}\n发展方向：${S(g.direction||'未指定')}\n已有人物：${known}\n最近剧情：${scenes||'刚开局'}`}],
+        temperature:.9,maxTokens:600,signal:controller.signal});
+      const text=typeof stripReplyTags==='function'?stripReplyTags(S(raw)):S(raw);
+      let obj={};try{obj=JSON.parse(text.match(/\{[\s\S]*\}/)?.[0]||'{}')}catch{}
+      const person={id:ID(kind==='npc'?'vnnpc':'vnrole'),kind:kind==='npc'?'npc':'role',
+        name:S(obj.name||(kind==='npc'?'路人':'新角色')).slice(0,12),brief:S(obj.brief||text).slice(0,400),
+        act:L(g.scenes).length||1,lines:0,createdAt:NOW()};
+      stage.cast=[...stage.cast,person];keep();
+      window.v45726VNCast(g.id);
+      tell(`${person.name}已加入本作人物`);
+    }catch(error){tell(error?.name==='AbortError'?'已取消':'没生成成功')}
+    finally{try{releaseController(controller)}catch{}}
+  };
+  window.v45726VNEnding=function(id){
+    const g=vnGame(id),stage=vnStage(id);if(!g||!stage)return;
+    const rows=stage.cast.filter(x=>!x.promotedTo);
+    if(!rows.length)return tell('这部文游还没有可以留下的人物');
+    modal(`<div class="v45726-vn-ending"><h2>《${E(g.title)}》完结</h2>
+      <div class="note">${L(g.scenes).length} 幕，${rows.filter(x=>x.kind!=='npc').length} 位剧情角色，${rows.filter(x=>x.kind==='npc').length} 位场景 NPC。要把谁留下来，成为人物页里的正式人物？配角也可以留。</div>
+      <div class="v45726-pick">${rows.map(x=>`<label><input type="checkbox" class="v45726-pick-one" value="${AT(x.id)}" ${x.kind!=='npc'?'checked':''}>
+        <div><b>${E(x.name)}</b><small>${E(S(x.brief).slice(0,70))}</small></div>
+        <i class="${x.kind==='npc'?'npc':''}">${x.kind==='npc'?'NPC':'剧情角色'}</i></label>`).join('')}</div>
+      <div class="note compact">选完之后逐个生成资料草稿、逐个确认写入，中途可以放弃剩下的。不选就什么都不写入，存档照旧保留。</div>
+      <div class="form-actions"><button onclick="closeModal()">都不留</button><button class="primary" onclick="v45726VNEndingRun()">生成草稿</button></div></div>`);
+  };
+  let promoteQueue=[];
+  window.v45726VNEndingRun=function(){
+    promoteQueue=[...document.querySelectorAll('.v45726-pick-one:checked')].map(x=>x.value);
+    if(!promoteQueue.length)return tell('还没有勾选任何人');
+    closeModal();nextPromote();
+  };
+  function nextPromote(){const id=promoteQueue.shift();if(!id)return tell('已处理完');void window.v45726Promote('cast',id)}
+  const basePromoteSave=window.v45726PromoteSave;
+  window.v45726PromoteSave=function(){const out=basePromoteSave.apply(this,arguments);if(promoteQueue.length)setTimeout(nextPromote,400);return out};
+  /* 文游菜单里补两个入口 */
+  const baseVNMenu=window.v4571VNMenu;
+  if(typeof baseVNMenu==='function'){
+    window.v4571VNMenu=function(...args){
+      const out=baseVNMenu.apply(this,args);
+      setTimeout(()=>{
+        const box=document.querySelector('#modalContent .about-meta, #modalContent .v4571-vn-menu, #modalContent');
+        const g=vnGame();if(!box||!g||box.querySelector('.v45726-menu-row'))return;
+        const wrap=document.createElement('div');wrap.className='v45726-menu-row';
+        wrap.innerHTML=`<button onclick="closeModal();v45726VNCast(${A(g.id)})">本作人物 · 生成剧情角色与 NPC</button>
+          <button onclick="v45726VNAutoStats(${A(g.id)})">让 AI 重新设计数值与道具</button>
+          <button onclick="closeModal();v45726VNOrient(${A(g.id)})">切换横屏／竖屏</button>`;
+        box.appendChild(wrap);
+      },40);
+      return out;
+    };
+  }
+  /* 文游进行中给场景生成注入叙事要求 */
+  for(const name of ['v4571ChooseVN','v4571CustomVNChoice','v4571RegenerateVNScene','v45712Say','v45712AddNarration']){
+    const base=window[name];
+    if(typeof base==='function')window[name]=function(...args){
+      vnNarrative=NARRATIVE;
+      const done=()=>{vnNarrative=''};
+      try{const out=base.apply(this,args);
+        if(out&&typeof out.finally==='function')return out.finally(done);
+        setTimeout(done,4000);return out;
+      }catch(e){done();throw e}
+    };
+  }
+
+  /* =======================================================
+     ① 清理记录 / 清理记忆
+     ======================================================= */
+  let wipeTab='record',wipeChat='';
+  function chatCharacter(chatId){
+    try{const parsed=parsePersonaThreadId(chatId);if(parsed?.kind==='direct')return data.characters.find(c=>c.id===parsed.entityId)||null}catch{}
+    try{return directCharacterForChat(chatId)||null}catch{return null}
+  }
+  function countMode(chatId,mode){
+    return L(data.chats?.[chatId]).filter(m=>{
+      if(!m)return false;
+      if(mode==='offline')return m.mode==='offline';
+      if(mode==='online')return m.mode!=='offline';
+      return true;
+    }).length;
+  }
+  function groupChatIds(person){
+    const persona=personaNow();
+    return L(data.groups).filter(g=>L(g.memberIds).includes(person?.id))
+      .map(g=>{try{return groupChatId(g.id,persona?.id)}catch{return ''}}).filter(Boolean);
+  }
+  function phoneCount(person){
+    let n=0;
+    try{const store=O(data.simPhones);
+      for(const key of Object.keys(store)){
+        const owner=O(store[key]);n+=L(owner.items).length;
+      }
+    }catch{}
+    return n;
+  }
+  function memoryRows(person){
+    const persona=personaNow();
+    return L(data.memories).filter(m=>m&&S(m.characterId)===S(person?.id)&&(!m.personaId||S(m.personaId)===S(persona?.id)));
+  }
+  window.v45726OpenWipe=function(chatId,tab){
+    wipeChat=S(chatId||currentChat);wipeTab=tab==='memory'?'memory':'record';
+    const person=chatCharacter(wipeChat);if(!person)return tell('请先进入一个人物的聊天');
+    const persona=personaNow(),gids=groupChatIds(person);
+    const sourced=memoryRows(person).filter(m=>S(m.source)),manual=memoryRows(person).filter(m=>!S(m.source));
+    const seg=`<div class="v45726-wipe-two">
+      <button class="${wipeTab==='record'?'on':''}" onclick="v45726OpenWipe(${A(wipeChat)},'record')"><b>清理记录</b><small>聊天里看得见的那些消息</small></button>
+      <button class="${wipeTab==='memory'?'on':''}" onclick="v45726OpenWipe(${A(wipeChat)},'memory')"><b>清理记忆</b><small>会被塞回提示词的痕迹</small></button></div>`;
+    const body=wipeTab==='record'?`
+      <div class="v45726-wipe-list">
+        <label><input type="checkbox" class="v45726-wipe" value="online" checked><div><b>线上消息</b><small>普通聊天气泡、语音、图片、表情包</small></div><i>${countMode(wipeChat,'online')} 条</i></label>
+        <label><input type="checkbox" class="v45726-wipe" value="offline" checked><div><b>线下相遇</b><small>剧情段落、旁白、内心话</small></div><i>${countMode(wipeChat,'offline')} 条</i></label>
+        <label><input type="checkbox" class="v45726-wipe" value="groups"><div><b>群聊里的发言</b><small>${E(person.name)}在 ${gids.length} 个群里的记录，与其他成员共用</small></div><i>${gids.reduce((n,k)=>n+L(data.chats?.[k]).length,0)} 条</i></label>
+        <label><input type="checkbox" class="v45726-wipe" value="translation" checked><div><b>译文缓存</b><small>翻译过的句子</small></div><i>${Object.keys(O(data.translationCache?.[wipeChat])).length||0} 条</i></label>
+      </div>
+      <div class="v45726-wipe-why"><b>清完记录之后，TA 还是会记得</b>
+        <p>因为记忆是另一套数据：压缩摘要、你查过的手机内容、通话记录、时间线都还在，它们仍然会进提示词。</p>
+        <p>要让 TA 真的不记得，切到「清理记忆」那一栏。</p></div>`
+      :`
+      <div class="v45726-wipe-list">
+        <label><input type="checkbox" class="v45726-wipe" value="summary" checked><div><b>压缩记忆（对话摘要）</b><small>记忆页里${E(person.name)}与${E(persona?.name||'当前面具')}那条摘要</small></div><i>${data.chatSummaries?.[wipeChat]?1:0} 条</i></label>
+        <label><input type="checkbox" class="v45726-wipe" value="phone" checked><div><b>手机记录</b><small>你查过的手机内容、被反查时留下的记录</small></div><i>${phoneCount(person)} 条</i></label>
+        <label><input type="checkbox" class="v45726-wipe" value="calls" checked><div><b>通话记录</b><small>拨号、接听、拒接与通话内容</small></div><i>${L(data.calls).filter(c=>S(c.characterId)===S(person.id)).length} 通</i></label>
+        <label><input type="checkbox" class="v45726-wipe" value="timeline" checked><div><b>时间线与时间账本</b><small>过了多久、上次见面是什么时候</small></div><i>${(data.chatTimelines?.[wipeChat]?1:0)+(data.chatTimeHistory?.[wipeChat]?1:0)} 组</i></label>
+        <label><input type="checkbox" class="v45726-wipe" value="sourced"><div><b>带来源的记忆条目</b><small>标注来自番外、幻梦馆、语伴课堂、广场的那些</small></div><i>${sourced.length} 条</i></label>
+        <label><input type="checkbox" class="v45726-wipe" value="manual"><div><b>手写记忆</b><small>你自己在记忆页写的，不随聊天清空</small></div><i>${manual.length} 条</i></label>
+      </div>
+      <div class="v45726-wipe-why"><b>之前清空之后还记得，就是这里</b>
+        <p>旧版「清空线上与线下」只清了聊天消息、摘要、时间线和译文，手机记录与通话记录都留着，所以用查手机看过的内容照样会进提示词。</p>
+        <p>现在这四项默认勾上。带来源的条目和手写记忆默认不勾，那是你自己的资料，清了不可恢复。</p></div>`;
+    modal(`<div class="v45726-wipe"><h2>清理 · ${E(person.name)}</h2>
+      <div class="note">当前面具「${E(persona?.name||'未命名')}」下的${E(person.name)}。记录和记忆是两套数据，分开清。其他面具不受影响。</div>
+      ${seg}${body}
+      <div class="form-actions"><button onclick="closeModal()">取消</button>
+        <button class="danger" onclick="v45726RunWipe()">${wipeTab==='record'?'清理所选记录':'清理所选记忆'}</button></div></div>`);
+  };
+  window.v45726RunWipe=function(){
+    const picked=[...document.querySelectorAll('.v45726-wipe:checked')].map(x=>x.value);
+    if(!picked.length)return tell('还没有勾选任何一项');
+    const person=chatCharacter(wipeChat);if(!person)return;
+    const done=[];
+    if(wipeTab==='record'){
+      const keepOnline=!picked.includes('online'),keepOffline=!picked.includes('offline');
+      if(!keepOnline||!keepOffline){
+        const before=L(data.chats?.[wipeChat]).length;
+        data.chats[wipeChat]=L(data.chats?.[wipeChat]).filter(m=>{
+          if(!m)return false;
+          const offline=m.mode==='offline';
+          if(offline&&picked.includes('offline'))return false;
+          if(!offline&&picked.includes('online'))return false;
+          return true;
+        });
+        done.push(`消息 ${before-L(data.chats[wipeChat]).length} 条`);
+      }
+      if(picked.includes('groups')){
+        let n=0;for(const key of groupChatIds(person)){n+=L(data.chats?.[key]).length;data.chats[key]=[]}
+        done.push(`群聊 ${n} 条`);
+      }
+      if(picked.includes('translation')&&data.translationCache){delete data.translationCache[wipeChat];done.push('译文缓存')}
+    }else{
+      if(picked.includes('summary')&&data.chatSummaries){delete data.chatSummaries[wipeChat];done.push('对话摘要')}
+      if(picked.includes('timeline')){
+        if(data.chatTimelines)delete data.chatTimelines[wipeChat];
+        if(data.chatTimeHistory)delete data.chatTimeHistory[wipeChat];
+        done.push('时间线');
+      }
+      if(picked.includes('calls')){
+        const before=L(data.calls).length;
+        data.calls=L(data.calls).filter(c=>S(c.characterId)!==S(person.id));
+        done.push(`通话 ${before-data.calls.length} 通`);
+      }
+      if(picked.includes('phone')){
+        let n=0;
+        try{
+          const store=O(data.simPhones);
+          for(const key of Object.keys(store)){
+            const owner=O(store[key]);const items=L(owner.items);
+            const kept=items.filter(it=>S(it?.characterId)!==S(person.id)&&S(it?.owner)!==S(person.id)&&S(key)!==S(person.id));
+            n+=items.length-kept.length;owner.items=kept;
+          }
+          if(S(data.simPhones?.[person.id]))delete data.simPhones[person.id];
+          else if(O(data.simPhones)[person.id]){n+=L(data.simPhones[person.id].items).length;delete data.simPhones[person.id]}
+        }catch{}
+        try{data.runtime.phoneViewMarks=O(data.runtime.phoneViewMarks);
+          for(const k of Object.keys(data.runtime.phoneViewMarks))if(k.includes(S(person.id)))delete data.runtime.phoneViewMarks[k];
+        }catch{}
+        done.push(`手机记录 ${n} 条`);
+      }
+      if(picked.includes('sourced')||picked.includes('manual')){
+        const persona=personaNow();
+        const before=L(data.memories).length;
+        data.memories=L(data.memories).filter(m=>{
+          if(!m||S(m.characterId)!==S(person.id))return true;
+          if(m.personaId&&S(m.personaId)!==S(persona?.id))return true;
+          const hasSource=!!S(m.source);
+          if(hasSource&&picked.includes('sourced'))return false;
+          if(!hasSource&&picked.includes('manual'))return false;
+          return true;
+        });
+        done.push(`记忆条目 ${before-data.memories.length} 条`);
+      }
+    }
+    keep();closeModal();
+    try{if(currentChat===wipeChat)renderMessages?.()}catch{}
+    try{renderChats?.()}catch{}
+    try{renderMemory?.()}catch{}
+    tell(`已清理：${done.join('、')||'无'}`);
+  };
+  /* 接管原来的两个清空入口 */
+  window.clearChat=function(id){return window.v45726OpenWipe(S(id||currentChat),'record')};
+  window.clearCharacterConversations=function(id){
+    let chatId='';try{chatId=directChatId(id)}catch{}
+    return window.v45726OpenWipe(chatId||currentChat,'record');
+  };
+  try{clearChat=window.clearChat;clearCharacterConversations=window.clearCharacterConversations}catch{}
+})();

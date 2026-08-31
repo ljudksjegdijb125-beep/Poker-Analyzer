@@ -104,7 +104,7 @@
     }
     let html=baseMessageMarkup(message,index,isLast,chatId);
     if(message.kind==='voice'&&T(message.transcript||message.text).trim()){
-      /* V45.7.25：转文字必须是 .message-item 的直接子块，不能留在 .bubble-line
+      /* V45.7.26：转文字必须是 .message-item 的直接子块，不能留在 .bubble-line
          这个 flex 行里（会被挤成右侧窄柱），也不能插进 .message-footer
          （会和时间挤在同一行）。这里优先插在 footer 之前，没有 footer 时补在末尾。 */
       const transcript=`<div class="voice-transcript"><small>语音转文字</small><span>${esc(message.transcript||message.text)}</span></div>`;

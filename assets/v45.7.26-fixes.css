@@ -1,0 +1,598 @@
+/* =========================================================
+   POKEJI V45.7.26 · 关键视觉修复
+
+   一个共同的真因，先写清楚，后面所有规则都是为了压过它：
+   v45.7.17-global-white.css 末段有两条兜底通配符
+     #phone #screen .view:not(#home) *:not(...)…
+     #modal  #modalContent      *:not(...)…
+   它们给命中的每个元素强制
+     background-color:transparent!important; box-shadow:none!important;
+     backdrop-filter:none!important;
+   这两条选择器带 2 个 id 加十几个 :not() 类级片段，
+   普通的「1 个 id + 1 个类」根本压不过（!important 相同时比特异度）。
+   所以本文件凡是要恢复底色的地方，都用
+     #phone #screen …:not(#pk-void-1):not(#pk-void-2)
+   把 id 计数抬到 4 个以上。:not(#不存在的 id) 不改变匹配范围，
+   只把特异度里的 id 数量拉高，这是压过兜底的最小改法。
+
+   本轮修的七件事
+   ① 朗读图标在气泡外侧，不进气泡内部
+   ② 语音条恢复成完整语音条：播放键＋波形＋时长
+   ③ 语音转文字独立成块，不再被挤成右侧窄柱、不跟时间挤一行
+   ④ 头像有可见的圆形边框与底色
+   ⑤ 广场浮层不再「叠层」：浮层与浮层内容恢复不透明
+   ⑥ 文游补回分格线
+   ⑦ 气泡回一点层次
+   ========================================================= */
+
+/* =========================================================
+   ② 语音条：恢复完整语音条
+   兜底把 .voice-wave i 的 background 抹成 transparent，
+   波形五根竖条因此全部消失，只剩 ▶ 这个字符，
+   看起来就成了「只有播放键」。.voice-strip 自身是 button
+   已被兜底排除，但它的子元素没有，所以逐个补回来。
+   另外 v45.7.1 给 .voice-strip 设了 flex-direction:column，
+   语音条必须是横向一条，这里改回 row。
+   ========================================================= */
+#phone #screen #chat .voice-strip:not(#pk-void-1):not(#pk-void-2){
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:auto!important;
+  min-width:158px!important;
+  max-width:100%!important;
+  min-height:38px!important;
+  padding:7px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:14px!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink,#141518)!important;
+  text-align:left!important;
+  cursor:pointer!important;
+}
+#phone #screen #chat .msg-group.me .voice-strip:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+}
+/* 播放键：实心圆 */
+#phone #screen #chat .voice-strip .voice-play:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;
+  place-items:center!important;
+  width:22px!important;
+  height:22px!important;
+  flex:0 0 22px!important;
+  border-radius:50%!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+  font-size:9px!important;
+  line-height:1!important;
+}
+#phone #screen #chat .msg-group.me .voice-strip .voice-play:not(#pk-void-1):not(#pk-void-2){
+  background-color:#ffffff!important;
+  color:#1c1e22!important;
+}
+/* 波形：五根竖条，高度不一，播放时才动 */
+#phone #screen #chat .voice-strip .voice-wave:not(#pk-void-1):not(#pk-void-2){
+  display:flex!important;
+  align-items:center!important;
+  gap:2px!important;
+  height:17px!important;
+  flex:0 0 auto!important;
+  color:currentColor!important;
+}
+#phone #screen #chat .voice-strip .voice-wave i:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  width:2px!important;
+  height:6px!important;
+  border-radius:2px!important;
+  background-color:currentColor!important;
+  opacity:.75!important;
+}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(2):not(#pk-void-1){height:13px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(3):not(#pk-void-1){height:8px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(4):not(#pk-void-1){height:16px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(5):not(#pk-void-1){height:10px!important}
+/* 时长：靠右 */
+#phone #screen #chat .voice-strip em:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  margin-left:auto!important;
+  flex:0 0 auto!important;
+  font-size:9px!important;
+  font-style:normal!important;
+  opacity:.6!important;
+}
+
+/* =========================================================
+   ① 朗读图标在气泡外侧
+   .inline-read 是 .bubble-line 这个 flex 行里紧跟气泡的下一个子项。
+   只要气泡不横向铺满，图标自然落在气泡外面的右侧；
+   我方消息 .me 是 row-reverse，图标同样落在自己气泡的外侧。
+   这里不用 absolute —— absolute 会把图标压回气泡内部右下角。
+   ========================================================= */
+#phone #screen #chat .bubble-line:not(#pk-void-1){
+  display:flex!important;
+  align-items:flex-end!important;
+  flex-wrap:nowrap!important;
+  gap:6px!important;
+}
+#phone #screen #chat .bubble-line>.bubble:not(#pk-void-1){
+  flex:0 1 auto!important;
+  min-width:0!important;
+}
+#phone #screen #chat .inline-read:not(#pk-void-1):not(#pk-void-2){
+  position:static!important;
+  flex:0 0 auto!important;
+  align-self:flex-end!important;
+  width:24px!important;
+  height:24px!important;
+  margin:0 0 2px!important;
+  padding:0!important;
+  border:0!important;
+  background-color:transparent!important;
+  color:var(--pl-ink-3,#6f7278)!important;
+}
+#phone #screen #chat .inline-read svg:not(#pk-void-1){
+  width:16px!important;
+  height:16px!important;
+  fill:currentColor!important;
+}
+/* 时间那一行只放时间，朗读入口不在这里重复出现 */
+#phone #screen #chat .message-footer .message-read-button{display:none!important}
+
+/* =========================================================
+   ③ 语音转文字：独立一块
+   v45-phone-call.js 已改成把它插在 .message-item 下、footer 之前，
+   所以这里按普通块处理即可，不再依赖 flex 换行。
+   ========================================================= */
+#phone #screen #chat .voice-transcript:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:6px 0 0!important;
+  padding:9px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:12px!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink-2,#4a4d52)!important;
+}
+#phone #screen #chat .voice-transcript small:not(#pk-void-1){
+  display:block!important;
+  margin-bottom:4px!important;
+  color:var(--pl-ink-4,#9a9da2)!important;
+  font-size:8px!important;
+  letter-spacing:.08em!important;
+}
+#phone #screen #chat .voice-transcript span:not(#pk-void-1){
+  display:block!important;
+  color:var(--pl-ink-2,#4a4d52)!important;
+  font-size:11px!important;
+  line-height:1.62!important;
+  white-space:pre-wrap!important;
+}
+
+/* =========================================================
+   ④ 头像：可见的圆形边框与底色
+   兜底把底色和投影一起抹掉，没图的头像就成了「没有框」的裸字。
+   ========================================================= */
+#phone #screen .view:not(#home) .avatar:not(#pk-void-1):not(#pk-void-2),
+#phone #screen #chat .message-avatar:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .avatar:not(#pk-void-1):not(#pk-void-2){
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  overflow:hidden!important;
+}
+#phone #screen #chat .message-avatar-spacer:not(#pk-void-1):not(#pk-void-2){
+  border:0!important;
+  background-color:transparent!important;
+}
+#phone #screen .view:not(#home) .avatar-fallback:not(#pk-void-1),
+#modal #modalContent .avatar-fallback:not(#pk-void-1){
+  color:var(--pl-ink-2,#4a4d52)!important;
+}
+
+/* =========================================================
+   ⑤ 广场「叠层」的真因与修法
+   v45.2 的 overlay() 把浮层 append 到 .vphone 里，
+   .vphone 本身是 position:relative，所以 absolute + inset:0 的覆盖是对的，
+   浮层其实一直在最上层 —— 问题是它和它的 .v452-overlay-sheet
+   被上面那条兜底刷成了完全透明，遮罩没了、白底也没了，
+   于是浮层文字和底下页面的文字直接叠在一起，看起来就是「重叠」。
+   同一个原因也影响 .v4571-social-overlay（广场关系）
+   与 .v455-phone-overlay（虚拟手机内浮层）。
+   这里只恢复不透明与层级，不改动它们的结构和交互。
+   ========================================================= */
+#phone #screen .v452-overlay:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v4571-social-overlay:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-phone-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v4571-social-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-phone-overlay:not(#pk-void-1):not(#pk-void-2){
+  position:absolute!important;
+  inset:0!important;
+  z-index:900!important;
+  display:flex!important;
+  align-items:flex-end!important;
+  justify-content:center!important;
+  padding:46px 10px 0!important;
+  background-color:rgba(12,14,17,.52)!important;
+}
+#phone #screen .v452-overlay>.v452-overlay-sheet:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v4571-social-overlay>.v4571-social-sheet:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-phone-overlay>.v455-phone-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-overlay>.v452-overlay-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v4571-social-overlay>.v4571-social-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-phone-overlay>.v455-phone-sheet:not(#pk-void-1):not(#pk-void-2){
+  position:relative!important;
+  width:100%!important;
+  max-height:100%!important;
+  overflow:auto!important;
+  padding:16px 15px calc(16px + env(safe-area-inset-bottom))!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-bottom:0!important;
+  border-radius:20px 20px 0 0!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink,#141518)!important;
+}
+/* 浮层里的可点行、统计块也要看得见自己的面，不然又是一片白叠白 */
+#phone #screen .v452-overlay .v452-overlay-head>button:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-overlay-head>button:not(#pk-void-1),
+#phone #screen .v4571-social-overlay .v4571-social-stats>*:not(#pk-void-1),
+#modal #modalContent .v4571-social-overlay .v4571-social-stats>*:not(#pk-void-1),
+#phone #screen .v452-overlay .v452-activity-stats>span:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-activity-stats>span:not(#pk-void-1){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink,#141518)!important;
+}
+#phone #screen .v452-overlay .v452-overlay-actions button.primary:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-overlay-actions button.primary:not(#pk-void-1){
+  border-color:transparent!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+}
+/* 浮层出现时，底下的广场底部导航不要再穿上来 */
+#phone #screen .v452-overlay~.v452-square-bottom,
+#modal #modalContent .v452-overlay~.v452-square-bottom{z-index:1!important}
+
+/* =========================================================
+   ⑥ 文游：补回分格线
+   ========================================================= */
+#phone #screen .v4571-vn-scene figure:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene figure:not(#pk-void-1){
+  border-bottom:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v4571-vn-scene>article:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene>article:not(#pk-void-1){
+  border-bottom:1px solid var(--pl-line-2,#eceef0)!important;
+}
+#phone #screen .v4571-vn-scene blockquote:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene blockquote:not(#pk-void-1){
+  border-left:2px solid var(--pl-ink,#141518)!important;
+  border-top:1px solid var(--pl-line-2,#eceef0)!important;
+  border-bottom:1px solid var(--pl-line-2,#eceef0)!important;
+}
+#phone #screen .v4571-vn-scene aside:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene aside:not(#pk-void-1),
+#phone #screen .v4571-vn-choices button:not(#pk-void-1),
+#modal #modalContent .v4571-vn-choices button:not(#pk-void-1){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v4571-vn-player>footer:not(#pk-void-1),
+#modal #modalContent .v4571-vn-player>footer:not(#pk-void-1){
+  border-top:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v45712-vn-stage:not(#pk-void-1),
+#modal #modalContent .v45712-vn-stage:not(#pk-void-1){
+  border-bottom:1px solid rgba(255,255,255,.10)!important;
+}
+#phone #screen .v45712-vn-dialog:not(#pk-void-1),
+#modal #modalContent .v45712-vn-dialog:not(#pk-void-1){
+  border-top:1px solid rgba(255,255,255,.10)!important;
+}
+
+/* =========================================================
+   ⑦ 气泡：回一点层次
+   兜底把 box-shadow 抹平，这里给对方气泡一条边线、我方气泡一点投影，
+   不改圆角、不改内边距、不动现有排版。
+   ========================================================= */
+#phone #screen #chat .msg-group .bubble:not(#pk-void-1):not(#pk-void-2){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen #chat .msg-group.me .bubble:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.10)!important;
+}
+#phone #screen #chat .thought-entry:not(#pk-void-1):not(#pk-void-2){
+  border:1px dashed var(--pl-line,#e4e6e8)!important;
+}
+
+/* =========================================================
+   V45.7.26 新增外观
+   凡是要给底色的地方都带 :not(#pk-void-1):not(#pk-void-2)，
+   原因见本文件开头：global-white 的两条兜底通配符会把
+   background-color 抹成 transparent，特异度里 id 多才压得过。
+   ========================================================= */
+
+/* ---------- 广场：关注／发现二级切换 ---------- */
+#phone #screen .v45726-seg:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v45726-seg:not(#pk-void-1):not(#pk-void-2){
+  display:flex!important;gap:7px;align-items:center;
+  padding:9px 12px!important;
+  border-bottom:1px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-seg>button:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v45726-seg>button:not(#pk-void-1):not(#pk-void-2){
+  padding:6px 14px!important;border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:99px!important;background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink-3,#6f7278)!important;font-size:10px!important;
+}
+#modal #modalContent .v45726-seg>button.on:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v45726-seg>button.on:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;background-color:#1c1e22!important;color:#ffffff!important;
+}
+#modal #modalContent .v45726-seg>.v45726-seg-gen:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v45726-seg>.v45726-seg-gen:not(#pk-void-1):not(#pk-void-2){
+  margin-left:auto!important;border-style:dashed!important;color:var(--pl-ink-2,#4a4d52)!important;
+}
+
+/* ---------- 广场：关注视图 ---------- */
+#modal #modalContent .v45726-follow:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;padding:0 0 16px!important;background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-strip:not(#pk-void-1):not(#pk-void-2){
+  padding:12px 0 13px!important;border-bottom:1px solid var(--pl-line-2,#eceef0)!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-strip-head{display:flex!important;justify-content:space-between;align-items:baseline;padding:0 13px 9px!important}
+#modal #modalContent .v45726-strip-head b{font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-strip-head small{font-size:8px!important;color:var(--pl-ink-4,#9a9da2)!important}
+#modal #modalContent .v45726-strip-row{display:flex!important;gap:11px;padding:0 13px!important;overflow-x:auto}
+#modal #modalContent .v45726-strip-row>button:not(#pk-void-1):not(#pk-void-2){
+  flex:0 0 auto!important;display:grid!important;gap:4px;justify-items:center;width:52px!important;
+  padding:0!important;border:0!important;background-color:transparent!important;
+}
+#modal #modalContent .v45726-strip-row>button>span:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;place-items:center;width:46px!important;height:46px!important;
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;border-radius:50%!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:16px!important;
+}
+#modal #modalContent .v45726-strip-row>button>small{font-size:8px!important;color:var(--pl-ink-2,#4a4d52)!important;
+  max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modal #modalContent .v45726-strip-add>span:not(#pk-void-1){border-style:dashed!important;color:var(--pl-ink-4,#9a9da2)!important}
+#modal #modalContent .v45726-follow-list{display:block!important;padding:12px 13px 0!important}
+#modal #modalContent .v45726-follow-row:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:34px minmax(0,1fr) 12px;gap:10px;align-items:center;
+  margin-bottom:9px!important;padding:10px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-follow-row>span:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;place-items:center;width:34px!important;height:34px!important;
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;border-radius:50%!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:13px!important;
+}
+#modal #modalContent .v45726-follow-row b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-follow-row small{display:block!important;margin-top:3px!important;font-size:8px!important;color:var(--pl-ink-4,#9a9da2)!important}
+#modal #modalContent .v45726-follow-row em{display:block!important;margin-top:4px!important;font-style:normal;font-size:9px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-follow-row i{font-style:normal;color:#c3c6ca!important}
+#modal #modalContent .v45726-follow-empty{display:grid!important;gap:6px;justify-items:center;padding:34px 20px!important;text-align:center}
+#modal #modalContent .v45726-follow-empty span{font-size:26px!important;color:#d5d8db!important}
+#modal #modalContent .v45726-follow-empty b{font-size:11px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-follow-empty p{margin:0!important;font-size:9px!important;line-height:1.7;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-inline-gen:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  margin:12px 13px 0!important;padding:11px!important;
+  border:1px dashed var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-inline-gen b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-inline-gen small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-inline-gen>button:not(#pk-void-1):not(#pk-void-2){
+  padding:9px 12px!important;border:0!important;border-radius:10px!important;
+  background-color:#1c1e22!important;color:#ffffff!important;font-size:9px!important;
+}
+
+/* ---------- 主播卡上的转正式行 ---------- */
+#modal #modalContent .v45726-promote:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;
+  padding:10px 11px!important;border-top:1px solid var(--pl-line-2,#eceef0)!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-promote p{margin:0!important;font-size:9px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-promote p b{display:block!important;margin-bottom:2px!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-promote>button:not(#pk-void-1):not(#pk-void-2){
+  padding:8px 11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:9px!important;
+  background-color:var(--pl-bg,#ffffff)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:9px!important;
+}
+#modal #modalContent .v45726-promote>button.primary:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;background-color:#1c1e22!important;color:#ffffff!important;
+}
+
+/* ---------- 转正式草稿页 ---------- */
+#modal #modalContent .v45726-source:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;gap:3px;margin:0 0 12px!important;padding:10px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-left:2px solid var(--pl-ink,#141518)!important;
+  border-radius:0 11px 11px 0!important;background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-source b{font-size:9px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-source span{font-size:9px!important;line-height:1.6;color:var(--pl-ink-3,#6f7278)!important}
+
+/* ---------- 文游：本作人物、完结挑选 ---------- */
+#phone #screen .v45726-vn-gen:not(#pk-void-1),
+#modal #modalContent .v45726-vn-gen:not(#pk-void-1){display:grid!important;gap:8px;margin:2px 0 6px!important}
+#modal #modalContent .v45726-vn-gen>button:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:12px 11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;text-align:left!important;
+}
+#modal #modalContent .v45726-vn-gen>button>span:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;place-items:center;width:30px!important;height:30px!important;border-radius:9px!important;
+  background-color:var(--pl-panel-2,#eef0f1)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:13px!important;
+}
+#modal #modalContent .v45726-vn-gen b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-vn-gen small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-vn-gen i{font-style:normal;color:#c3c6ca!important}
+#modal #modalContent .v45726-roster-title{display:flex!important;justify-content:space-between;align-items:baseline;margin:13px 0 8px!important}
+#modal #modalContent .v45726-roster-title b{font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-roster-title small{font-size:8px!important;color:var(--pl-ink-4,#9a9da2)!important}
+#modal #modalContent .v45726-role:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;
+  margin-bottom:8px!important;padding:10px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-role.is-npc:not(#pk-void-1):not(#pk-void-2){
+  border-style:dashed!important;background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-role>span:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;place-items:center;width:34px!important;height:34px!important;
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;border-radius:50%!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:13px!important;
+}
+#modal #modalContent .v45726-role b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-role small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-role>i:not(#pk-void-1):not(#pk-void-2){
+  font-style:normal;padding:3px 7px!important;border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:99px!important;background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink-3,#6f7278)!important;font-size:8px!important;white-space:nowrap;
+}
+#modal #modalContent .v45726-role>i.npc:not(#pk-void-1){border-style:dashed!important}
+#modal #modalContent .v45726-pick{display:grid!important;gap:7px;margin:4px 0 0!important}
+#modal #modalContent .v45726-pick>label:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:10px 11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-pick input{width:16px!important;height:16px!important;margin:0!important;accent-color:#1c1e22}
+#modal #modalContent .v45726-pick b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-pick small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-pick i:not(#pk-void-1):not(#pk-void-2){
+  font-style:normal;padding:3px 7px!important;border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:99px!important;background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink-3,#6f7278)!important;font-size:8px!important;white-space:nowrap;
+}
+#modal #modalContent .v45726-pick i.npc:not(#pk-void-1){border-style:dashed!important}
+#modal #modalContent .v45726-menu-row{display:grid!important;gap:7px;margin-top:10px!important}
+#modal #modalContent .v45726-menu-row>button:not(#pk-void-1):not(#pk-void-2){
+  padding:11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:11px!important;
+  background-color:var(--pl-bg,#ffffff)!important;color:var(--pl-ink,#141518)!important;
+  font-size:10px!important;text-align:left!important;
+}
+
+/* ---------- 清理：两栏 ---------- */
+#modal #modalContent .v45726-wipe-two:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:1fr 1fr;gap:8px;margin:2px 0 12px!important;
+}
+#modal #modalContent .v45726-wipe-two>button:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;gap:4px;padding:12px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;text-align:left!important;
+}
+#modal #modalContent .v45726-wipe-two>button.on:not(#pk-void-1):not(#pk-void-2){
+  border:2px solid var(--pl-ink,#141518)!important;padding:11px 10px!important;
+}
+#modal #modalContent .v45726-wipe-two b{font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-wipe-two small{font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-wipe-list{display:grid!important;gap:7px;margin-bottom:12px!important}
+#modal #modalContent .v45726-wipe-list>label:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:10px 11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-wipe-list input{width:16px!important;height:16px!important;margin:0!important;accent-color:#1c1e22}
+#modal #modalContent .v45726-wipe-list b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-wipe-list small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-wipe-list i{font-style:normal;font-size:9px!important;color:var(--pl-ink-4,#9a9da2)!important;white-space:nowrap}
+#modal #modalContent .v45726-wipe-why:not(#pk-void-1):not(#pk-void-2){
+  margin:0 0 4px!important;padding:11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-left:2px solid var(--pl-ink,#141518)!important;
+  border-radius:0 11px 11px 0!important;background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-wipe-why b{display:block!important;margin-bottom:4px!important;font-size:9px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-wipe-why p{margin:0 0 5px!important;font-size:9px!important;line-height:1.7;color:var(--pl-ink-2,#4a4d52)!important}
+#modal #modalContent .v45726-wipe-why p:last-child{margin:0!important}
+#modal #modalContent .v45726-wipe .form-actions button.danger:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;background-color:#8a4a45!important;color:#ffffff!important;
+}
+
+/* =========================================================
+   ⑦ 文游横屏 · 视觉小说版式
+   竖屏保持现状，只有切到横屏才换成这一套：
+   背景与立绘铺满，对话框浮在画面底部，名牌在框外左上，
+   选项做成居中横条浮在画面中下部，顶部数值条压扁。
+   ========================================================= */
+#phone #screen .v45726-vn-orient:not(#pk-void-1):not(#pk-void-2){
+  position:absolute!important;right:11px!important;top:11px!important;z-index:9!important;
+  width:30px!important;height:30px!important;border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:9px!important;background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink,#141518)!important;font-size:11px!important;
+}
+#phone #screen .v45726-vn-landscape{position:relative!important}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene figure:not(#pk-void-1):not(#pk-void-2){
+  height:62vh!important;min-height:230px!important;border-bottom:0!important;
+  background-color:#0e1013!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene figure img{
+  width:100%!important;height:100%!important;object-fit:cover!important;object-position:center 18%!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene:not(#pk-void-1){position:relative!important}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene>article:not(#pk-void-1):not(#pk-void-2){
+  position:absolute!important;left:0!important;right:0!important;bottom:0!important;z-index:3!important;
+  max-height:46%!important;overflow:auto!important;
+  margin:0 10px 10px!important;padding:14px 15px 15px!important;
+  border:1px solid rgba(255,255,255,.16)!important;border-radius:14px!important;
+  background-color:rgba(12,14,17,.82)!important;color:#f2f1ec!important;
+  -webkit-backdrop-filter:blur(6px)!important;backdrop-filter:blur(6px)!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene>article>small:not(#pk-void-1){
+  position:absolute!important;top:-11px!important;left:12px!important;
+  padding:3px 10px!important;border-radius:99px!important;
+  background-color:#f2f1ec!important;color:#14161a!important;
+  font-size:8px!important;letter-spacing:.12em!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene h2:not(#pk-void-1){
+  margin:2px 0 9px!important;color:#f7f6f1!important;font-size:15px!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene p:not(#pk-void-1){
+  color:#e8e6df!important;font:12px/1.95 Georgia,"Songti SC",serif!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene blockquote:not(#pk-void-1):not(#pk-void-2){
+  border-left:2px solid #d9c9a4!important;border-top:0!important;border-bottom:0!important;
+  background-color:rgba(255,255,255,.06)!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene blockquote b{color:#e9dcbe!important}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene blockquote span{color:#eceae3!important}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene aside:not(#pk-void-1):not(#pk-void-2){
+  border:1px solid rgba(255,255,255,.14)!important;background-color:rgba(255,255,255,.05)!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-scene aside b,
+#phone #screen .v45726-vn-landscape .v4571-vn-scene aside p{color:#dedcd4!important}
+#phone #screen .v45726-vn-landscape .v4571-vn-player>footer:not(#pk-void-1):not(#pk-void-2){
+  max-height:38%!important;border-top:1px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#phone #screen .v45726-vn-landscape .v4571-vn-choices button:not(#pk-void-1):not(#pk-void-2){
+  border:1px solid var(--pl-line,#e4e6e8)!important;background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink,#141518)!important;
+}
+/* 真的把手机横过来时，直接铺满，做成影院式 */
+@media (orientation:landscape){
+  #phone #screen .v45726-vn-landscape .v4571-vn-scene figure:not(#pk-void-1):not(#pk-void-2){
+    height:100vh!important;min-height:0!important;
+  }
+  #phone #screen .v45726-vn-landscape .v4571-vn-scene>article:not(#pk-void-1):not(#pk-void-2){
+    max-height:40%!important;margin:0 16px 14px!important;
+  }
+  #phone #screen .v45726-vn-landscape .v4571-vn-player>footer:not(#pk-void-1):not(#pk-void-2){
+    position:absolute!important;left:0!important;right:0!important;bottom:0!important;z-index:5!important;
+    max-height:32%!important;border-top:0!important;background-color:transparent!important;
+  }
+  #phone #screen .v45726-vn-landscape .v4571-vn-choices button:not(#pk-void-1):not(#pk-void-2){
+    max-width:520px!important;margin:0 auto!important;
+    border-color:rgba(255,255,255,.2)!important;background-color:rgba(12,14,17,.78)!important;
+    color:#f2f1ec!important;
+  }
+}
