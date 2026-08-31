@@ -1,0 +1,154 @@
+/* =========================================================
+   POKEJI V45.7.24 · 关键视觉修复
+   ① 朗读图标永远右侧，不在下方
+   ② 头像必须有边框
+   ③ 广场叠层修复
+   ④ 文游增加分隔线
+   ⑤ 气泡视觉修正
+   ========================================================= */
+
+/* ========== ① 朗读按钮永远在右侧 ========== */
+/* 问题：朗读按钮有时在 message-footer 下方，应该永远在气泡右侧 */
+#chat .bubble-line{
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  gap:6px;
+}
+#chat .bubble-line .bubble{
+  flex:1 1 auto;
+  min-width:0;
+}
+/* inline-read 永远在气泡右侧 */
+#chat .inline-read{
+  flex:0 0 auto;
+  align-self:flex-end;
+  margin:0 0 2px 0;
+}
+/* message-footer 只放时间，不再放朗读按钮 */
+#chat .message-footer{
+  justify-content:flex-start;
+  gap:8px;
+}
+#chat .message-footer .message-read-button{
+  display:none!important;
+}
+
+/* ========== ② 头像边框修复 ========== */
+/* 问题：白底下头像边框几乎看不见，需要明确边框 */
+.view:not(#home) .avatar,
+#chat .avatar,
+#chat .message-avatar{
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;
+  background:var(--pl-panel,#f6f7f8)!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.05)!important;
+}
+#chat .msg-group>.message-avatar{
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;
+  background:var(--pl-panel,#f6f7f8)!important;
+  box-shadow:0 2px 5px rgba(0,0,0,.06)!important;
+}
+/* 头像内文字颜色 */
+.view:not(#home) .avatar-fallback,
+#chat .avatar-fallback{
+  color:var(--pl-ink-2,#4a4d52)!important;
+}
+
+/* ========== ③ 广场叠层修复 ========== */
+/* 问题：广场内元素可能有 z-index 冲突 */
+.v452-square{
+  position:relative;
+  z-index:0;
+}
+.v452-square-tabs{
+  position:relative;
+  z-index:10;
+}
+.v472-square-tools{
+  position:relative;
+  z-index:9;
+}
+.v452-square-view{
+  position:relative;
+  z-index:1;
+}
+.v452-square-bottom{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  z-index:20;
+}
+.v452-square-detail{
+  position:absolute;
+  inset:0;
+  z-index:30;
+  background:#ffffff;
+}
+.v453-profile-shell{
+  z-index:25;
+}
+
+/* ========== ④ 文游分隔线 ========== */
+/* 问题：文游没有线条感，需要增加分隔 */
+.v45712-vn-stage{
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.v45712-vn-dialog{
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.v45712-vn-stats{
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.v45712-vn-menu-panel{
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+/* 存档/道具/数值页面也增加分隔 */
+.v45712-vn-save-slot{
+  border:1px solid rgba(255,255,255,.1);
+}
+.v45712-vn-item-card{
+  border:1px solid rgba(255,255,255,.1);
+}
+.v45712-vn-stat{
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+
+/* ========== ⑤ 气泡视觉修正 ========== */
+/* 问题：气泡可能太扁平，增加微妙阴影 */
+#chat .bubble{
+  box-shadow:0 1px 2px rgba(0,0,0,.04)!important;
+}
+#chat .msg-group .bubble{
+  box-shadow:0 1px 3px rgba(0,0,0,.05)!important;
+}
+#chat .msg-group.me .bubble{
+  box-shadow:0 1px 4px rgba(0,0,0,.1)!important;
+}
+/* 内心话边框更清晰 */
+#chat .thought-entry{
+  border:1px dashed var(--pl-line-2,#eceef0)!important;
+}
+
+/* ========== ⑥ 语音转文字样式修复 ========== */
+/* 问题：白底下半透明白色背景看不清，需要明确的视觉层 */
+.voice-transcript{
+  margin-top:6px;
+  padding:9px 11px;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:11px;
+  background:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink-2,#4a4d52)!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+.voice-transcript small{
+  color:var(--pl-ink-4,#9a9da2)!important;
+  font-size:8px;
+  letter-spacing:.06em;
+}
+.voice-transcript span{
+  color:var(--pl-ink-2,#4a4d52)!important;
+  font-size:10px;
+  line-height:1.6;
+}
