@@ -1,0 +1,309 @@
+/* =========================================================
+   POKEJI V45.7.25 · 关键视觉修复
+
+   一个共同的真因，先写清楚，后面所有规则都是为了压过它：
+   v45.7.17-global-white.css 末段有两条兜底通配符
+     #phone #screen .view:not(#home) *:not(...)…
+     #modal  #modalContent      *:not(...)…
+   它们给命中的每个元素强制
+     background-color:transparent!important; box-shadow:none!important;
+     backdrop-filter:none!important;
+   这两条选择器带 2 个 id 加十几个 :not() 类级片段，
+   普通的「1 个 id + 1 个类」根本压不过（!important 相同时比特异度）。
+   所以本文件凡是要恢复底色的地方，都用
+     #phone #screen …:not(#pk-void-1):not(#pk-void-2)
+   把 id 计数抬到 4 个以上。:not(#不存在的 id) 不改变匹配范围，
+   只把特异度里的 id 数量拉高，这是压过兜底的最小改法。
+
+   本轮修的七件事
+   ① 朗读图标在气泡外侧，不进气泡内部
+   ② 语音条恢复成完整语音条：播放键＋波形＋时长
+   ③ 语音转文字独立成块，不再被挤成右侧窄柱、不跟时间挤一行
+   ④ 头像有可见的圆形边框与底色
+   ⑤ 广场浮层不再「叠层」：浮层与浮层内容恢复不透明
+   ⑥ 文游补回分格线
+   ⑦ 气泡回一点层次
+   ========================================================= */
+
+/* =========================================================
+   ② 语音条：恢复完整语音条
+   兜底把 .voice-wave i 的 background 抹成 transparent，
+   波形五根竖条因此全部消失，只剩 ▶ 这个字符，
+   看起来就成了「只有播放键」。.voice-strip 自身是 button
+   已被兜底排除，但它的子元素没有，所以逐个补回来。
+   另外 v45.7.1 给 .voice-strip 设了 flex-direction:column，
+   语音条必须是横向一条，这里改回 row。
+   ========================================================= */
+#phone #screen #chat .voice-strip:not(#pk-void-1):not(#pk-void-2){
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:auto!important;
+  min-width:158px!important;
+  max-width:100%!important;
+  min-height:38px!important;
+  padding:7px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:14px!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink,#141518)!important;
+  text-align:left!important;
+  cursor:pointer!important;
+}
+#phone #screen #chat .msg-group.me .voice-strip:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+}
+/* 播放键：实心圆 */
+#phone #screen #chat .voice-strip .voice-play:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;
+  place-items:center!important;
+  width:22px!important;
+  height:22px!important;
+  flex:0 0 22px!important;
+  border-radius:50%!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+  font-size:9px!important;
+  line-height:1!important;
+}
+#phone #screen #chat .msg-group.me .voice-strip .voice-play:not(#pk-void-1):not(#pk-void-2){
+  background-color:#ffffff!important;
+  color:#1c1e22!important;
+}
+/* 波形：五根竖条，高度不一，播放时才动 */
+#phone #screen #chat .voice-strip .voice-wave:not(#pk-void-1):not(#pk-void-2){
+  display:flex!important;
+  align-items:center!important;
+  gap:2px!important;
+  height:17px!important;
+  flex:0 0 auto!important;
+  color:currentColor!important;
+}
+#phone #screen #chat .voice-strip .voice-wave i:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  width:2px!important;
+  height:6px!important;
+  border-radius:2px!important;
+  background-color:currentColor!important;
+  opacity:.75!important;
+}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(2):not(#pk-void-1){height:13px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(3):not(#pk-void-1){height:8px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(4):not(#pk-void-1){height:16px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(5):not(#pk-void-1){height:10px!important}
+/* 时长：靠右 */
+#phone #screen #chat .voice-strip em:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  margin-left:auto!important;
+  flex:0 0 auto!important;
+  font-size:9px!important;
+  font-style:normal!important;
+  opacity:.6!important;
+}
+
+/* =========================================================
+   ① 朗读图标在气泡外侧
+   .inline-read 是 .bubble-line 这个 flex 行里紧跟气泡的下一个子项。
+   只要气泡不横向铺满，图标自然落在气泡外面的右侧；
+   我方消息 .me 是 row-reverse，图标同样落在自己气泡的外侧。
+   这里不用 absolute —— absolute 会把图标压回气泡内部右下角。
+   ========================================================= */
+#phone #screen #chat .bubble-line:not(#pk-void-1){
+  display:flex!important;
+  align-items:flex-end!important;
+  flex-wrap:nowrap!important;
+  gap:6px!important;
+}
+#phone #screen #chat .bubble-line>.bubble:not(#pk-void-1){
+  flex:0 1 auto!important;
+  min-width:0!important;
+}
+#phone #screen #chat .inline-read:not(#pk-void-1):not(#pk-void-2){
+  position:static!important;
+  flex:0 0 auto!important;
+  align-self:flex-end!important;
+  width:24px!important;
+  height:24px!important;
+  margin:0 0 2px!important;
+  padding:0!important;
+  border:0!important;
+  background-color:transparent!important;
+  color:var(--pl-ink-3,#6f7278)!important;
+}
+#phone #screen #chat .inline-read svg:not(#pk-void-1){
+  width:16px!important;
+  height:16px!important;
+  fill:currentColor!important;
+}
+/* 时间那一行只放时间，朗读入口不在这里重复出现 */
+#phone #screen #chat .message-footer .message-read-button{display:none!important}
+
+/* =========================================================
+   ③ 语音转文字：独立一块
+   v45-phone-call.js 已改成把它插在 .message-item 下、footer 之前，
+   所以这里按普通块处理即可，不再依赖 flex 换行。
+   ========================================================= */
+#phone #screen #chat .voice-transcript:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:6px 0 0!important;
+  padding:9px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:12px!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink-2,#4a4d52)!important;
+}
+#phone #screen #chat .voice-transcript small:not(#pk-void-1){
+  display:block!important;
+  margin-bottom:4px!important;
+  color:var(--pl-ink-4,#9a9da2)!important;
+  font-size:8px!important;
+  letter-spacing:.08em!important;
+}
+#phone #screen #chat .voice-transcript span:not(#pk-void-1){
+  display:block!important;
+  color:var(--pl-ink-2,#4a4d52)!important;
+  font-size:11px!important;
+  line-height:1.62!important;
+  white-space:pre-wrap!important;
+}
+
+/* =========================================================
+   ④ 头像：可见的圆形边框与底色
+   兜底把底色和投影一起抹掉，没图的头像就成了「没有框」的裸字。
+   ========================================================= */
+#phone #screen .view:not(#home) .avatar:not(#pk-void-1):not(#pk-void-2),
+#phone #screen #chat .message-avatar:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .avatar:not(#pk-void-1):not(#pk-void-2){
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  overflow:hidden!important;
+}
+#phone #screen #chat .message-avatar-spacer:not(#pk-void-1):not(#pk-void-2){
+  border:0!important;
+  background-color:transparent!important;
+}
+#phone #screen .view:not(#home) .avatar-fallback:not(#pk-void-1),
+#modal #modalContent .avatar-fallback:not(#pk-void-1){
+  color:var(--pl-ink-2,#4a4d52)!important;
+}
+
+/* =========================================================
+   ⑤ 广场「叠层」的真因与修法
+   v45.2 的 overlay() 把浮层 append 到 .vphone 里，
+   .vphone 本身是 position:relative，所以 absolute + inset:0 的覆盖是对的，
+   浮层其实一直在最上层 —— 问题是它和它的 .v452-overlay-sheet
+   被上面那条兜底刷成了完全透明，遮罩没了、白底也没了，
+   于是浮层文字和底下页面的文字直接叠在一起，看起来就是「重叠」。
+   同一个原因也影响 .v4571-social-overlay（广场关系）
+   与 .v455-phone-overlay（虚拟手机内浮层）。
+   这里只恢复不透明与层级，不改动它们的结构和交互。
+   ========================================================= */
+#phone #screen .v452-overlay:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v4571-social-overlay:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-phone-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v4571-social-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-phone-overlay:not(#pk-void-1):not(#pk-void-2){
+  position:absolute!important;
+  inset:0!important;
+  z-index:900!important;
+  display:flex!important;
+  align-items:flex-end!important;
+  justify-content:center!important;
+  padding:46px 10px 0!important;
+  background-color:rgba(12,14,17,.52)!important;
+}
+#phone #screen .v452-overlay>.v452-overlay-sheet:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v4571-social-overlay>.v4571-social-sheet:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-phone-overlay>.v455-phone-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-overlay>.v452-overlay-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v4571-social-overlay>.v4571-social-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-phone-overlay>.v455-phone-sheet:not(#pk-void-1):not(#pk-void-2){
+  position:relative!important;
+  width:100%!important;
+  max-height:100%!important;
+  overflow:auto!important;
+  padding:16px 15px calc(16px + env(safe-area-inset-bottom))!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-bottom:0!important;
+  border-radius:20px 20px 0 0!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink,#141518)!important;
+}
+/* 浮层里的可点行、统计块也要看得见自己的面，不然又是一片白叠白 */
+#phone #screen .v452-overlay .v452-overlay-head>button:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-overlay-head>button:not(#pk-void-1),
+#phone #screen .v4571-social-overlay .v4571-social-stats>*:not(#pk-void-1),
+#modal #modalContent .v4571-social-overlay .v4571-social-stats>*:not(#pk-void-1),
+#phone #screen .v452-overlay .v452-activity-stats>span:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-activity-stats>span:not(#pk-void-1){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink,#141518)!important;
+}
+#phone #screen .v452-overlay .v452-overlay-actions button.primary:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-overlay-actions button.primary:not(#pk-void-1){
+  border-color:transparent!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+}
+/* 浮层出现时，底下的广场底部导航不要再穿上来 */
+#phone #screen .v452-overlay~.v452-square-bottom,
+#modal #modalContent .v452-overlay~.v452-square-bottom{z-index:1!important}
+
+/* =========================================================
+   ⑥ 文游：补回分格线
+   ========================================================= */
+#phone #screen .v4571-vn-scene figure:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene figure:not(#pk-void-1){
+  border-bottom:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v4571-vn-scene>article:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene>article:not(#pk-void-1){
+  border-bottom:1px solid var(--pl-line-2,#eceef0)!important;
+}
+#phone #screen .v4571-vn-scene blockquote:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene blockquote:not(#pk-void-1){
+  border-left:2px solid var(--pl-ink,#141518)!important;
+  border-top:1px solid var(--pl-line-2,#eceef0)!important;
+  border-bottom:1px solid var(--pl-line-2,#eceef0)!important;
+}
+#phone #screen .v4571-vn-scene aside:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene aside:not(#pk-void-1),
+#phone #screen .v4571-vn-choices button:not(#pk-void-1),
+#modal #modalContent .v4571-vn-choices button:not(#pk-void-1){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v4571-vn-player>footer:not(#pk-void-1),
+#modal #modalContent .v4571-vn-player>footer:not(#pk-void-1){
+  border-top:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v45712-vn-stage:not(#pk-void-1),
+#modal #modalContent .v45712-vn-stage:not(#pk-void-1){
+  border-bottom:1px solid rgba(255,255,255,.10)!important;
+}
+#phone #screen .v45712-vn-dialog:not(#pk-void-1),
+#modal #modalContent .v45712-vn-dialog:not(#pk-void-1){
+  border-top:1px solid rgba(255,255,255,.10)!important;
+}
+
+/* =========================================================
+   ⑦ 气泡：回一点层次
+   兜底把 box-shadow 抹平，这里给对方气泡一条边线、我方气泡一点投影，
+   不改圆角、不改内边距、不动现有排版。
+   ========================================================= */
+#phone #screen #chat .msg-group .bubble:not(#pk-void-1):not(#pk-void-2){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen #chat .msg-group.me .bubble:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.10)!important;
+}
+#phone #screen #chat .thought-entry:not(#pk-void-1):not(#pk-void-2){
+  border:1px dashed var(--pl-line,#e4e6e8)!important;
+}
