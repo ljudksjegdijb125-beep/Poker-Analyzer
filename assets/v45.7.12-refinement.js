@@ -892,6 +892,38 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
     return `<div class="v45712-vn-speaker">${E(first.speaker||'')}</div>
       <div class="v45712-vn-lines">${lines.map((line,i)=>`<p class="${i?'more':''}">${i?`<em>${E(line.speaker||'')}</em>`:''}${E(line.text)}</p>`).join('')}</div>`;
   }
+  /* V45.7.30：文游主流程改为 USER 自己输入，不再输出选项按钮。
+     三种输入类型：对白进对话框、动作进正文叙述、剧情方向只做隐藏提示。 */
+  const V45730_TYPES={dialogue:['对白','说出口的话，进入底部对话框'],action:['动作','角色行动与正文叙述段'],direction:['剧情方向','只控制后续，不显示为正文']};
+  function v45730Type(game){const key=S(game?.stage?.inputType);return Object.hasOwn(V45730_TYPES,key)?key:'dialogue'}
+  function v45730InputBar(game){
+    const active=v45730Type(game);
+    return `<div class="v45730-vn-input">
+      <div class="v45730-vn-types">${Object.entries(V45730_TYPES).map(([key,[label,hint]])=>`<button class="${key===active?'on':''}" onclick="v45730VNInputType(${A(game.id)},'${key}')" title="${E(hint)}">${E(label)}</button>`).join('')}</div>
+      <div class="v45730-vn-line"><textarea id="v45730VNInput" rows="2" placeholder="${E(V45730_TYPES[active][1])}"></textarea><button onclick="v45730VNSend(${A(game.id)})" aria-label="继续">↑</button></div>
+      <small class="v45730-vn-hint">AI 写到需要你回应的位置就会停下，不会替你决定动作、心理或感受。</small>
+    </div>`;
+  }
+  function v45730UserEcho(game){
+    const row=O(game?.stage?.lastUserInput);const text=S(row.text).trim();
+    if(!text||row.type==='direction')return'';
+    const mine=S(L(data.personas).find(p=>p.id===data.activePersonaId)?.name||L(data.personas)[0]?.name||'我');
+    return row.type==='action'
+      ?`<p class="v45730-vn-echo-action">${E(text)}</p>`
+      :`<div class="v45730-vn-echo-say"><small>${E(mine)}</small><span>${E(text)}</span></div>`;
+  }
+  window.v45730VNInputType=function(id,type){const game=games().find(x=>x.id===id);if(!game)return;ensureStage(game);game.stage.inputType=Object.hasOwn(V45730_TYPES,type)?type:'dialogue';try{save()}catch{}try{v45712VNRepaint()}catch{}};
+  window.v45730VNSend=function(id){
+    const game=games().find(x=>x.id===id);if(!game)return;
+    const text=S(document.getElementById('v45730VNInput')?.value).trim();
+    if(!text)return toast('先写下这一回合你要做的事');
+    ensureStage(game);const type=v45730Type(game);
+    game.stage.lastUserInput={type,text,at:new Date().toISOString()};
+    try{save()}catch{}
+    const tagged=type==='dialogue'?`【我的对白】${text}`:type==='action'?`【我的动作】${text}`:`【剧情方向｜隐藏提示，不得写成正文，也不得复述这条指令】${text}`;
+    if(typeof v4571ChooseVN==='function')v4571ChooseVN(tagged);
+  };
+
   function stageRender(game,scene,busyNow){
     ensureStage(game);
     const step=`第 ${L(game.scenes).length} 幕`;
@@ -909,11 +941,11 @@ window.__pokejiCssEscape=window.__pokejiCssEscape||function(value){
       <div class="v45712-vn-box">
         ${scene?.narration?`<p class="v45712-vn-narr">${E(scene.narration)}</p>`:''}
         ${dialogueMarkup(scene)}
+        ${v45730UserEcho(game)}
         ${scene?.companionComment?`<div class="v45712-vn-aside"><small>${E(person(game.companionId)?.name||'同伴')}</small>${E(scene.companionComment)}</div>`:''}
         <div class="v45712-vn-next"><span>${E(step)}</span><i>▾</i></div>
         ${busyNow?'<div class="v45712-vn-wait"><i></i><span>正在生成下一幕…</span></div>':`
-          <div class="v45712-vn-choices">${L(scene?.choices).map(choice=>`<button onclick="v4571ChooseVN(${A(choice)})">${E(choice)}</button>`).join('')}</div>
-          <div class="v45712-vn-custom"><input id="v4571VNCustomChoice" placeholder="也可以自己写一个选择…"><button onclick="v4571CustomVNChoice()" aria-label="继续">↑</button></div>`}
+          ${v45730InputBar(game)}`}
       </div>
     </section>`;
   }
@@ -4006,9 +4038,9 @@ ${selected.join('\n')}`;
       <div class="v45728-source"><span>${E(sourceLabel(g,scene))}</span><button onclick="v45728RegenerateSceneImage(${A(g.id)})" title="重新生成本幕画面">↻</button><button onclick="v45728SaveVisual(${A(g.id)})" title="保存当前画面">↓</button></div>
       ${scene?.narration?`<aside class="v45728-narration"><small>旁白 · 写在画面上</small>${S(scene.narration).split(/\n\n+/).filter(Boolean).slice(0,5).map(text=>`<p>${E(text)}</p>`).join('')}</aside>`:''}
       ${oocMarkup(g,scene)}${endingBanner(g,scene)}
-      <div class="v45728-choices">${busy?'<div class="v45728-wait"><i></i><span>正在生成下一幕…</span></div>':L(scene?.choices).map(choice=>`<button onclick="v45728ChooseVN(${A(choice)})">${E(choice)}</button>`).join('')}</div>
+      <div class="v45728-choices">${busy?'<div class="v45728-wait"><i></i><span>正在生成下一幕…</span></div>':''}</div>
       ${turnMarkup(g)}
-      <section class="v45728-dialogue"><span class="v45728-speaker">${E(first?.speaker||'对白')}</span><div class="v45728-lines">${dialogueMarkup(scene)}</div><footer><span>${E(step)} · ${String(L(g.scenes).length).padStart(2,'0')}</span><div><input id="v4571VNCustomChoice" value="${AT(custom)}" placeholder="写下对白、行动或想讨论的事…"><button onclick="v45728SubmitVN()">继续</button></div><i>▾</i></footer></section>
+      <section class="v45728-dialogue"><span class="v45728-speaker">${E(first?.speaker||'对白')}</span><div class="v45728-lines">${v45730TurnEcho(g)}${dialogueMarkup(scene)}</div><footer>${v45730TypeBar(g)}<span>${E(step)} · ${String(L(g.scenes).length).padStart(2,'0')}</span><div><input id="v4571VNCustomChoice" value="${AT(custom)}" placeholder="${E(V45730_TYPE_HINT[v45730TypeOf(g)])}"><button onclick="v45728SubmitVN()">继续</button></div><i>▾</i></footer></section>
       <button class="v45728-orient" onclick="v45728VNOrient(${A(g.id)})">${orient==='landscape'?'竖屏':'横屏'}</button>
     </section>`;
   }
@@ -4051,12 +4083,26 @@ ${selected.join('\n')}`;
       const obj=parseJson(raw);scene.v45728=O(scene.v45728);scene.v45728.ooc=allowedOoc(g,obj,scene,'outside');rememberPlayed(g);keep();renderStage(false);
     }catch(error){tell(error?.name==='AbortError'?'戏外讨论已停止':'戏外讨论没有生成成功')}finally{oocBusy=false}
   }
+  /* V45.7.30：主流程取消选项按钮，改为 USER 自己写；三种输入类型分别处理显示与注入。 */
+  const V45730_TYPE_LABEL={dialogue:'对白',action:'动作',direction:'剧情方向'};
+  const V45730_TYPE_HINT={dialogue:'写下你这一回合说出口的话…',action:'写下你的动作或行动…',direction:'只控制后续走向，不会写成正文…'};
+  function v45730TypeOf(g){const key=S(g?.v45728?.inputType);return Object.hasOwn(V45730_TYPE_LABEL,key)?key:'dialogue'}
+  function v45730TypeBar(g){const active=v45730TypeOf(g);return`<nav class="v45730-turn-types">${Object.entries(V45730_TYPE_LABEL).map(([key,label])=>`<button class="${key===active?'on':''}" onclick="v45730VNType(${A(g.id)},'${key}')" title="${E(V45730_TYPE_HINT[key])}">${E(label)}</button>`).join('')}</nav>`}
+  function v45730TurnEcho(g){
+    const row=g?.v45728?.lastUserTurn;if(!row)return'';
+    const text=S(row.text).trim();if(!text||row.type==='direction')return'';
+    const mine=S(L(data.personas).find(p=>S(p.id)===S(data.activePersonaId))?.name||L(data.personas)[0]?.name||'我');
+    return row.type==='action'
+      ?`<p class="v45730-turn-action">${E(text)}</p>`
+      :`<p class="v45730-turn-say"><b>${E(mine)}</b>${E(text)}</p>`;
+  }
+  window.v45730VNType=function(id,type){const g=ensureGame(activeGame());if(!g||S(g.id)!==S(id))return;g.v45728.inputType=Object.hasOwn(V45730_TYPE_LABEL,type)?type:'dialogue';keep();renderStage()};
   window.v45728ChooseVN=function(choice){
     const g=ensureGame(activeGame());if(!g||typeof legacy.choose!=='function')return;const mode=g.v45728.turnMode;
     if(mode==='outside')return void generateOocOnly(g,`我正在考虑这个选择：${S(choice)}。你怎么看？`);
     g.v45728.pendingTurnMode=mode;keep();return legacy.choose.call(this,choice);
   };
-  window.v45728SubmitVN=function(){const input=document.getElementById('v4571VNCustomChoice'),text=S(input?.value).trim(),g=ensureGame(activeGame());if(!text)return tell('先写下想说的话、动作或讨论内容');if(!g)return;if(g.v45728.turnMode==='outside'){if(input)input.value='';return void generateOocOnly(g,text)}if(input)input.value='';window.v45728ChooseVN(text)};
+  window.v45728SubmitVN=function(){const input=document.getElementById('v4571VNCustomChoice'),text=S(input?.value).trim(),g=ensureGame(activeGame());if(!text)return tell('先写下想说的话、动作或讨论内容');if(!g)return;const type=v45730TypeOf(g);if(g.v45728.turnMode==='outside'){if(input)input.value='';return void generateOocOnly(g,text)}g.v45728.lastUserTurn={type,text,at:new Date().toISOString()};keep();if(input)input.value='';const tagged=type==='action'?`【我的动作】${text}`:type==='direction'?`【剧情方向｜隐藏提示，不写成正文，也不复述这条指令】${text}`:`【我的对白】${text}`;window.v45728ChooseVN(tagged)};
 
   /* ---------- 结局只提议；确认后进入杀青名单 ---------- */
   window.v45728EndingPrompt=function(id,manual){
