@@ -1,0 +1,1176 @@
+/* =========================================================
+   POKEJI V45.7.28 · 关键视觉修复
+
+   一个共同的真因，先写清楚，后面所有规则都是为了压过它：
+   v45.7.17-global-white.css 末段有两条兜底通配符
+     #phone #screen .view:not(#home) *:not(...)…
+     #modal  #modalContent      *:not(...)…
+   它们给命中的每个元素强制
+     background-color:transparent!important; box-shadow:none!important;
+     backdrop-filter:none!important;
+   这两条选择器带 2 个 id 加十几个 :not() 类级片段，
+   普通的「1 个 id + 1 个类」根本压不过（!important 相同时比特异度）。
+   所以本文件凡是要恢复底色的地方，都用
+     #phone #screen …:not(#pk-void-1):not(#pk-void-2)
+   把 id 计数抬到 4 个以上。:not(#不存在的 id) 不改变匹配范围，
+   只把特异度里的 id 数量拉高，这是压过兜底的最小改法。
+
+   本轮修的七件事
+   ① 朗读图标在气泡外侧，不进气泡内部
+   ② 语音条恢复成完整语音条：播放键＋波形＋时长
+   ③ 语音转文字独立成块，不再被挤成右侧窄柱、不跟时间挤一行
+   ④ 头像有可见的圆形边框与底色
+   ⑤ 广场浮层不再「叠层」：浮层与浮层内容恢复不透明
+   ⑥ 文游补回分格线
+   ⑦ 气泡回一点层次
+   ========================================================= */
+
+/* =========================================================
+   ② 语音条：恢复完整语音条
+   兜底把 .voice-wave i 的 background 抹成 transparent，
+   波形五根竖条因此全部消失，只剩 ▶ 这个字符，
+   看起来就成了「只有播放键」。.voice-strip 自身是 button
+   已被兜底排除，但它的子元素没有，所以逐个补回来。
+   另外 v45.7.1 给 .voice-strip 设了 flex-direction:column，
+   语音条必须是横向一条，这里改回 row。
+   ========================================================= */
+#phone #screen #chat .voice-strip:not(#pk-void-1):not(#pk-void-2){
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:auto!important;
+  min-width:158px!important;
+  max-width:100%!important;
+  min-height:38px!important;
+  padding:7px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:14px!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink,#141518)!important;
+  text-align:left!important;
+  cursor:pointer!important;
+}
+#phone #screen #chat .msg-group.me .voice-strip:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+}
+/* 播放键：实心圆 */
+#phone #screen #chat .voice-strip .voice-play:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;
+  place-items:center!important;
+  width:22px!important;
+  height:22px!important;
+  flex:0 0 22px!important;
+  border-radius:50%!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+  font-size:9px!important;
+  line-height:1!important;
+}
+#phone #screen #chat .msg-group.me .voice-strip .voice-play:not(#pk-void-1):not(#pk-void-2){
+  background-color:#ffffff!important;
+  color:#1c1e22!important;
+}
+/* 波形：五根竖条，高度不一，播放时才动 */
+#phone #screen #chat .voice-strip .voice-wave:not(#pk-void-1):not(#pk-void-2){
+  display:flex!important;
+  align-items:center!important;
+  gap:2px!important;
+  height:17px!important;
+  flex:0 0 auto!important;
+  color:currentColor!important;
+}
+#phone #screen #chat .voice-strip .voice-wave i:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  width:2px!important;
+  height:6px!important;
+  border-radius:2px!important;
+  background-color:currentColor!important;
+  opacity:.75!important;
+}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(2):not(#pk-void-1){height:13px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(3):not(#pk-void-1){height:8px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(4):not(#pk-void-1){height:16px!important}
+#phone #screen #chat .voice-strip .voice-wave i:nth-child(5):not(#pk-void-1){height:10px!important}
+/* 时长：靠右 */
+#phone #screen #chat .voice-strip em:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  margin-left:auto!important;
+  flex:0 0 auto!important;
+  font-size:9px!important;
+  font-style:normal!important;
+  opacity:.6!important;
+}
+
+/* =========================================================
+   ① 朗读图标在气泡外侧
+   .inline-read 是 .bubble-line 这个 flex 行里紧跟气泡的下一个子项。
+   只要气泡不横向铺满，图标自然落在气泡外面的右侧；
+   我方消息 .me 是 row-reverse，图标同样落在自己气泡的外侧。
+   这里不用 absolute —— absolute 会把图标压回气泡内部右下角。
+   ========================================================= */
+#phone #screen #chat .bubble-line:not(#pk-void-1){
+  display:flex!important;
+  align-items:flex-end!important;
+  flex-wrap:nowrap!important;
+  gap:6px!important;
+}
+#phone #screen #chat .bubble-line>.bubble:not(#pk-void-1){
+  flex:0 1 auto!important;
+  min-width:0!important;
+}
+#phone #screen #chat .inline-read:not(#pk-void-1):not(#pk-void-2){
+  position:static!important;
+  flex:0 0 auto!important;
+  align-self:flex-end!important;
+  width:24px!important;
+  height:24px!important;
+  margin:0 0 2px!important;
+  padding:0!important;
+  border:0!important;
+  background-color:transparent!important;
+  color:var(--pl-ink-3,#6f7278)!important;
+}
+#phone #screen #chat .inline-read svg:not(#pk-void-1){
+  width:16px!important;
+  height:16px!important;
+  fill:currentColor!important;
+}
+/* 时间那一行只放时间，朗读入口不在这里重复出现 */
+#phone #screen #chat .message-footer .message-read-button{display:none!important}
+
+/* =========================================================
+   ③ 语音转文字：独立一块
+   v45-phone-call.js 已改成把它插在 .message-item 下、footer 之前，
+   所以这里按普通块处理即可，不再依赖 flex 换行。
+   ========================================================= */
+#phone #screen #chat .voice-transcript:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:6px 0 0!important;
+  padding:9px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:12px!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink-2,#4a4d52)!important;
+}
+#phone #screen #chat .voice-transcript small:not(#pk-void-1){
+  display:block!important;
+  margin-bottom:4px!important;
+  color:var(--pl-ink-4,#9a9da2)!important;
+  font-size:8px!important;
+  letter-spacing:.08em!important;
+}
+#phone #screen #chat .voice-transcript span:not(#pk-void-1){
+  display:block!important;
+  color:var(--pl-ink-2,#4a4d52)!important;
+  font-size:11px!important;
+  line-height:1.62!important;
+  white-space:pre-wrap!important;
+}
+
+/* =========================================================
+   ④ 头像：可见的圆形边框与底色
+   兜底把底色和投影一起抹掉，没图的头像就成了「没有框」的裸字。
+   ========================================================= */
+#phone #screen .view:not(#home) .avatar:not(#pk-void-1):not(#pk-void-2),
+#phone #screen #chat .message-avatar:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .avatar:not(#pk-void-1):not(#pk-void-2){
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  overflow:hidden!important;
+}
+#phone #screen #chat .message-avatar-spacer:not(#pk-void-1):not(#pk-void-2){
+  border:0!important;
+  background-color:transparent!important;
+}
+#phone #screen .view:not(#home) .avatar-fallback:not(#pk-void-1),
+#modal #modalContent .avatar-fallback:not(#pk-void-1){
+  color:var(--pl-ink-2,#4a4d52)!important;
+}
+
+/* =========================================================
+   ⑤ 广场「叠层」的真因与修法
+   v45.2 的 overlay() 把浮层 append 到 .vphone 里，
+   .vphone 本身是 position:relative，所以 absolute + inset:0 的覆盖是对的，
+   浮层其实一直在最上层 —— 问题是它和它的 .v452-overlay-sheet
+   被上面那条兜底刷成了完全透明，遮罩没了、白底也没了，
+   于是浮层文字和底下页面的文字直接叠在一起，看起来就是「重叠」。
+   同一个原因也影响 .v4571-social-overlay（广场关系）
+   与 .v455-phone-overlay（虚拟手机内浮层）。
+   这里只恢复不透明与层级，不改动它们的结构和交互。
+   ========================================================= */
+#phone #screen .v452-overlay:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v4571-social-overlay:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-phone-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v4571-social-overlay:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-phone-overlay:not(#pk-void-1):not(#pk-void-2){
+  position:absolute!important;
+  inset:0!important;
+  z-index:900!important;
+  display:flex!important;
+  align-items:flex-end!important;
+  justify-content:center!important;
+  padding:46px 10px 0!important;
+  background-color:rgba(12,14,17,.52)!important;
+}
+#phone #screen .v452-overlay>.v452-overlay-sheet:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v4571-social-overlay>.v4571-social-sheet:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-phone-overlay>.v455-phone-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-overlay>.v452-overlay-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v4571-social-overlay>.v4571-social-sheet:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-phone-overlay>.v455-phone-sheet:not(#pk-void-1):not(#pk-void-2){
+  position:relative!important;
+  width:100%!important;
+  max-height:100%!important;
+  overflow:auto!important;
+  padding:16px 15px calc(16px + env(safe-area-inset-bottom))!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-bottom:0!important;
+  border-radius:20px 20px 0 0!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink,#141518)!important;
+}
+/* 浮层里的可点行、统计块也要看得见自己的面，不然又是一片白叠白 */
+#phone #screen .v452-overlay .v452-overlay-head>button:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-overlay-head>button:not(#pk-void-1),
+#phone #screen .v4571-social-overlay .v4571-social-stats>*:not(#pk-void-1),
+#modal #modalContent .v4571-social-overlay .v4571-social-stats>*:not(#pk-void-1),
+#phone #screen .v452-overlay .v452-activity-stats>span:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-activity-stats>span:not(#pk-void-1){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+  color:var(--pl-ink,#141518)!important;
+}
+#phone #screen .v452-overlay .v452-overlay-actions button.primary:not(#pk-void-1),
+#modal #modalContent .v452-overlay .v452-overlay-actions button.primary:not(#pk-void-1){
+  border-color:transparent!important;
+  background-color:#1c1e22!important;
+  color:#ffffff!important;
+}
+/* 浮层出现时，底下的广场底部导航不要再穿上来 */
+#phone #screen .v452-overlay~.v452-square-bottom,
+#modal #modalContent .v452-overlay~.v452-square-bottom{z-index:1!important}
+
+/* =========================================================
+   ⑥ 文游：补回分格线
+   ========================================================= */
+#phone #screen .v4571-vn-scene figure:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene figure:not(#pk-void-1){
+  border-bottom:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v4571-vn-scene>article:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene>article:not(#pk-void-1){
+  border-bottom:1px solid var(--pl-line-2,#eceef0)!important;
+}
+#phone #screen .v4571-vn-scene blockquote:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene blockquote:not(#pk-void-1){
+  border-left:2px solid var(--pl-ink,#141518)!important;
+  border-top:1px solid var(--pl-line-2,#eceef0)!important;
+  border-bottom:1px solid var(--pl-line-2,#eceef0)!important;
+}
+#phone #screen .v4571-vn-scene aside:not(#pk-void-1),
+#modal #modalContent .v4571-vn-scene aside:not(#pk-void-1),
+#phone #screen .v4571-vn-choices button:not(#pk-void-1),
+#modal #modalContent .v4571-vn-choices button:not(#pk-void-1){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v4571-vn-player>footer:not(#pk-void-1),
+#modal #modalContent .v4571-vn-player>footer:not(#pk-void-1){
+  border-top:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen .v45712-vn-stage:not(#pk-void-1),
+#modal #modalContent .v45712-vn-stage:not(#pk-void-1){
+  border-bottom:1px solid rgba(255,255,255,.10)!important;
+}
+#phone #screen .v45712-vn-dialog:not(#pk-void-1),
+#modal #modalContent .v45712-vn-dialog:not(#pk-void-1){
+  border-top:1px solid rgba(255,255,255,.10)!important;
+}
+
+/* =========================================================
+   ⑦ 气泡：回一点层次
+   兜底把 box-shadow 抹平，这里给对方气泡一条边线、我方气泡一点投影，
+   不改圆角、不改内边距、不动现有排版。
+   ========================================================= */
+#phone #screen #chat .msg-group .bubble:not(#pk-void-1):not(#pk-void-2){
+  border:1px solid var(--pl-line,#e4e6e8)!important;
+}
+#phone #screen #chat .msg-group.me .bubble:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.10)!important;
+}
+#phone #screen #chat .thought-entry:not(#pk-void-1):not(#pk-void-2){
+  border:1px dashed var(--pl-line,#e4e6e8)!important;
+}
+
+/* =========================================================
+   V45.7.26 新增外观
+   凡是要给底色的地方都带 :not(#pk-void-1):not(#pk-void-2)，
+   原因见本文件开头：global-white 的两条兜底通配符会把
+   background-color 抹成 transparent，特异度里 id 多才压得过。
+   ========================================================= */
+
+/* ---------- 广场：关注／发现二级切换 ---------- */
+#phone #screen .v45726-seg:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v45726-seg:not(#pk-void-1):not(#pk-void-2){
+  display:flex!important;gap:7px;align-items:center;
+  padding:9px 12px!important;
+  border-bottom:1px solid var(--pl-line,#e4e6e8)!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-seg>button:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v45726-seg>button:not(#pk-void-1):not(#pk-void-2){
+  padding:6px 14px!important;border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:99px!important;background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink-3,#6f7278)!important;font-size:10px!important;
+}
+#modal #modalContent .v45726-seg>button.on:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v45726-seg>button.on:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;background-color:#1c1e22!important;color:#ffffff!important;
+}
+#modal #modalContent .v45726-seg>.v45726-seg-gen:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v45726-seg>.v45726-seg-gen:not(#pk-void-1):not(#pk-void-2){
+  margin-left:auto!important;border-style:dashed!important;color:var(--pl-ink-2,#4a4d52)!important;
+}
+
+/* ---------- 广场：关注视图 ---------- */
+#modal #modalContent .v45726-follow:not(#pk-void-1):not(#pk-void-2){
+  display:block!important;padding:0 0 16px!important;background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-strip:not(#pk-void-1):not(#pk-void-2){
+  padding:12px 0 13px!important;border-bottom:1px solid var(--pl-line-2,#eceef0)!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-strip-head{display:flex!important;justify-content:space-between;align-items:baseline;padding:0 13px 9px!important}
+#modal #modalContent .v45726-strip-head b{font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-strip-head small{font-size:8px!important;color:var(--pl-ink-4,#9a9da2)!important}
+#modal #modalContent .v45726-strip-row{display:flex!important;gap:11px;padding:0 13px!important;overflow-x:auto}
+#modal #modalContent .v45726-strip-row>button:not(#pk-void-1):not(#pk-void-2){
+  flex:0 0 auto!important;display:grid!important;gap:4px;justify-items:center;width:52px!important;
+  padding:0!important;border:0!important;background-color:transparent!important;
+}
+#modal #modalContent .v45726-strip-row>button>span:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;place-items:center;width:46px!important;height:46px!important;
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;border-radius:50%!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:16px!important;
+}
+#modal #modalContent .v45726-strip-row>button>small{font-size:8px!important;color:var(--pl-ink-2,#4a4d52)!important;
+  max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modal #modalContent .v45726-strip-add>span:not(#pk-void-1){border-style:dashed!important;color:var(--pl-ink-4,#9a9da2)!important}
+#modal #modalContent .v45726-follow-list{display:block!important;padding:12px 13px 0!important}
+#modal #modalContent .v45726-follow-row:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:34px minmax(0,1fr) 12px;gap:10px;align-items:center;
+  margin-bottom:9px!important;padding:10px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-follow-row>span:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;place-items:center;width:34px!important;height:34px!important;
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;border-radius:50%!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:13px!important;
+}
+#modal #modalContent .v45726-follow-row b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-follow-row small{display:block!important;margin-top:3px!important;font-size:8px!important;color:var(--pl-ink-4,#9a9da2)!important}
+#modal #modalContent .v45726-follow-row em{display:block!important;margin-top:4px!important;font-style:normal;font-size:9px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-follow-row i{font-style:normal;color:#c3c6ca!important}
+#modal #modalContent .v45726-follow-empty{display:grid!important;gap:6px;justify-items:center;padding:34px 20px!important;text-align:center}
+#modal #modalContent .v45726-follow-empty span{font-size:26px!important;color:#d5d8db!important}
+#modal #modalContent .v45726-follow-empty b{font-size:11px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-follow-empty p{margin:0!important;font-size:9px!important;line-height:1.7;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-inline-gen:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  margin:12px 13px 0!important;padding:11px!important;
+  border:1px dashed var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-inline-gen b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-inline-gen small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-inline-gen>button:not(#pk-void-1):not(#pk-void-2){
+  padding:9px 12px!important;border:0!important;border-radius:10px!important;
+  background-color:#1c1e22!important;color:#ffffff!important;font-size:9px!important;
+}
+
+/* ---------- 主播卡上的转正式行 ---------- */
+#modal #modalContent .v45726-promote:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;
+  padding:10px 11px!important;border-top:1px solid var(--pl-line-2,#eceef0)!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-promote p{margin:0!important;font-size:9px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-promote p b{display:block!important;margin-bottom:2px!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-promote>button:not(#pk-void-1):not(#pk-void-2){
+  padding:8px 11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:9px!important;
+  background-color:var(--pl-bg,#ffffff)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:9px!important;
+}
+#modal #modalContent .v45726-promote>button.primary:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;background-color:#1c1e22!important;color:#ffffff!important;
+}
+
+/* ---------- 转正式草稿页 ---------- */
+#modal #modalContent .v45726-source:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;gap:3px;margin:0 0 12px!important;padding:10px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-left:2px solid var(--pl-ink,#141518)!important;
+  border-radius:0 11px 11px 0!important;background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-source b{font-size:9px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-source span{font-size:9px!important;line-height:1.6;color:var(--pl-ink-3,#6f7278)!important}
+
+/* ---------- 文游：本作人物、完结挑选 ---------- */
+#phone #screen .v45726-vn-gen:not(#pk-void-1),
+#modal #modalContent .v45726-vn-gen:not(#pk-void-1){display:grid!important;gap:8px;margin:2px 0 6px!important}
+#modal #modalContent .v45726-vn-gen>button:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:12px 11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;text-align:left!important;
+}
+#modal #modalContent .v45726-vn-gen>button>span:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;place-items:center;width:30px!important;height:30px!important;border-radius:9px!important;
+  background-color:var(--pl-panel-2,#eef0f1)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:13px!important;
+}
+#modal #modalContent .v45726-vn-gen b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-vn-gen small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-vn-gen i{font-style:normal;color:#c3c6ca!important}
+#modal #modalContent .v45726-roster-title{display:flex!important;justify-content:space-between;align-items:baseline;margin:13px 0 8px!important}
+#modal #modalContent .v45726-roster-title b{font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-roster-title small{font-size:8px!important;color:var(--pl-ink-4,#9a9da2)!important}
+#modal #modalContent .v45726-role:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;
+  margin-bottom:8px!important;padding:10px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-role.is-npc:not(#pk-void-1):not(#pk-void-2){
+  border-style:dashed!important;background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-role>span:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;place-items:center;width:34px!important;height:34px!important;
+  border:1.5px solid var(--pl-line,#e4e6e8)!important;border-radius:50%!important;
+  background-color:var(--pl-panel,#f6f7f8)!important;color:var(--pl-ink-2,#4a4d52)!important;font-size:13px!important;
+}
+#modal #modalContent .v45726-role b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-role small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-role>i:not(#pk-void-1):not(#pk-void-2){
+  font-style:normal;padding:3px 7px!important;border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:99px!important;background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink-3,#6f7278)!important;font-size:8px!important;white-space:nowrap;
+}
+#modal #modalContent .v45726-role>i.npc:not(#pk-void-1){border-style:dashed!important}
+#modal #modalContent .v45726-pick{display:grid!important;gap:7px;margin:4px 0 0!important}
+#modal #modalContent .v45726-pick>label:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:10px 11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-pick input{width:16px!important;height:16px!important;margin:0!important;accent-color:#1c1e22}
+#modal #modalContent .v45726-pick b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-pick small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-pick i:not(#pk-void-1):not(#pk-void-2){
+  font-style:normal;padding:3px 7px!important;border:1px solid var(--pl-line,#e4e6e8)!important;
+  border-radius:99px!important;background-color:var(--pl-bg,#ffffff)!important;
+  color:var(--pl-ink-3,#6f7278)!important;font-size:8px!important;white-space:nowrap;
+}
+#modal #modalContent .v45726-pick i.npc:not(#pk-void-1){border-style:dashed!important}
+#modal #modalContent .v45726-menu-row{display:grid!important;gap:7px;margin-top:10px!important}
+#modal #modalContent .v45726-menu-row>button:not(#pk-void-1):not(#pk-void-2){
+  padding:11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:11px!important;
+  background-color:var(--pl-bg,#ffffff)!important;color:var(--pl-ink,#141518)!important;
+  font-size:10px!important;text-align:left!important;
+}
+
+/* ---------- 清理：两栏 ---------- */
+#modal #modalContent .v45726-wipe-two:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:1fr 1fr;gap:8px;margin:2px 0 12px!important;
+}
+#modal #modalContent .v45726-wipe-two>button:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;gap:4px;padding:12px 11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;text-align:left!important;
+}
+#modal #modalContent .v45726-wipe-two>button.on:not(#pk-void-1):not(#pk-void-2){
+  border:2px solid var(--pl-ink,#141518)!important;padding:11px 10px!important;
+}
+#modal #modalContent .v45726-wipe-two b{font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-wipe-two small{font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-wipe-list{display:grid!important;gap:7px;margin-bottom:12px!important}
+#modal #modalContent .v45726-wipe-list>label:not(#pk-void-1):not(#pk-void-2){
+  display:grid!important;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:10px 11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:12px!important;
+  background-color:var(--pl-bg,#ffffff)!important;
+}
+#modal #modalContent .v45726-wipe-list input{width:16px!important;height:16px!important;margin:0!important;accent-color:#1c1e22}
+#modal #modalContent .v45726-wipe-list b{display:block!important;font-size:10px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-wipe-list small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.55;color:var(--pl-ink-3,#6f7278)!important}
+#modal #modalContent .v45726-wipe-list i{font-style:normal;font-size:9px!important;color:var(--pl-ink-4,#9a9da2)!important;white-space:nowrap}
+#modal #modalContent .v45726-wipe-why:not(#pk-void-1):not(#pk-void-2){
+  margin:0 0 4px!important;padding:11px!important;
+  border:1px solid var(--pl-line,#e4e6e8)!important;border-left:2px solid var(--pl-ink,#141518)!important;
+  border-radius:0 11px 11px 0!important;background-color:var(--pl-panel,#f6f7f8)!important;
+}
+#modal #modalContent .v45726-wipe-why b{display:block!important;margin-bottom:4px!important;font-size:9px!important;color:var(--pl-ink,#141518)!important}
+#modal #modalContent .v45726-wipe-why p{margin:0 0 5px!important;font-size:9px!important;line-height:1.7;color:var(--pl-ink-2,#4a4d52)!important}
+#modal #modalContent .v45726-wipe-why p:last-child{margin:0!important}
+#modal #modalContent .v45726-wipe .form-actions button.danger:not(#pk-void-1):not(#pk-void-2){
+  border-color:transparent!important;background-color:#8a4a45!important;color:#ffffff!important;
+}
+
+/* =========================================================
+   V45.7.27 · 文游（视觉小说）整套重做
+   —— 为什么上一版横竖屏一模一样、且整个舞台看起来没设计过：
+   ① 横屏样式全写在 .v4571-vn-scene / .v4571-vn-player 上，
+      但 v45.7.12 的 repaint 会把 root.innerHTML 整个换成 .v45712-vn-*，
+      那些元素运行时不存在 → 19 条规则 0 条命中。
+   ② 更根本的一条：v45.7.17-global-white.css 的兜底通配符
+      #phone #screen .view:not(#home) *  强制
+      background-color:transparent / background-image:none /
+      box-shadow:none / filter:none / backdrop-filter:none（全 !important），
+      深色舞台的底色、渐变、立绘投影、数值条、对话框底、选项框全被抹平，
+      所以这套版式从来没有以设计的样子出现过。
+   压过它需要 4 个 id：统一前缀 #screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2)
+   （:not(#不存在的 id) 不改匹配范围，只抬 id 计数）。
+   ========================================================= */
+
+/* ---------- 一 · 把舞台视觉救回来（竖屏与横屏共用的基底） ---------- */
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2){
+  position:relative!important;min-height:100%!important;background-color:#0a0b0d!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-shell{
+  background-color:#0a0b0d!important;color:#efece4!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-bg.is-blank{
+  background-image:linear-gradient(168deg,#1e2833 0%,#151b23 46%,#0c1015 100%)!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-air{
+  background-image:radial-gradient(circle at 68% 24%,rgba(158,188,216,.18),transparent 58%),
+    linear-gradient(180deg,rgba(8,9,11,.38),rgba(8,9,11,.04) 38%,rgba(8,9,11,.78))!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stats{
+  background-image:linear-gradient(180deg,rgba(6,6,8,.92),rgba(6,6,8,0))!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stat .top b{color:#ece9e1!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stat .top span{color:#b9b6ae!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stat .bar{
+  background-color:rgba(0,0,0,.55)!important;border:1px solid rgba(255,255,255,.16)!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stat .bar i{
+  background-color:#c8b487!important;background-image:linear-gradient(90deg,#b79f6f,#dcc79a)!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-menu button,
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-back{
+  background-color:rgba(10,11,13,.78)!important;border:1px solid rgba(255,255,255,.18)!important;
+  color:#eae7df!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-figure img{
+  filter:drop-shadow(0 10px 26px rgba(0,0,0,.55))!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-figure-body{
+  background-image:linear-gradient(172deg,rgba(228,224,214,.22),rgba(228,224,214,.05))!important;
+  border:1px solid rgba(255,255,255,.10)!important;border-bottom:0!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-figure-tag{
+  background-color:rgba(8,8,10,.8)!important;color:#d9d6ce!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-place{color:rgba(226,224,216,.6)!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-box{
+  background-color:rgba(9,10,12,.94)!important;
+  background-image:linear-gradient(180deg,rgba(9,10,12,.62),rgba(9,10,12,.97) 26%)!important;
+  border-top:1px solid rgba(201,180,135,.34)!important;color:#efece4!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-narr{color:#bcb9b1!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-speaker{
+  background-color:rgba(201,180,135,.16)!important;border:1px solid rgba(201,180,135,.44)!important;
+  color:#f2e9d4!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-lines p{color:#f0ede5!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-lines p.more{
+  border-top:1px solid rgba(255,255,255,.09)!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-lines em{color:#a29f97!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-aside{
+  background-color:rgba(150,170,214,.12)!important;border:1px solid rgba(150,170,214,.26)!important;
+  color:#c6cfe0!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-aside small{color:#93a0b6!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-next{color:#8a877f!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-choices button{
+  background-color:rgba(233,229,219,.09)!important;border:1px solid rgba(255,255,255,.17)!important;
+  color:#f0ede5!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-choices button:active{
+  background-color:rgba(233,229,219,.2)!important;border-color:rgba(201,180,135,.6)!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-custom input{
+  background-color:rgba(0,0,0,.5)!important;border:1px solid rgba(255,255,255,.15)!important;
+  color:#f0ede5!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-custom button{
+  background-color:#e7e3d8!important;color:#16171a!important;border:0!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-wait{
+  background-color:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12)!important;
+  color:#a8a59d!important;
+}
+/* 横竖屏切换按钮：竖屏右上角，避开右侧竖排菜单 */
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2)>.v45726-vn-orient{
+  position:absolute!important;top:11px!important;right:11px!important;z-index:9!important;
+  min-width:34px!important;height:26px!important;padding:0 9px!important;
+  border:1px solid rgba(201,180,135,.5)!important;border-radius:8px!important;
+  background-color:rgba(10,11,13,.8)!important;color:#f0e6cf!important;
+  font-size:10px!important;letter-spacing:.1em!important;
+}
+
+/* ---------- 二 · 竖屏：保留原骨架，只把分格与层次做实 ---------- */
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stage{
+  border-bottom:1px solid rgba(201,180,135,.28)!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-box>.v45712-vn-narr{
+  padding-bottom:9px!important;border-bottom:1px solid rgba(255,255,255,.07)!important;
+}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45712-vn-choices{
+  padding-top:10px!important;border-top:1px solid rgba(255,255,255,.08)!important;
+}
+
+/* ---------- 三 · 横屏：真 AVG 版式（与竖屏是两套完全不同的排布） ----------
+   容器由 JS 处理：
+   · 先试 screen.orientation.lock('landscape')，锁上了就是真横屏；
+   · 锁不上（普通浏览器标签页）就给 .v45712-vn-shell 加 data-rot="90"，
+     宽高互换后整体旋转 90°，用户把手机横过来看，内部依然是宽幅画面。
+   所以这一节不依赖媒体查询，只依赖 .v45726-vn-land。 */
+#screen #visualNovel.v45726-vn-land:not(#pk-void-1):not(#pk-void-2){
+  overflow:hidden!important;background-color:#000000!important;padding:0!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2){
+  overflow:hidden!important;background-color:#000000!important;
+}
+/* 旋转层：宽高由 JS 按视口互换后写在 style 上 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-shell[data-rot="90"]{
+  position:absolute!important;top:50%!important;left:50%!important;
+  transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center center!important;
+  min-height:0!important;
+}
+/* 横屏舞台：背景铺满整屏，对话框浮在画面上，不再占文档流 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-shell{
+  display:block!important;position:relative!important;overflow:hidden!important;
+  background-color:#000000!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stage{
+  position:absolute!important;inset:0!important;min-height:0!important;flex:none!important;
+  border-bottom:0!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-bg{
+  background-size:cover!important;background-position:center 34%!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-air{
+  background-image:linear-gradient(180deg,rgba(6,7,9,.5) 0%,rgba(6,7,9,.06) 26%,rgba(6,7,9,.2) 54%,rgba(6,7,9,.9) 100%)!important;
+}
+/* 立绘：站地、居右、按画面高度撑起来 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-figure{
+  right:7%!important;bottom:0!important;top:auto!important;
+  width:auto!important;max-width:44%!important;height:97%!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-figure img{
+  width:auto!important;height:100%!important;max-height:none!important;
+  object-fit:contain!important;object-position:bottom center!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-figure-body{
+  width:38vh!important;height:100%!important;border-radius:34% 34% 0 0!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-figure-tag{
+  left:auto!important;right:0!important;bottom:14px!important;font-size:9px!important;
+}
+/* 场景名：右上角框外名牌 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-place{
+  left:auto!important;right:14px!important;top:12px!important;bottom:auto!important;
+  max-width:38%!important;padding:4px 11px!important;border-radius:99px!important;
+  background-color:rgba(8,9,11,.62)!important;border:1px solid rgba(201,180,135,.34)!important;
+  color:#e6dcc2!important;font:italic 10px/1.5 Georgia,"Songti SC",serif!important;
+  text-align:right!important;
+}
+/* 数值条：从顶部整条改成左上角紧凑竖排 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stats{
+  top:12px!important;left:12px!important;right:auto!important;z-index:6!important;
+  display:flex!important;flex-direction:column!important;gap:5px!important;
+  width:min(30%,190px)!important;padding:9px 10px!important;border-radius:12px!important;
+  background-color:rgba(8,9,11,.6)!important;background-image:none!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stat{flex:none!important}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stat .top b{font-size:9px!important}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-stat .top span{font-size:8px!important}
+/* 返回：左上角，压在数值条上方 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-back{
+  top:auto!important;bottom:12px!important;left:12px!important;z-index:7!important;
+  width:30px!important;height:30px!important;border-radius:9px!important;
+}
+/* 功能键：从右侧竖排改成右下角横排一行（电脑端 AVG 的做法） */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-menu{
+  top:auto!important;bottom:12px!important;right:12px!important;z-index:7!important;
+  flex-direction:row!important;gap:6px!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-menu button{
+  width:30px!important;height:30px!important;border-radius:9px!important;font-size:12px!important;
+}
+/* 对话框：半透明浮在画面下方，不铺到底，左右留出画面 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-box{
+  position:absolute!important;left:52px!important;right:52px!important;bottom:52px!important;z-index:5!important;
+  max-height:52%!important;overflow:auto!important;
+  padding:15px 18px 14px!important;border-radius:14px!important;
+  background-color:rgba(9,10,12,.78)!important;background-image:none!important;
+  border:1px solid rgba(201,180,135,.3)!important;border-top:1px solid rgba(201,180,135,.3)!important;
+  -webkit-backdrop-filter:blur(7px) saturate(140%)!important;backdrop-filter:blur(7px) saturate(140%)!important;
+}
+/* 说话人名牌：浮在对话框上沿外侧 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-box .v45712-vn-speaker{
+  position:absolute!important;top:-13px!important;left:16px!important;margin:0!important;z-index:2!important;
+  padding:4px 13px!important;border-radius:99px!important;
+  background-color:#e9dcbc!important;border:0!important;color:#171818!important;
+  font-size:10px!important;font-weight:600!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-box>.v45712-vn-narr{
+  margin:0 0 10px!important;padding-bottom:0!important;border-bottom:0!important;
+  color:#c7c4bb!important;font:italic 11px/1.9 Georgia,"Songti SC",serif!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-lines{padding-top:4px!important}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-lines p{
+  font:12px/2 Georgia,"Songti SC",serif!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-next{
+  margin-top:8px!important;
+}
+/* 选项：浮在对话框上方居中，半透明横条 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-choices{
+  margin-top:11px!important;padding-top:11px!important;
+  border-top:1px solid rgba(201,180,135,.24)!important;
+  grid-template-columns:1fr 1fr!important;gap:7px!important;
+}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-choices button{
+  padding:10px 12px!important;border-radius:10px!important;
+  background-color:rgba(16,18,21,.72)!important;border:1px solid rgba(201,180,135,.34)!important;
+  color:#f1eadb!important;font:11px/1.5 Georgia,"Songti SC",serif!important;
+}
+/* 横屏不在旋转层里打字：藏掉输入框，露出「自己写」按钮 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-custom{display:none!important}
+#screen #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45726-vn-saybtn{display:none!important}
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45726-vn-saybtn{
+  display:block!important;width:100%!important;margin-top:8px!important;
+  padding:10px 12px!important;border-radius:10px!important;
+  background-color:rgba(233,220,188,.14)!important;border:1px dashed rgba(201,180,135,.5)!important;
+  color:#ecdfbf!important;font-size:11px!important;
+}
+/* 切换按钮在横屏放右上角，与场景名牌错开 */
+#screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2)>.v45726-vn-orient{
+  top:auto!important;bottom:12px!important;right:auto!important;left:50px!important;z-index:8!important;
+}
+/* 真横屏（设备转过来）时画面更宽，对话框收窄一点，选项排三列 */
+@media (orientation:landscape){
+  #screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-box{
+    left:9%!important;right:9%!important;bottom:56px!important;max-height:46%!important;
+  }
+  #screen #v4571VNRoot.v45726-vn-land:not(#pk-void-1):not(#pk-void-2) .v45712-vn-choices{
+    grid-template-columns:1fr 1fr 1fr!important;
+  }
+}
+/* 自己写浮层 */
+#modal #modalContent .v45726-vn-say textarea:not(#pk-void-1):not(#pk-void-2){
+  width:100%!important;min-height:104px!important;margin-top:9px!important;
+  padding:11px!important;border:1px solid var(--pl-line,#e4e6e8)!important;border-radius:11px!important;
+  background-color:var(--pl-inset,#f2f3f4)!important;color:var(--pl-ink,#141518)!important;
+  font-size:12px!important;line-height:1.7!important;
+}
+
+/* =========================================================
+   V45.7.27 · 人物设置页：一个「清空线上与线下」拆成两个并排按钮
+   原 grid 是 1fr auto auto（标题＋一个按钮＋删除），
+   现在有三个按钮，标题独占一行、按钮平分三列，才不会挤成两行错位。
+   ========================================================= */
+#screen #characterEditor .editor-danger-zone:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .view .editor-danger-zone:not(#pk-void-1):not(#pk-void-2){
+  grid-template-columns:1fr 1fr 1fr!important;gap:7px!important;
+}
+#screen #characterEditor .editor-danger-zone>b:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .view .editor-danger-zone>b:not(#pk-void-1):not(#pk-void-2){
+  grid-column:1/-1!important;margin-bottom:1px!important;
+}
+#screen #characterEditor .editor-danger-zone>button:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .view .editor-danger-zone>button:not(#pk-void-1):not(#pk-void-2){
+  min-width:0!important;padding:0 6px!important;white-space:nowrap!important;
+}
+
+/* =========================================================
+   V45.7.28 · 广场仅筛选原组件；文游场景图／文字图／杀青名单
+   ========================================================= */
+
+/* 广场三行有各自坐标：类型 0–43，原主播工具 43–82，关注/发现 82–122。 */
+#phone #screen .v452-square.v45728-square-filter-enabled>.v45726-seg:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-square.v45728-square-filter-enabled>.v45726-seg:not(#pk-void-1):not(#pk-void-2){
+  position:absolute!important;z-index:20!important;left:0!important;right:0!important;top:82px!important;height:40px!important;
+  display:flex!important;align-items:center!important;gap:5px!important;padding:6px 11px!important;
+  border-bottom:1px solid var(--pk-line-1,#eceef0)!important;background-color:var(--pk-background,#fff)!important;
+}
+#phone #screen .v452-square.v45728-square-filter-enabled>.v45726-seg>button:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-square.v45728-square-filter-enabled>.v45726-seg>button:not(#pk-void-1):not(#pk-void-2){
+  height:26px!important;padding:0 13px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:8px!important;
+  background-color:var(--pk-panel,#f6f7f8)!important;color:var(--pk-muted,#73777e)!important;font-size:8px!important;
+}
+#phone #screen .v452-square.v45728-square-filter-enabled>.v45726-seg>button.on:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-square.v45728-square-filter-enabled>.v45726-seg>button.on:not(#pk-void-1):not(#pk-void-2){
+  border-color:var(--pk-text,#17191c)!important;background-color:var(--pk-text,#17191c)!important;color:var(--pk-background,#fff)!important;
+}
+#phone #screen .v452-square.v45728-square-filter-enabled>.v45726-seg>small,
+#modal #modalContent .v452-square.v45728-square-filter-enabled>.v45726-seg>small{margin-left:auto!important;color:var(--pk-disabled-text,#a0a4aa)!important;font-size:7px!important}
+#phone #screen .v452-square.v45728-square-filter-enabled>.v452-square-view,
+#modal #modalContent .v452-square.v45728-square-filter-enabled>.v452-square-view{top:122px!important}
+#phone #screen .v452-square.v45728-square-filter-enabled>.v452-square-view.immersive,
+#modal #modalContent .v452-square.v45728-square-filter-enabled>.v452-square-view.immersive{top:122px!important;padding:0!important;overflow:hidden!important}
+#phone #screen .v45728-filter-hidden[hidden],#modal #modalContent .v45728-filter-hidden[hidden]{display:none!important}
+#phone #screen .v45728-square-filter-empty:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v45728-square-filter-empty:not(#pk-void-1):not(#pk-void-2){
+  min-height:220px!important;margin:12px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:14px!important;
+  background-color:var(--pk-background,#fff)!important;color:var(--pk-text,#17191c)!important;
+}
+
+/* 文游书库必须留在白底语义层；V45.7.27 的深色根节点只属于旧舞台，不能污染书库。 */
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2){background-color:transparent!important;color:var(--pk-text,#141518)!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-library{
+  background-color:var(--pk-background,#fff)!important;color:var(--pk-text,#141518)!important;
+}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-head{
+  min-height:58px!important;background-color:var(--pk-background,#fff)!important;color:var(--pk-text,#141518)!important;border-bottom:1px solid var(--pk-line-1,#eceef0)!important;
+}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-library>main{padding:15px 13px 30px!important;background-color:var(--pk-background,#fff)!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-hero{
+  padding:8px 1px 17px!important;border:0!important;border-bottom:1px solid var(--pk-line-1,#eceef0)!important;border-radius:0!important;
+  background-color:transparent!important;background-image:none!important;box-shadow:none!important;
+}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-hero small{color:var(--pk-muted,#73777e)!important;font-size:7px!important;letter-spacing:.14em!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-hero h1{margin:8px 0!important;color:var(--pk-text,#141518)!important;font:24px/1.3 Georgia,"Songti SC",serif!important;font-weight:400!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-hero p{max-width:340px!important;color:var(--pk-muted,#73777e)!important;font-size:9px!important;line-height:1.75!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-hero button{
+  margin-top:5px!important;padding:10px 13px!important;border-radius:10px!important;background-color:var(--pk-text,#17191c)!important;color:var(--pk-background,#fff)!important;
+}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-list{margin-top:15px!important;gap:9px!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v4571-vn-list>article{
+  min-height:104px!important;padding:9px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:14px!important;
+  background-color:var(--pk-background,#fff)!important;color:var(--pk-text,#141518)!important;box-shadow:0 3px 12px rgba(0,0,0,.045)!important;
+}
+
+/* 创建／参与方式 */
+#modal #modalContent:not(#pk-void-1):not(#pk-void-2) .v45728-vn-create{color:var(--pk-text,#141518)!important}
+#modal #modalContent:not(#pk-void-1):not(#pk-void-2) .v45728-create-note{
+  margin-bottom:12px!important;padding:10px 11px!important;border-left:2px solid var(--pk-text,#17191c)!important;
+  background-color:var(--pk-panel,#f6f7f8)!important;color:var(--pk-muted,#73777e)!important;
+}
+#modal #modalContent .v45728-create-note b,#modal #modalContent .v45728-create-note span{display:block!important}
+#modal #modalContent .v45728-create-note b{margin-bottom:3px!important;color:var(--pk-text,#141518)!important;font-size:10px!important}
+#modal #modalContent .v45728-create-note span{font-size:8px!important;line-height:1.6!important}
+#modal #modalContent:not(#pk-void-1):not(#pk-void-2) .v45728-create-section{
+  margin:12px 0!important;padding:11px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:13px!important;background-color:var(--pk-background,#fff)!important;
+}
+#modal #modalContent .v45728-create-section>header{display:flex!important;justify-content:space-between!important;align-items:baseline!important;margin-bottom:9px!important}
+#modal #modalContent .v45728-create-section>header b{font-size:10px!important}#modal #modalContent .v45728-create-section>header small{color:var(--pk-disabled-text,#a0a4aa)!important;font-size:7px!important}
+#modal #modalContent .v45728-vn-people{display:grid!important;gap:8px!important}
+#modal #modalContent:not(#pk-void-1):not(#pk-void-2) .v45728-vn-person-row{
+  padding:10px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:12px!important;background-color:var(--pk-background,#fff)!important;opacity:1!important;
+}
+#modal #modalContent .v45728-vn-person-row.is-off{opacity:.58!important}
+#modal #modalContent .v45728-vn-person-row>header{display:flex!important;justify-content:space-between!important;align-items:center!important;margin-bottom:8px!important}
+#modal #modalContent .v45728-vn-person-row>header label{display:grid!important;grid-template-columns:16px 30px 1fr!important;gap:8px!important;align-items:center!important}
+#modal #modalContent .v45728-vn-person-row>header input{width:15px!important;height:15px!important;margin:0!important}
+#modal #modalContent .v45728-vn-person-row>header label>span{display:grid!important;place-items:center!important;width:30px!important;height:30px!important;border-radius:50%!important;background-color:var(--pk-panel,#f6f7f8)!important;font-size:10px!important}
+#modal #modalContent .v45728-vn-person-row>header b{font-size:9px!important}#modal #modalContent .v45728-vn-person-row>header small{color:var(--pk-disabled-text,#a0a4aa)!important;font-size:7px!important}
+#modal #modalContent .v45728-vn-layer{min-height:43px!important;padding:7px 0!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;align-items:center!important;border-top:1px solid var(--pk-line-1,#eceef0)!important}
+#modal #modalContent .v45728-vn-layer>label{display:flex!important;align-items:center!important;gap:8px!important}#modal #modalContent .v45728-vn-layer input{width:15px!important;height:15px!important}
+#modal #modalContent .v45728-vn-layer span b,#modal #modalContent .v45728-vn-layer span small{display:block!important}#modal #modalContent .v45728-vn-layer b{font-size:8px!important}#modal #modalContent .v45728-vn-layer small{margin-top:2px!important;color:var(--pk-disabled-text,#a0a4aa)!important;font-size:7px!important;line-height:1.4!important}
+#modal #modalContent .v45728-vn-layer select{height:30px!important;padding:0 8px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:8px!important;background-color:var(--pk-panel,#f6f7f8)!important;font-size:7px!important}
+#modal #modalContent .v45728-borrow{display:none!important;margin-top:7px!important;padding:8px!important;border-radius:9px!important;background-color:var(--pk-panel,#f6f7f8)!important}.v45728-borrow.on{display:grid!important;gap:6px!important}
+#modal #modalContent .v45728-borrow input,#modal #modalContent .v45728-borrow textarea{width:100%!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:8px!important;background-color:var(--pk-background,#fff)!important;font-size:8px!important}.v45728-borrow input{height:32px!important;padding:0 9px!important}.v45728-borrow textarea{min-height:66px!important;padding:8px!important}
+#modal #modalContent:not(#pk-void-1):not(#pk-void-2) .v45728-create-toggle{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:10px!important;padding:9px 0!important;border-top:1px solid var(--pk-line-1,#eceef0)!important}
+#modal #modalContent .v45728-create-toggle:first-of-type{border-top:0!important}.v45728-create-toggle span b,.v45728-create-toggle span small{display:block!important}.v45728-create-toggle b{font-size:8px!important}.v45728-create-toggle small{margin-top:2px!important;color:var(--pk-disabled-text,#a0a4aa)!important;font-size:7px!important}.v45728-create-toggle input{width:17px!important;height:17px!important}
+#modal #modalContent .v45728-vn-no-people{padding:16px!important;border:1px dashed var(--pk-line-2,#dfe2e5)!important;border-radius:10px!important;color:var(--pk-muted,#73777e)!important;font-size:8px!important;text-align:center!important}
+
+/* 舞台本体：独立立绘彻底消失；背景与人物是一张完整场景图。 */
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-observer-marker{display:none!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2)>.v45726-vn-orient{display:none!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-vn-shell{
+  position:absolute!important;inset:0!important;overflow:hidden!important;background-color:#11171b!important;color:#f4f1e8!important;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif!important;
+}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-visual{position:absolute!important;z-index:1!important;inset:0!important;overflow:hidden!important;background-color:#26373e!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-visual>img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center 42%!important;filter:none!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-visual.text>img{object-position:center!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-visual-shade{position:absolute!important;inset:0!important;background-image:linear-gradient(180deg,rgba(6,9,11,.58),transparent 24%,transparent 52%,rgba(6,9,11,.82) 100%)!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-vignette{position:absolute!important;z-index:2!important;inset:0!important;background-image:linear-gradient(90deg,rgba(5,8,10,.15),transparent 42%,rgba(5,8,10,.08))!important;pointer-events:none!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-stage-head{position:absolute!important;z-index:20!important;left:9px!important;right:9px!important;top:9px!important;height:42px!important;display:grid!important;grid-template-columns:34px minmax(0,1fr) auto!important;gap:7px!important;align-items:center!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-stage-head>button,
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-stage-head nav>button{
+  width:32px!important;height:32px!important;padding:0!important;border:1px solid rgba(255,255,255,.23)!important;border-radius:9px!important;background-color:rgba(9,12,15,.48)!important;color:#fff!important;backdrop-filter:blur(8px)!important;
+}
+#phone #screen #visualNovel #v4571VNRoot .v45728-stage-head>div{min-width:0!important;text-align:center!important;text-shadow:0 1px 5px #000!important}.v45728-stage-head>div small,.v45728-stage-head>div b{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.v45728-stage-head>div small{color:rgba(255,255,255,.58)!important;font-size:6px!important;letter-spacing:.13em!important}.v45728-stage-head>div b{margin-top:2px!important;color:#f5f1e7!important;font:10px Georgia,"Songti SC",serif!important;font-weight:400!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-stage-head nav{display:flex!important;gap:4px!important}.v45728-stage-head nav>button:nth-child(3),.v45728-stage-head nav>button:nth-child(4){display:none!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-stats{position:absolute!important;z-index:12!important;left:10px!important;top:57px!important;display:flex!important;gap:6px!important;max-width:75%!important;overflow:hidden!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-stats>div{min-width:72px!important;padding:6px 7px!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:9px!important;background-color:rgba(9,12,15,.42)!important;backdrop-filter:blur(8px)!important}.v45728-stats header{display:flex!important;justify-content:space-between!important;gap:7px!important;color:rgba(255,255,255,.72)!important;font-size:6px!important}.v45728-stats i{display:block!important;height:2px!important;margin-top:4px!important;border-radius:2px!important;background-color:rgba(255,255,255,.17)!important;overflow:hidden!important}.v45728-stats em{display:block!important;height:100%!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-place{position:absolute!important;z-index:11!important;right:10px!important;top:58px!important;max-width:42%!important;padding:4px 8px!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:99px!important;background-color:rgba(9,12,15,.38)!important;color:rgba(255,255,255,.65)!important;font:italic 7px Georgia,"Songti SC",serif!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-source{position:absolute!important;z-index:13!important;right:10px!important;top:87px!important;display:flex!important;align-items:center!important;gap:3px!important;padding:3px 4px 3px 7px!important;border:1px solid rgba(255,255,255,.17)!important;border-radius:99px!important;background-color:rgba(9,12,15,.4)!important;color:rgba(255,255,255,.58)!important;font-size:6px!important;backdrop-filter:blur(8px)!important}.v45728-source span{max-width:150px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.v45728-source button{width:21px!important;height:21px!important;padding:0!important;border:0!important;border-radius:50%!important;background-color:rgba(255,255,255,.09)!important;color:#fff!important;font-size:9px!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-narration{position:absolute!important;z-index:10!important;left:12px!important;top:37%!important;width:min(76%,300px)!important;max-height:24%!important;overflow:auto!important;padding:10px 12px!important;border-left:2px solid rgba(235,220,186,.75)!important;background-image:linear-gradient(90deg,rgba(8,11,14,.7),rgba(8,11,14,.24) 80%,transparent)!important;color:#f1eee6!important;text-shadow:0 1px 5px rgba(0,0,0,.78)!important}.v45728-narration small{display:block!important;margin-bottom:4px!important;color:rgba(242,235,217,.55)!important;font-size:6px!important;letter-spacing:.13em!important}.v45728-narration p{margin:0!important;font:italic 9px/1.75 Georgia,"Songti SC",serif!important}.v45728-narration p+p{margin-top:5px!important;color:rgba(242,239,231,.78)!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-dialogue{position:absolute!important;z-index:18!important;left:9px!important;right:9px!important;bottom:9px!important;max-height:29%!important;overflow:auto!important;padding:18px 13px 10px!important;border:1px solid rgba(233,220,187,.3)!important;border-radius:14px!important;background-color:rgba(9,12,15,.84)!important;color:#f5f2e9!important;box-shadow:0 15px 34px rgba(0,0,0,.28)!important;backdrop-filter:blur(13px) saturate(130%)!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-speaker{position:absolute!important;left:14px!important;top:-12px!important;padding:4px 12px!important;border-radius:99px!important;background-color:#ece2c9!important;color:#1a1b1d!important;font:9px Georgia,"Songti SC",serif!important}.v45728-lines p{margin:0!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:7px!important;color:#f5f2e9!important;font:11px/1.75 Georgia,"Songti SC",serif!important}.v45728-lines p.more{margin-top:5px!important}.v45728-lines p b{color:#dfd1ae!important;font-size:8px!important}.v45728-dialogue-empty{color:rgba(255,255,255,.42)!important;font-size:8px!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-dialogue>footer{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:7px!important;align-items:center!important;margin-top:8px!important}.v45728-dialogue>footer>span{color:rgba(255,255,255,.38)!important;font-size:6px!important}.v45728-dialogue>footer>div{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:4px!important}.v45728-dialogue input{min-width:0!important;height:29px!important;padding:0 8px!important;border:1px solid rgba(255,255,255,.15)!important;border-radius:8px!important;background-color:rgba(255,255,255,.06)!important;color:#fff!important;font-size:7px!important}.v45728-dialogue footer button{height:29px!important;padding:0 9px!important;border:0!important;border-radius:8px!important;background-color:#ece2c9!important;color:#1b1c1e!important;font-size:7px!important}.v45728-dialogue footer>i{color:#dfd1ae!important;font-size:8px!important;font-style:normal!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-choices{position:absolute!important;z-index:16!important;left:13px!important;right:13px!important;bottom:calc(29% + 17px)!important;display:grid!important;gap:5px!important;max-height:26%!important;overflow:auto!important}.v45728-choices>button{min-height:34px!important;padding:8px 10px!important;border:1px solid rgba(255,255,255,.19)!important;border-radius:9px!important;background-color:rgba(10,13,16,.67)!important;color:#f3efe6!important;text-align:left!important;font:8px/1.45 Georgia,"Songti SC",serif!important;backdrop-filter:blur(9px)!important}.v45728-wait{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;padding:10px!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:9px!important;background-color:rgba(9,12,15,.65)!important;color:rgba(255,255,255,.7)!important;font-size:8px!important}.v45728-wait i{width:13px!important;height:13px!important;border:2px solid rgba(255,255,255,.25)!important;border-top-color:#fff!important;border-radius:50%!important;animation:v471spin .8s linear infinite!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-turn{position:absolute!important;z-index:19!important;left:10px!important;bottom:calc(29% + 20px)!important;display:flex!important;align-items:center!important;gap:2px!important;padding:3px!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:8px!important;background-color:rgba(9,12,15,.58)!important;backdrop-filter:blur(8px)!important;transform:translateY(100%)!important}.v45728-turn>span{padding:0 5px!important;color:rgba(255,255,255,.44)!important;font-size:6px!important}.v45728-turn button{height:22px!important;padding:0 7px!important;border:0!important;border-radius:6px!important;background-color:transparent!important;color:rgba(255,255,255,.58)!important;font-size:6px!important}.v45728-turn button.on{background-color:#ece2c9!important;color:#1b1c1e!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-ooc-trigger{position:absolute!important;z-index:20!important;right:10px!important;top:31%!important;height:28px!important;padding:0 8px!important;border:1px solid rgba(255,255,255,.21)!important;border-radius:99px!important;background-color:rgba(9,12,15,.5)!important;color:#f0ece3!important;font-size:6px!important;backdrop-filter:blur(8px)!important}.v45728-ooc-trigger i{display:inline-grid!important;place-items:center!important;width:14px!important;height:14px!important;margin-left:4px!important;border-radius:50%!important;background-color:#ece2c9!important;color:#1b1c1e!important;font-size:6px!important;font-style:normal!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-ooc-panel{display:none!important;position:absolute!important;z-index:30!important;right:9px!important;top:25%!important;width:min(78%,290px)!important;max-height:46%!important;overflow:auto!important;padding:10px!important;border:1px solid rgba(255,255,255,.23)!important;border-radius:12px!important;background-color:rgba(11,14,17,.93)!important;color:#f3efe6!important;box-shadow:0 18px 42px rgba(0,0,0,.3)!important;backdrop-filter:blur(14px)!important}.v45728-ooc-panel.open{display:block!important}.v45728-ooc-panel>header{display:flex!important;justify-content:space-between!important;align-items:center!important}.v45728-ooc-panel>header small,.v45728-ooc-panel>header b{display:block!important}.v45728-ooc-panel>header small{color:rgba(255,255,255,.48)!important;font-size:6px!important}.v45728-ooc-panel>header b{margin-top:2px!important;font-size:8px!important}.v45728-ooc-panel>header button{width:24px!important;height:24px!important;border:0!important;background-color:transparent!important;color:rgba(255,255,255,.58)!important}.v45728-ooc-panel article{display:grid!important;grid-template-columns:28px minmax(0,1fr)!important;gap:8px!important;padding:9px 0!important;border-top:1px solid rgba(255,255,255,.09)!important}.v45728-ooc-panel article>span{display:grid!important;place-items:center!important;width:28px!important;height:28px!important;border-radius:50%!important;background-color:#e9dfc6!important;color:#202225!important;font:9px Georgia,serif!important}.v45728-ooc-panel article b{font-size:8px!important}.v45728-ooc-panel article p{margin:4px 0 0!important;color:rgba(255,255,255,.82)!important;font:italic 8px/1.6 Georgia,"Songti SC",serif!important}.v45728-ooc-panel article small{display:block!important;margin-top:4px!important;color:#dfd1ae!important;font-size:6px!important}.v45728-ooc-panel>footer{padding-top:7px!important;border-top:1px solid rgba(255,255,255,.09)!important;color:rgba(255,255,255,.4)!important;font-size:6px!important;line-height:1.5!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-ending-banner{position:absolute!important;z-index:17!important;left:12px!important;right:12px!important;top:112px!important;padding:8px 10px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:2px 8px!important;border:1px solid rgba(235,220,186,.4)!important;border-radius:10px!important;background-color:rgba(10,13,16,.72)!important;color:#f3efe6!important;text-align:left!important;backdrop-filter:blur(9px)!important}.v45728-ending-banner small,.v45728-ending-banner b{display:block!important}.v45728-ending-banner small{color:rgba(255,255,255,.48)!important;font-size:6px!important}.v45728-ending-banner b{font-size:8px!important}.v45728-ending-banner span{grid-row:1/3!important;grid-column:2!important;align-self:center!important;color:#dfd1ae!important;font-size:7px!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-orient{position:absolute!important;z-index:20!important;right:10px!important;bottom:calc(29% + 21px)!important;height:25px!important;padding:0 8px!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:8px!important;background-color:rgba(9,12,15,.55)!important;color:rgba(255,255,255,.65)!important;font-size:6px!important}
+
+/* 真横屏布局：只在设备确实横过来后重新分配空间，不旋转竖屏壳。 */
+@media (orientation:landscape){
+  #phone #screen #visualNovel #v4571VNRoot .v45728-vn-shell.is-landscape .v45728-stage-head{left:13px!important;right:13px!important;top:8px!important;grid-template-columns:34px minmax(0,1fr) auto!important}.v45728-vn-shell.is-landscape .v45728-stage-head>div{text-align:left!important}.v45728-vn-shell.is-landscape .v45728-stage-head nav>button:nth-child(n){display:block!important}
+  #phone #screen #visualNovel #v4571VNRoot .v45728-vn-shell.is-landscape .v45728-stats{left:13px!important;top:56px!important;flex-direction:column!important}.v45728-vn-shell.is-landscape .v45728-stats>div{width:112px!important}
+  #phone #screen #visualNovel #v4571VNRoot .v45728-vn-shell.is-landscape .v45728-place{right:14px!important;top:57px!important}.v45728-vn-shell.is-landscape .v45728-source{right:14px!important;top:87px!important}
+  #phone #screen #visualNovel #v4571VNRoot .v45728-vn-shell.is-landscape .v45728-narration{left:20%!important;top:28%!important;width:35%!important;max-height:30%!important}
+  #phone #screen #visualNovel #v4571VNRoot .v45728-vn-shell.is-landscape .v45728-dialogue{left:15%!important;right:15%!important;bottom:11px!important;max-height:29%!important;padding:17px 17px 10px!important}
+  #phone #screen #visualNovel #v4571VNRoot .v45728-vn-shell.is-landscape .v45728-choices{left:auto!important;right:14px!important;top:119px!important;bottom:auto!important;width:29%!important;max-height:42%!important}
+  #phone #screen #visualNovel #v4571VNRoot .v45728-vn-shell.is-landscape .v45728-turn{left:15%!important;bottom:calc(29% + 22px)!important}.v45728-vn-shell.is-landscape .v45728-ooc-trigger{right:14px!important;top:47%!important}.v45728-vn-shell.is-landscape .v45728-ooc-panel{right:14px!important;top:22%!important;width:31%!important}.v45728-vn-shell.is-landscape .v45728-orient{right:14px!important;bottom:12px!important}
+}
+
+/* 文游设置、完结确认 */
+#modal #modalContent:not(#pk-void-1):not(#pk-void-2) .v45728-menu-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important;margin:10px 0!important}.v45728-menu-grid button{min-height:35px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:9px!important;background-color:var(--pk-background,#fff)!important;color:var(--pk-text,#141518)!important;font-size:8px!important}
+#modal #modalContent:not(#pk-void-1):not(#pk-void-2) .v45728-ending-confirm>small{color:var(--pk-disabled-text,#a0a4aa)!important;font-size:7px!important;letter-spacing:.12em!important}.v45728-ending-confirm h2{margin:7px 0!important}.v45728-ending-confirm>p{color:var(--pk-muted,#73777e)!important;font-size:9px!important;line-height:1.7!important}
+
+/* 杀青名单 */
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-wrap{height:100%!important;display:flex!important;flex-direction:column!important;background-color:var(--pk-background,#fff)!important;color:var(--pk-text,#141518)!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-wrap-head{min-height:58px!important;padding:7px!important;display:grid!important;grid-template-columns:42px minmax(0,1fr) 42px!important;align-items:center!important;border-bottom:1px solid var(--pk-line-1,#eceef0)!important;background-color:var(--pk-background,#fff)!important}.v45728-wrap-head>div{text-align:center!important}.v45728-wrap-head small,.v45728-wrap-head b{display:block!important}.v45728-wrap-head small{color:var(--pk-disabled-text,#a0a4aa)!important;font-size:6px!important;letter-spacing:.13em!important}.v45728-wrap-head b{font-size:12px!important}.v45728-wrap-head button{height:36px!important;border:0!important;background-color:transparent!important;color:var(--pk-text,#141518)!important;font-size:18px!important}
+#phone #screen #visualNovel #v4571VNRoot .v45728-wrap>main{flex:1!important;overflow:auto!important;padding:13px 12px 30px!important;background-color:var(--pk-background,#fff)!important}.v45728-wrap>main>h2,.v45728-wrap-title h2{margin:17px 1px 8px!important;font-size:10px!important}.v45728-wrap-title{display:flex!important;justify-content:space-between!important;align-items:baseline!important}.v45728-wrap-title small{color:var(--pk-disabled-text,#a0a4aa)!important;font-size:7px!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-wrap-hero{padding:14px!important;border-radius:14px!important;background-color:#17191c!important;color:#fff!important}.v45728-wrap-hero>small{color:rgba(255,255,255,.54)!important;font-size:7px!important;letter-spacing:.12em!important}.v45728-wrap-hero h1{margin:7px 0!important;color:#fff!important;font:20px/1.3 Georgia,"Songti SC",serif!important;font-weight:400!important}.v45728-wrap-hero p{margin:0!important;color:rgba(255,255,255,.68)!important;font-size:8px!important;line-height:1.65!important}.v45728-wrap-hero>div{display:flex!important;gap:5px!important;margin-top:9px!important}.v45728-wrap-hero span{padding:4px 6px!important;border:1px solid rgba(255,255,255,.15)!important;border-radius:7px!important;color:rgba(255,255,255,.7)!important;font-size:6px!important}
+.v45728-existing-list{display:grid!important;gap:7px!important}.v45728-existing-cast{padding:10px!important;display:grid!important;grid-template-columns:32px minmax(0,1fr)!important;gap:9px!important;border:1px solid var(--pk-line-1,#eceef0)!important;border-radius:11px!important;background-color:var(--pk-background,#fff)!important}.v45728-existing-cast>span{display:grid!important;place-items:center!important;width:32px!important;height:32px!important;border-radius:50%!important;background-color:var(--pk-panel,#f6f7f8)!important;font:10px Georgia,serif!important}.v45728-existing-cast b{font-size:9px!important}.v45728-existing-cast div>div{display:flex!important;gap:4px!important;flex-wrap:wrap!important;margin-top:3px!important}.v45728-existing-cast i{padding:2px 5px!important;border-radius:99px!important;background-color:var(--pk-panel,#f6f7f8)!important;color:var(--pk-muted,#73777e)!important;font-size:6px!important;font-style:normal!important}.v45728-existing-cast p{margin:5px 0 0!important;color:var(--pk-muted,#73777e)!important;font-size:7px!important;line-height:1.5!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-cast-card{margin-bottom:8px!important;padding:10px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:12px!important;background-color:var(--pk-background,#fff)!important;color:var(--pk-text,#141518)!important}.v45728-cast-card>header{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto!important;gap:9px!important;align-items:center!important}.v45728-cast-card>header>span{display:grid!important;place-items:center!important;width:34px!important;height:34px!important;border-radius:10px!important;background-color:var(--pk-panel,#f6f7f8)!important;font:10px Georgia,serif!important}.v45728-cast-card header b,.v45728-cast-card header small{display:block!important}.v45728-cast-card header b{font-size:9px!important}.v45728-cast-card header small{margin-top:2px!important;color:var(--pk-disabled-text,#a0a4aa)!important;font-size:6px!important}.v45728-cast-card header>i{padding:3px 6px!important;border-radius:7px!important;background-color:var(--pk-panel,#f6f7f8)!important;color:var(--pk-muted,#73777e)!important;font-size:6px!important;font-style:normal!important}.v45728-cast-evidence{margin:8px 0!important;padding:8px!important;border-radius:9px!important;background-color:var(--pk-panel,#f6f7f8)!important;color:var(--pk-muted,#73777e)!important;font-size:7px!important;line-height:1.55!important}.v45728-complete{width:100%!important;height:34px!important;border:0!important;border-radius:9px!important;background-color:var(--pk-text,#17191c)!important;color:var(--pk-background,#fff)!important;font-size:8px!important}.v45728-cast-profile{padding:9px!important;border-left:2px solid var(--pk-text,#17191c)!important;background-color:var(--pk-panel,#f6f7f8)!important}.v45728-cast-profile b{font-size:8px!important}.v45728-cast-profile p{margin:4px 0 0!important;color:var(--pk-muted,#73777e)!important;font-size:7px!important;line-height:1.55!important}.v45728-cast-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;margin-top:8px!important}.v45728-cast-actions button{height:32px!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:9px!important;background-color:var(--pk-background,#fff)!important;color:var(--pk-text,#141518)!important;font-size:8px!important}.v45728-cast-actions button.primary{border-color:var(--pk-text,#17191c)!important;background-color:var(--pk-text,#17191c)!important;color:var(--pk-background,#fff)!important}.v45728-wrap-empty{padding:20px!important;border:1px dashed var(--pk-line-2,#dfe2e5)!important;border-radius:11px!important;color:var(--pk-muted,#73777e)!important;text-align:center!important;font-size:8px!important}
+#phone #screen #visualNovel #v4571VNRoot:not(#pk-void-1):not(#pk-void-2) .v45728-canon{width:100%!important;padding:10px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:9px!important;align-items:center!important;border:1px solid var(--pk-line-2,#dfe2e5)!important;border-radius:11px!important;background-color:var(--pk-background,#fff)!important;text-align:left!important}.v45728-canon b,.v45728-canon small{display:block!important}.v45728-canon b{font-size:9px!important}.v45728-canon small{margin-top:3px!important;color:var(--pk-muted,#73777e)!important;font-size:7px!important;line-height:1.5!important}.v45728-canon i{color:var(--pk-muted,#73777e)!important;font-size:7px!important;font-style:normal!important}
+#modal #modalContent .v45728-cast-editor textarea{min-height:72px!important}.v45728-canon-preview article{margin:7px 0!important;padding:9px!important;border:1px solid var(--pk-line-1,#eceef0)!important;border-radius:9px!important;background-color:var(--pk-panel,#f6f7f8)!important}.v45728-canon-preview article b{font-size:9px!important}.v45728-canon-preview article p{margin:4px 0 0!important;color:var(--pk-muted,#73777e)!important;font-size:7px!important;line-height:1.5!important}
+
+@media(max-width:360px){
+  #modal #modalContent .v45728-vn-layer{grid-template-columns:1fr!important}.v45728-vn-layer select{width:100%!important}
+  #phone #screen #visualNovel #v4571VNRoot .v45728-stage-head nav>button{width:28px!important}.v45728-stage-head nav{gap:3px!important}.v45728-narration{top:35%!important}.v45728-dialogue{max-height:31%!important}.v45728-choices{bottom:calc(31% + 17px)!important}.v45728-turn{bottom:calc(31% + 20px)!important}.v45728-orient{bottom:calc(31% + 21px)!important}
+}
+
+/* =========================================================
+   V45.7.30 · 修复一：隐藏 input + span 的选择控件全部看不出选中
+   根因：v45.7.17-global-white.css 末段兜底
+   (#phone #screen .view:not(#home) *:not(...) 与 #modal #modalContent *:not(...))
+   对未列入排除名单的元素强制 background-color:transparent 与 box-shadow:none。
+   这些控件把选中状态完全画在 span 的底色或 box-shadow 上，于是点了没反应。
+   影响：番外参与人物、反查手机三级权限、删除语义、底部单选、
+        广场/更新勾选、线上线下参与者、开关轨道 —— 同一个根因。
+   压过方法：尾部补 :not(#pk-void-*) 只抬 id 计数，不改匹配范围。
+   ========================================================= */
+#phone #screen .v455-story-check>span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-story-check>span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v452-check-grid span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-check-grid span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v452-update-grid span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-update-grid span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v452-participant-list label>span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v452-participant-list label>b:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-participant-list label>span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-participant-list label>b:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-delete-semantics span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-delete-semantics span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-sheet-radio>span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-sheet-radio>span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-reverse-permission>span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-reverse-permission>span:not(#pk-void-1):not(#pk-void-2){
+  background-color:var(--pk-panel-2,#f6f7f8)!important;
+  color:var(--pk-text,#141518)!important;
+  box-shadow:inset 0 0 0 1px var(--pk-line-2,#e4e6e8)!important;
+}
+#phone #screen .v455-story-check input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-story-check input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v452-check-grid input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-check-grid input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v452-update-grid input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-update-grid input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v452-participant-list input:checked~span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v452-participant-list input:checked~b:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-participant-list input:checked~span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-participant-list input:checked~b:not(#pk-void-1):not(#pk-void-2){
+  background-color:var(--pk-accent,#1b1e22)!important;
+  color:var(--pk-accent-text,#ffffff)!important;
+  box-shadow:inset 0 0 0 1px var(--pk-accent,#1b1e22)!important;
+}
+#phone #screen .v455-story-check input:checked+span small:not(#pk-void-1),
+#modal #modalContent .v455-story-check input:checked+span small:not(#pk-void-1),
+#phone #screen .v452-participant-list input:checked~span small:not(#pk-void-1),
+#modal #modalContent .v452-participant-list input:checked~span small:not(#pk-void-1){
+  color:var(--pk-accent-text,#ffffff)!important;opacity:.72!important;
+}
+/* 只用 box-shadow 表示选中的三组：改成实心描边＋左侧标记，确保看得出 */
+#phone #screen .v455-delete-semantics input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-delete-semantics input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-sheet-radio input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-sheet-radio input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-reverse-permission input:checked+span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-reverse-permission input:checked+span:not(#pk-void-1):not(#pk-void-2){
+  background-color:var(--pk-panel,#ffffff)!important;
+  color:var(--pk-text,#141518)!important;
+  box-shadow:inset 0 0 0 2px var(--pk-accent,#1b1e22)!important;
+}
+/* 键盘可达性：隐藏的 input 获得焦点时外层要有可见焦点环 */
+#phone #screen .v455-story-check input:focus-visible+span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-story-check input:focus-visible+span:not(#pk-void-1):not(#pk-void-2),
+#phone #screen .v455-reverse-permission input:focus-visible+span:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v455-reverse-permission input:focus-visible+span:not(#pk-void-1):not(#pk-void-2){
+  outline:2px solid var(--pk-line-3,#9a9da2)!important;outline-offset:2px!important;
+}
+/* 开关轨道：兜底把 background 抹掉后只剩滑块位移，看不出开关状态 */
+#phone #screen .v452-switch i:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-switch i:not(#pk-void-1):not(#pk-void-2){
+  background-color:var(--pk-line-2,#d8dbde)!important;
+}
+#phone #screen .v452-switch input:checked+i:not(#pk-void-1):not(#pk-void-2),
+#modal #modalContent .v452-switch input:checked+i:not(#pk-void-1):not(#pk-void-2){
+  background-color:var(--pk-accent,#1b1e22)!important;
+}
+#phone #screen .v452-switch i::before,
+#modal #modalContent .v452-switch i::before{
+  background-color:#ffffff!important;
+}
+
+/* =========================================================
+   V45.7.30 · 修复二：文游改白底，主流程取消选项按钮
+   ========================================================= */
+#phone #screen #visualNovel .v45712-vn-choices,
+#phone #screen #visualNovel .v4571-vn-choices,
+#modal #modalContent .v45712-vn-choices,
+#modal #modalContent .v4571-vn-choices{display:none!important}
+
+#phone #screen #visualNovel .v45712-vn-shell:not(#pk-void-1),
+#phone #screen #visualNovel .v45712-vn-stage:not(#pk-void-1),
+#phone #screen #visualNovel .v4571-vn-player:not(#pk-void-1){
+  background-color:var(--pk-background,#ffffff)!important;color:var(--pk-text,#141518)!important;
+}
+#phone #screen #visualNovel .v45712-vn-box:not(#pk-void-1){
+  background-color:rgba(255,255,255,.96)!important;
+  color:var(--pk-text,#141518)!important;
+  box-shadow:0 -1px 0 var(--pk-line-1,#eef0f2) inset!important;
+}
+#phone #screen #visualNovel .v45712-vn-narr:not(#pk-void-1),
+#phone #screen #visualNovel .v45712-vn-next:not(#pk-void-1),
+#phone #screen #visualNovel .v45712-vn-aside:not(#pk-void-1){
+  color:var(--pk-muted,#6f7278)!important;
+}
+#phone #screen #visualNovel .v45712-vn-menu button:not(#pk-void-1),
+#phone #screen #visualNovel .v45712-vn-back:not(#pk-void-1){
+  background-color:rgba(255,255,255,.9)!important;
+  color:var(--pk-text,#141518)!important;
+  box-shadow:inset 0 0 0 1px var(--pk-line-2,#e4e6e8)!important;
+}
+
+/* 三种输入类型 */
+#phone #screen #visualNovel .v45730-vn-input:not(#pk-void-1),
+#modal #modalContent .v45730-vn-input:not(#pk-void-1){
+  display:block!important;margin-top:10px!important;
+}
+#phone #screen #visualNovel .v45730-vn-types:not(#pk-void-1),
+#modal #modalContent .v45730-vn-types:not(#pk-void-1){
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;
+}
+#phone #screen #visualNovel .v45730-vn-types button:not(#pk-void-1),
+#modal #modalContent .v45730-vn-types button:not(#pk-void-1){
+  min-height:34px!important;padding:0 6px!important;border:1px solid var(--pk-line-2,#e4e6e8)!important;
+  border-radius:10px!important;background-color:var(--pk-panel-2,#f6f7f8)!important;
+  color:var(--pk-muted,#6f7278)!important;font-size:11px!important;
+}
+#phone #screen #visualNovel .v45730-vn-types button.on:not(#pk-void-1),
+#modal #modalContent .v45730-vn-types button.on:not(#pk-void-1){
+  background-color:var(--pk-accent,#1b1e22)!important;color:var(--pk-accent-text,#fff)!important;
+  border-color:var(--pk-accent,#1b1e22)!important;
+}
+#phone #screen #visualNovel .v45730-vn-line:not(#pk-void-1),
+#modal #modalContent .v45730-vn-line:not(#pk-void-1){
+  display:grid!important;grid-template-columns:minmax(0,1fr) 40px!important;gap:6px!important;margin-top:6px!important;
+}
+#phone #screen #visualNovel .v45730-vn-line textarea:not(#pk-void-1),
+#modal #modalContent .v45730-vn-line textarea:not(#pk-void-1){
+  min-width:0!important;padding:8px 10px!important;border:1px solid var(--pk-line-2,#e4e6e8)!important;
+  border-radius:10px!important;background-color:var(--pk-panel,#fff)!important;
+  color:var(--pk-text,#141518)!important;font:13px/1.5 inherit!important;resize:vertical!important;
+}
+#phone #screen #visualNovel .v45730-vn-line button:not(#pk-void-1),
+#modal #modalContent .v45730-vn-line button:not(#pk-void-1){
+  border:0!important;border-radius:10px!important;background-color:var(--pk-accent,#1b1e22)!important;
+  color:var(--pk-accent-text,#fff)!important;font-size:15px!important;
+}
+#phone #screen #visualNovel .v45730-vn-hint:not(#pk-void-1),
+#modal #modalContent .v45730-vn-hint:not(#pk-void-1){
+  display:block!important;margin-top:6px!important;color:var(--pk-muted,#9a9da2)!important;font-size:11px!important;
+}
+/* USER 本回合输入回显：对白进对话框、动作进正文；剧情方向不回显 */
+#phone #screen #visualNovel .v45730-vn-echo-say:not(#pk-void-1),
+#modal #modalContent .v45730-vn-echo-say:not(#pk-void-1){
+  display:block!important;margin:6px 0!important;padding:8px 10px!important;
+  border-radius:10px!important;background-color:var(--pk-panel-2,#f6f7f8)!important;
+  box-shadow:inset 0 0 0 1px var(--pk-line-2,#e4e6e8)!important;
+}
+#phone #screen #visualNovel .v45730-vn-echo-say small:not(#pk-void-1),
+#modal #modalContent .v45730-vn-echo-say small:not(#pk-void-1){
+  display:block!important;margin-bottom:3px!important;color:var(--pk-muted,#9a9da2)!important;font-size:11px!important;
+}
+#phone #screen #visualNovel .v45730-vn-echo-action:not(#pk-void-1),
+#modal #modalContent .v45730-vn-echo-action:not(#pk-void-1){
+  margin:6px 0!important;color:var(--pk-text,#141518)!important;font-style:italic!important;
+}
+
+/* V45.7.30 · 文游真实渲染层（v45728 舞台）：白底 + 无选项 + 三种输入类型 */
+#phone #screen #visualNovel .v45728-vn-shell:not(#pk-void-1),
+#phone #screen #visualNovel .v45728-dialogue:not(#pk-void-1){
+  background-color:var(--pk-background,#ffffff)!important;color:var(--pk-text,#141518)!important;
+}
+#phone #screen #visualNovel .v45728-vignette:not(#pk-void-1){display:none!important}
+#phone #screen #visualNovel .v45728-narration:not(#pk-void-1){
+  background-color:rgba(255,255,255,.9)!important;color:var(--pk-text,#141518)!important;
+  box-shadow:inset 0 0 0 1px var(--pk-line-2,#e4e6e8)!important;
+}
+#phone #screen #visualNovel .v45728-dialogue:not(#pk-void-1){
+  box-shadow:0 -1px 0 var(--pk-line-1,#eef0f2) inset!important;
+}
+#phone #screen #visualNovel .v45728-speaker:not(#pk-void-1),
+#phone #screen #visualNovel .v45728-place:not(#pk-void-1),
+#phone #screen #visualNovel .v45728-source:not(#pk-void-1){
+  background-color:var(--pk-panel-2,#f6f7f8)!important;color:var(--pk-muted,#6f7278)!important;
+}
+#phone #screen #visualNovel .v45728-stage-head:not(#pk-void-1){
+  background-color:rgba(255,255,255,.94)!important;color:var(--pk-text,#141518)!important;
+}
+#phone #screen #visualNovel .v45728-stage-head button:not(#pk-void-1),
+#phone #screen #visualNovel .v45728-orient:not(#pk-void-1){
+  background-color:var(--pk-panel,#fff)!important;color:var(--pk-text,#141518)!important;
+  box-shadow:inset 0 0 0 1px var(--pk-line-2,#e4e6e8)!important;
+}
+#phone #screen #visualNovel .v45728-choices:not(#pk-void-1):empty{display:none!important}
+
+#phone #screen #visualNovel .v45730-turn-types:not(#pk-void-1){
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;
+  width:100%!important;margin:0 0 6px!important;
+}
+#phone #screen #visualNovel .v45730-turn-types button:not(#pk-void-1){
+  min-height:30px!important;padding:0 4px!important;border:1px solid var(--pk-line-2,#e4e6e8)!important;
+  border-radius:9px!important;background-color:var(--pk-panel-2,#f6f7f8)!important;
+  color:var(--pk-muted,#6f7278)!important;font-size:11px!important;
+}
+#phone #screen #visualNovel .v45730-turn-types button.on:not(#pk-void-1){
+  background-color:var(--pk-accent,#1b1e22)!important;color:var(--pk-accent-text,#fff)!important;
+  border-color:var(--pk-accent,#1b1e22)!important;
+}
+#phone #screen #visualNovel .v45730-turn-say:not(#pk-void-1){
+  margin:4px 0!important;color:var(--pk-text,#141518)!important;
+}
+#phone #screen #visualNovel .v45730-turn-say b:not(#pk-void-1){
+  margin-right:6px!important;color:var(--pk-muted,#9a9da2)!important;font-weight:600!important;
+}
+#phone #screen #visualNovel .v45730-turn-action:not(#pk-void-1){
+  margin:4px 0!important;color:var(--pk-muted,#6f7278)!important;font-style:italic!important;
+}

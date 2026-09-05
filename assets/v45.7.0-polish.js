@@ -265,12 +265,7 @@
   window.v457StartCustomScene=function(){const name=document.getElementById('v457CustomSceneName')?.value.trim(),goal=document.getElementById('v457CustomSceneGoal')?.value.trim();if(!name)return toast('请填写场景');closeModal();v457StartLesson('custom',{name,goal:goal||'围绕当前情境自然练习表达'})};
   window.v457StartLesson=function(key,custom=null){const state=learningState(),teacher=learningTeacher(state);if(!teacher)return toast('请先在课堂设置里选择陪练');const scene=custom||SCENES[key];if(!scene)return;const session={id:ID('lesson'),teacherId:teacher.id,language:state.language,sceneKey:key,sceneName:scene.name,goal:scene.goal,contextMode:state.contextMode,messages:[],busy:false,createdAt:NOW(),updatedAt:NOW()};state.liveSessions[session.id]=session;state.activeSessionId=session.id;state.v457Tab='classroom';try{save()}catch{}renderLearning();void generateLessonReply(session,'')};
   window.v457RestartLesson=function(){const state=learningState(),session=activeLesson(state);if(!session)return;v457StartLesson(session.sceneKey,session.sceneKey==='custom'?{name:session.sceneName,goal:session.goal}:null)};
-  function parseJsonLoose(raw){
-    try{const parsed=window.v45732ReadJSON?.(raw,'object');if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))return parsed}catch{}
-    const text=S(raw).trim();
-    if(/^\s*[{[]/.test(text))return{};
-    return{reply:''};
-  }
+  function parseJsonLoose(raw){const text=S(raw).trim();try{return JSON.parse(text)}catch{}const match=text.match(/\{[\s\S]*\}/);if(match)try{return JSON.parse(match[0])}catch{}return{reply:text.replace(/<[^>]+>/g,'').trim()}}
   function lessonChatId(teacher,persona){try{return directChatId(teacher.id,persona.id)}catch{return currentChat}}
   function syncLessonMemory(session){if(session.contextMode!=='linked')return;const teacher=data.characters?.find(item=>item.id===session.teacherId),persona=learningPersona();if(!teacher||!persona)return;const chatId=lessonChatId(teacher,persona),summary=session.messages.slice(-12).map(entry=>`${entry.role==='learner'?persona.name:teacher.name}：${S(entry.text).slice(0,240)}`).join('\n');data.memories=L(data.memories);let memory=data.memories.find(item=>item.source==='language-partner'&&item.sourceSessionId===session.id);if(!memory){memory={id:ID('memory'),scope:'conversation',chatId,personaId:persona.id,characterId:teacher.id,source:'language-partner',sourceSessionId:session.id,title:`语伴课堂 · ${session.sceneName}`,createdAt:NOW()};data.memories.unshift(memory)}memory.text=`来源：语伴课堂（${languageName(session.language)} · ${session.sceneName}）。这是${teacher.name}本人和${persona.name}共同经历的学习互动，不是普通聊天里刚发生的话。\n${summary}`;memory.updatedAt=NOW()}
   async function generateLessonReply(session,learnerText){
