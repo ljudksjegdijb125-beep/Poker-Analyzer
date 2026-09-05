@@ -1,1 +1,117 @@
-#phone .view:not(#home)>.header,#chat>.chat-head,#modal:not(.phone-fullscreen) .sheet>.handle,#modal.phone-fullscreen [class*="phone-head"]{border-bottom-color:var(--pk-line-2)!important} #chat>.composer,#modal.phone-fullscreen [class*="thread-composer"]{border-top-color:var(--pk-line-2)!important} #phone .view:not(#home) .card,#phone .view:not(#home) .row.card,#phone .view:not(#home) .engine-card,#phone .view:not(#home) .data-panel,#phone .view:not(#home) .character-studio-hero,#modal .card,#modal .row.card,#modal .engine-card,#modal .data-panel,#modal [class*="-card"],#modal [class*="-panel"]{border:1px solid var(--pk-line-2)!important} #phone .view:not(#home) .setting,#phone .view:not(#home) .row:not(.card),#phone .view:not(#home) .meta-row,#phone .view:not(#home) .module,#modal .setting,#modal .module,#modal [class*="-row"]{border-bottom:1px solid var(--pk-line-1)!important} #phone .view:not(#home) input,#phone .view:not(#home) textarea,#phone .view:not(#home) select,#phone .view:not(#home) .v453-safe-editor,#phone .view:not(#home) .icon-btn,#phone .view:not(#home) .back,#modal input,#modal textarea,#modal select,#modal [contenteditable="true"],#modal [contenteditable="plaintext-only"],#modal button:not(.primary):not(.danger){border-color:var(--pk-line-2)!important} #phone .view:not(#home) input:focus,#phone .view:not(#home) textarea:focus,#phone .view:not(#home) select:focus,#phone .view:not(#home) [contenteditable]:focus,#phone .view:not(#home) .tab.active,#phone .view:not(#home) .selected,#phone .view:not(#home) [aria-selected="true"],#modal input:focus,#modal textarea:focus,#modal select:focus,#modal [contenteditable]:focus,#modal .tab.active,#modal .selected,#modal [aria-selected="true"]{border-color:var(--pk-line-3)!important} #phone hr,#modal hr,#phone [role="separator"],#modal [role="separator"]{border-color:var(--pk-line-1)!important;background:var(--pk-line-1)!important} #chat .bubble,#chat .voice-strip,#chat .image-pending,#modal [class*="thread-bubble"]{border-color:var(--pk-line-2)!important} #chat .msg-group.me .bubble,#chat .msg.me .bubble,#modal [class*="thread-msg"][class*="out"] [class*="thread-bubble"]{border-color:var(--pk-bubble-mine)!important} #home .p12-tile,#home .p12-tile-mini,#home .home-app-icon,#home .dock-icon,#home .p12-dock,#home .p12-small-widget,#home .p12-editor-row,#modal.phone-fullscreen .vphone-icon>button,#modal.phone-fullscreen [class*="phone-avatar"]{border-color:var(--pk-line-2)!important}
+/*
+  POKEJI V45.7.21 · 全项目统一三级线条
+  只加强可读性，不改变任何页面布局、尺寸或交互。
+
+  三级语义（全项目共用，不再各页面各写一套 rgba）：
+    --pk-line-1  弱分隔线      列表行、内容之间的轻分隔
+    --pk-line-2  标准边框线    卡片、输入框、图标外容器、弹层边界
+    --pk-line-3  选中/聚焦线   只用于当前选中项与焦点状态
+  三个变量都从色卡的 --pk-line 派生，换主题时一起跟着走。
+*/
+
+/* ---------- ② 标准边框线：页面结构 ---------- */
+#phone .view:not(#home)>.header,
+#chat>.chat-head,
+#modal:not(.phone-fullscreen) .sheet> .handle,
+#modal.phone-fullscreen [class*="phone-head"]{
+  border-bottom-color:var(--pk-line-2)!important;
+}
+#chat>.composer,
+#modal.phone-fullscreen [class*="thread-composer"]{
+  border-top-color:var(--pk-line-2)!important;
+}
+
+/* ---------- ② 标准边框线：容器 ---------- */
+#phone .view:not(#home) .card,
+#phone .view:not(#home) .row.card,
+#phone .view:not(#home) .engine-card,
+#phone .view:not(#home) .data-panel,
+#phone .view:not(#home) .character-studio-hero,
+#modal .card,
+#modal .row.card,
+#modal .engine-card,
+#modal .data-panel,
+#modal [class*="-card"],
+#modal [class*="-panel"]{
+  border:1px solid var(--pk-line-2)!important;
+}
+
+/* ---------- ① 弱分隔线：行不做厚重卡片化 ---------- */
+#phone .view:not(#home) .setting,
+#phone .view:not(#home) .row:not(.card),
+#phone .view:not(#home) .meta-row,
+#phone .view:not(#home) .module,
+#modal .setting,
+#modal .module,
+#modal [class*="-row"]{
+  border-bottom:1px solid var(--pk-line-1)!important;
+}
+
+/* ---------- ② 标准边框线：交互控件 ---------- */
+#phone .view:not(#home) input,
+#phone .view:not(#home) textarea,
+#phone .view:not(#home) select,
+#phone .view:not(#home) .v453-safe-editor,
+#phone .view:not(#home) .icon-btn,
+#phone .view:not(#home) .back,
+#modal input,
+#modal textarea,
+#modal select,
+#modal [contenteditable="true"],
+#modal [contenteditable="plaintext-only"],
+#modal button:not(.primary):not(.danger){
+  border-color:var(--pk-line-2)!important;
+}
+
+/* ---------- ③ 选中 / 聚焦强调线 ---------- */
+#phone .view:not(#home) input:focus,
+#phone .view:not(#home) textarea:focus,
+#phone .view:not(#home) select:focus,
+#phone .view:not(#home) [contenteditable]:focus,
+#phone .view:not(#home) .tab.active,
+#phone .view:not(#home) .selected,
+#phone .view:not(#home) [aria-selected="true"],
+#modal input:focus,
+#modal textarea:focus,
+#modal select:focus,
+#modal [contenteditable]:focus,
+#modal .tab.active,
+#modal .selected,
+#modal [aria-selected="true"]{
+  border-color:var(--pk-line-3)!important;
+}
+
+/* ---------- ① 弱分隔线：分隔符不再被旧主题变量染色 ---------- */
+#phone hr,
+#modal hr,
+#phone [role="separator"],
+#modal [role="separator"]{
+  border-color:var(--pk-line-1)!important;
+  background:var(--pk-line-1)!important;
+}
+
+/* ---------- ② 标准边框线：内容气泡 ---------- */
+#chat .bubble,
+#chat .voice-strip,
+#chat .image-pending,
+#modal [class*="thread-bubble"]{
+  border-color:var(--pk-line-2)!important;
+}
+#chat .msg-group.me .bubble,
+#chat .msg.me .bubble,
+#modal [class*="thread-msg"][class*="out"] [class*="thread-bubble"]{
+  border-color:var(--pk-bubble-mine)!important;
+}
+
+/* ---------- ② 标准边框线：桌面与手机图标外围 ---------- */
+#home .p12-tile,
+#home .p12-tile-mini,
+#home .home-app-icon,
+#home .dock-icon,
+#home .p12-dock,
+#home .p12-small-widget,
+#home .p12-editor-row,
+#modal.phone-fullscreen .vphone-icon>button,
+#modal.phone-fullscreen [class*="phone-avatar"]{
+  border-color:var(--pk-line-2)!important;
+}

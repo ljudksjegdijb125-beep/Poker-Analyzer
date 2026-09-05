@@ -1,1 +1,209 @@
-.view:not(#home){--pl-bg:#ffffff;--pl-panel:#f6f7f8;--pl-panel-2:#eef0f1;--pl-line:#e4e6e8;--pl-line-2:#eceef0;--pl-ink:#141518;--pl-ink-2:#4a4d52;--pl-ink-3:#6f7278;--pl-ink-4:#9a9da2} .view:not(#home){background:var(--pl-bg)!important} .view:not(#home):before,.view:not(#home):after{background:none!important;animation:none!important;content:none} .view:not(#home) .header{background:var(--pl-bg)!important;border:0;border-bottom:1px solid var(--pl-line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none} .view:not(#home) .header h1{color:var(--pl-ink);font-weight:600;letter-spacing:0} .view:not(#home) .icon-btn{border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink-2);background:var(--pl-bg);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none} .view:not(#home) .row.card,.view:not(#home) .card,.view:not(#home) .section,.view:not(#home) .character-studio-hero{border:1px solid var(--pl-line);border-radius:12px;background:var(--pl-panel)!important;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none} .view:not(#home) .row.card:before,.view:not(#home) .card:before,.view:not(#home) .section:before,.view:not(#home) .character-studio-hero:before{content:none;background:none} .view:not(#home) b,.view:not(#home) strong,.view:not(#home) .row.card b,.view:not(#home) .card b,.view:not(#home) .section b,.view:not(#home) .setting b{color:var(--pl-ink)} .view:not(#home) p,.view:not(#home) span,.view:not(#home) div,.view:not(#home) label,.view:not(#home) li{color:var(--pl-ink-2)} .view:not(#home) .muted{color:var(--pl-ink-3)} .view:not(#home) small,.view:not(#home) time,.view:not(#home) em,.view:not(#home) .setting small,.view:not(#home) .section-title{color:var(--pl-ink-4)} .view:not(#home) h1,.view:not(#home) h2,.view:not(#home) h3{color:var(--pl-ink)} .view:not(#home) .empty{color:var(--pl-ink-4)} .view:not(#home) .empty .big{color:var(--pl-line)} .view:not(#home) .character-studio-hero small{color:var(--pl-ink-4);letter-spacing:1.4px} .view:not(#home) .character-studio-hero h2{color:var(--pl-ink);font-weight:600} .view:not(#home) .character-studio-hero p{color:var(--pl-ink-2)} .view:not(#home) .character-studio-stats span{border:1px solid var(--pl-line);color:var(--pl-ink-2);background:var(--pl-bg);box-shadow:none} .view:not(#home) .character-studio-actions button{border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink-2);background:var(--pl-bg);box-shadow:none} .view:not(#home) .character-studio-actions button.primary,.view:not(#home) .send,.view:not(#home) button.primary{border:0;color:#ffffff;background:#1c1e22;box-shadow:none} .view:not(#home) .avatar{border:1px solid var(--pl-line);box-shadow:none} .view:not(#home) .avatar-fallback{color:var(--pl-ink-2)} .view:not(#home) .search,.view:not(#home) .v453-safe-editor,.view:not(#home) .setting select,.view:not(#home) .setting input[type=text],.view:not(#home) .setting input[type=number],.view:not(#home) input,.view:not(#home) textarea,.view:not(#home) select{border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink);background:var(--pl-bg);box-shadow:none} .view:not(#home) .search::placeholder,.view:not(#home) input::placeholder,.view:not(#home) textarea::placeholder,.view:not(#home) .v453-safe-editor:empty:before{color:var(--pl-ink-4)} .view:not(#home) .setting{border:0;border-bottom:1px solid var(--pl-line-2);box-shadow:none} #chat .chat-head{background:var(--pl-bg)!important;border:0;border-bottom:1px solid var(--pl-line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none} #chat .chat-name{color:var(--pl-ink);font-weight:600} #chat .chat-sub,#chat .chat-status-line{color:var(--pl-ink-4)} #chat .back{border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink-2);background:var(--pl-bg);box-shadow:none} #chat .bubble{border:1px solid var(--pl-line);color:var(--pl-ink)!important;background:var(--pl-panel)!important;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none} #chat .bubble:before{content:none;background:none} #chat .msg-group.me .bubble{border:0;color:#ffffff!important;background:#1c1e22!important;box-shadow:none} #chat .msg-group.me .bubble:before{content:none;background:none} #chat .msg-speaker,#chat .msg-time,#chat .message-footer{color:var(--pl-ink-4)} #chat .narration-entry{border:0;background:none;box-shadow:none} #chat .narration-text{color:var(--pl-ink-3)} #chat .thought-entry{border:1px dashed var(--pl-line);border-radius:10px;background:var(--pl-bg);box-shadow:none} #chat .thought-entry span{color:var(--pl-ink-4)} #chat .thought-entry p{color:var(--pl-ink-2)} #chat .bubble-translation{border:0;border-top:1px solid var(--pl-line-2);color:var(--pl-ink-3);background:none;box-shadow:none} #chat .composer{background:var(--pl-bg)!important;border:0;border-top:1px solid var(--pl-line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none} #chat .composer-tool{border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink-2);background:var(--pl-bg);box-shadow:none} #modal:not(.phone-fullscreen) #modalContent{background:#fff;color:#141518} #modal:not(.phone-fullscreen) #modalContent h2{color:#141518} #modal:not(.phone-fullscreen) #modalContent .note{background:#f6f7f8;color:#4a4d52;box-shadow:none;border:1px solid #e4e6e8} #modal:not(.phone-fullscreen) #modalContent .field label{color:#6f7278} #modal:not(.phone-fullscreen) #modalContent input,#modal:not(.phone-fullscreen) #modalContent textarea,#modal:not(.phone-fullscreen) #modalContent select{border:1px solid #e4e6e8;color:#141518;background:#fff;box-shadow:none} #modal:not(.phone-fullscreen) #modalContent .form-actions button{border:1px solid #e4e6e8;color:#4a4d52;background:#fff;box-shadow:none} #modal:not(.phone-fullscreen) #modalContent .form-actions button.primary{border:0;color:#fff;background:#1c1e22} #modal:not(.phone-fullscreen) #modalContent .form-actions button.danger{border:1px solid #e4e6e8;color:#a03a32;background:#fff} .view:not(#home) .header,.view:not(#home) .row.card,.view:not(#home) .card,.view:not(#home) .section,.view:not(#home) .character-studio-hero,.view:not(#home) .bubble,.view:not(#home) .chat-head,.view:not(#home) .composer,.view:not(#home) .search,.view:not(#home) .icon-btn,.view:not(#home) .avatar{-webkit-backdrop-filter:none;backdrop-filter:none;text-shadow:none} .view:not(#home) .row.card:hover,.view:not(#home) .card:hover{transform:none;box-shadow:none} html[data-pokeji-theme] body,html[data-pokeji-theme] #screen{background:#ffffff!important;color:#141518!important} html[data-pokeji-theme] .view:not(#home),html[data-pokeji-theme] .app-view:not(#home){background-color:#ffffff!important;color:#141518!important} html[data-pokeji-theme] .app-view:not(#home)>.scroll,html[data-pokeji-theme] #chat>.scroll{background:#ffffff!important} html[data-pokeji-theme] .app-view:not(#home)>.header,html[data-pokeji-theme] #chat .chat-head{background:#ffffff!important;color:#141518!important;border-color:#e4e6e8!important} html[data-pokeji-theme] .view:not(#home) .group,html[data-pokeji-theme] .view:not(#home) .section,html[data-pokeji-theme] .view:not(#home) .setting,html[data-pokeji-theme] .view:not(#home) .data-panel{color:#141518!important;border-color:#e4e6e8!important} html[data-pokeji-theme] .view:not(#home) .setting{background:#f6f7f8!important} html[data-pokeji-theme] #chat .msg-group .bubble{background:#f6f7f8!important;color:#141518!important} html[data-pokeji-theme] #chat .msg-group.me .bubble{background:#1c1e22!important;color:#ffffff!important} html[data-pokeji-theme] #chat .composer{background:#ffffff!important;border-color:#e4e6e8!important} html[data-pokeji-theme] .v455-story-view,html[data-pokeji-theme] .v455-story-page{background:#ffffff!important;color:#141518!important} html[data-pokeji-theme] .v455-story-head,html[data-pokeji-theme] .v455-manuscript-composer{background:#ffffff!important;color:#141518!important;border-color:#e4e6e8!important} html[data-pokeji-theme] .v4571-vn-view,html[data-pokeji-theme] .v45712-dream-view{background:#ffffff!important;color:#141518!important}
+/* =========================================================
+   POKEJI V45.7.13 · 其余页面统一白底黑字
+   作用范围：.view:not(#home) 以及弹层。桌面 #home 一律不碰。
+
+   原则
+   一 白底：#ffffff 页面底，面板用极浅灰区分，不用深色
+   二 黑字：正文近黑，次级信息用中性灰，不引入任何彩色
+   三 不加特效：没有毛玻璃、没有渐变、没有反光、没有动效
+     这些页面要的是干净可读，不是气氛
+   ========================================================= */
+
+.view:not(#home){
+ --pl-bg:#ffffff;
+ --pl-panel:#f6f7f8;
+ --pl-panel-2:#eef0f1;
+ --pl-line:#e4e6e8;
+ --pl-line-2:#eceef0;
+ --pl-ink:#141518;
+ --pl-ink-2:#4a4d52;
+ --pl-ink-3:#6f7278;
+ --pl-ink-4:#9a9da2;
+}
+
+/* ---------- 页面底：纯白，无渐变无纹理 ---------- */
+.view:not(#home){background:var(--pl-bg)!important}
+.view:not(#home):before,.view:not(#home):after{
+ background:none!important;animation:none!important;content:none}
+
+/* ---------- 头部 ---------- */
+.view:not(#home) .header{
+ background:var(--pl-bg)!important;border:0;border-bottom:1px solid var(--pl-line);
+ box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+.view:not(#home) .header h1{color:var(--pl-ink);font-weight:600;letter-spacing:0}
+.view:not(#home) .icon-btn{
+ border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink-2);
+ background:var(--pl-bg);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+
+/* ---------- 卡片与分组：浅灰面 + 细线，没有玻璃 ---------- */
+.view:not(#home) .row.card,
+.view:not(#home) .card,
+.view:not(#home) .section,
+.view:not(#home) .character-studio-hero{
+ border:1px solid var(--pl-line);border-radius:12px;
+ background:var(--pl-panel)!important;box-shadow:none;
+ -webkit-backdrop-filter:none;backdrop-filter:none}
+.view:not(#home) .row.card:before,
+.view:not(#home) .card:before,
+.view:not(#home) .section:before,
+.view:not(#home) .character-studio-hero:before{content:none;background:none}
+
+/* ---------- 文字：黑字四级，无彩色 ---------- */
+.view:not(#home) b,
+.view:not(#home) strong,
+.view:not(#home) .row.card b,
+.view:not(#home) .card b,
+.view:not(#home) .section b,
+.view:not(#home) .setting b{color:var(--pl-ink)}
+.view:not(#home) p,
+.view:not(#home) span,
+.view:not(#home) div,
+.view:not(#home) label,
+.view:not(#home) li{color:var(--pl-ink-2)}
+.view:not(#home) .muted{color:var(--pl-ink-3)}
+.view:not(#home) small,
+.view:not(#home) time,
+.view:not(#home) em,
+.view:not(#home) .setting small,
+.view:not(#home) .section-title{color:var(--pl-ink-4)}
+.view:not(#home) h1,.view:not(#home) h2,.view:not(#home) h3{color:var(--pl-ink)}
+.view:not(#home) .empty{color:var(--pl-ink-4)}
+.view:not(#home) .empty .big{color:var(--pl-line)}
+
+/* ---------- 人物页 hero ---------- */
+.view:not(#home) .character-studio-hero small{color:var(--pl-ink-4);letter-spacing:1.4px}
+.view:not(#home) .character-studio-hero h2{color:var(--pl-ink);font-weight:600}
+.view:not(#home) .character-studio-hero p{color:var(--pl-ink-2)}
+.view:not(#home) .character-studio-stats span{
+ border:1px solid var(--pl-line);color:var(--pl-ink-2);background:var(--pl-bg);box-shadow:none}
+.view:not(#home) .character-studio-actions button{
+ border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink-2);
+ background:var(--pl-bg);box-shadow:none}
+
+/* ---------- 主操作：黑底白字，不用彩色 ---------- */
+.view:not(#home) .character-studio-actions button.primary,
+.view:not(#home) .send,
+.view:not(#home) button.primary{
+ border:0;color:#ffffff;background:#1c1e22;box-shadow:none}
+
+/* ---------- 头像与输入 ---------- */
+.view:not(#home) .avatar{border:1px solid var(--pl-line);box-shadow:none}
+.view:not(#home) .avatar-fallback{color:var(--pl-ink-2)}
+.view:not(#home) .search,
+.view:not(#home) .v453-safe-editor,
+.view:not(#home) .setting select,
+.view:not(#home) .setting input[type=text],
+.view:not(#home) .setting input[type=number],
+.view:not(#home) input,
+.view:not(#home) textarea,
+.view:not(#home) select{
+ border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink);
+ background:var(--pl-bg);box-shadow:none}
+.view:not(#home) .search::placeholder,
+.view:not(#home) input::placeholder,
+.view:not(#home) textarea::placeholder,
+.view:not(#home) .v453-safe-editor:empty:before{color:var(--pl-ink-4)}
+.view:not(#home) .setting{border:0;border-bottom:1px solid var(--pl-line-2);box-shadow:none}
+
+/* ---------- 对话页 ---------- */
+#chat .chat-head{
+ background:var(--pl-bg)!important;border:0;border-bottom:1px solid var(--pl-line);
+ box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+#chat .chat-name{color:var(--pl-ink);font-weight:600}
+#chat .chat-sub,#chat .chat-status-line{color:var(--pl-ink-4)}
+#chat .back{border:1px solid var(--pl-line);border-radius:10px;color:var(--pl-ink-2);
+ background:var(--pl-bg);box-shadow:none}
+/* 对方气泡：浅灰面黑字 */
+#chat .bubble{
+ border:1px solid var(--pl-line);color:var(--pl-ink)!important;
+ background:var(--pl-panel)!important;box-shadow:none;
+ -webkit-backdrop-filter:none;backdrop-filter:none}
+#chat .bubble:before{content:none;background:none}
+/* 我方气泡：黑底白字 */
+#chat .msg-group.me .bubble{border:0;color:#ffffff!important;background:#1c1e22!important;box-shadow:none}
+#chat .msg-group.me .bubble:before{content:none;background:none}
+#chat .msg-speaker,#chat .msg-time,#chat .message-footer{color:var(--pl-ink-4)}
+#chat .narration-entry{border:0;background:none;box-shadow:none}
+#chat .narration-text{color:var(--pl-ink-3)}
+#chat .thought-entry{border:1px dashed var(--pl-line);border-radius:10px;
+ background:var(--pl-bg);box-shadow:none}
+#chat .thought-entry span{color:var(--pl-ink-4)}
+#chat .thought-entry p{color:var(--pl-ink-2)}
+#chat .bubble-translation{border:0;border-top:1px solid var(--pl-line-2);
+ color:var(--pl-ink-3);background:none;box-shadow:none}
+#chat .composer{
+ background:var(--pl-bg)!important;border:0;border-top:1px solid var(--pl-line);
+ box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+#chat .composer-tool{border:1px solid var(--pl-line);border-radius:10px;
+ color:var(--pl-ink-2);background:var(--pl-bg);box-shadow:none}
+
+/* ---------- 弹层：同样白底黑字 ----------
+   注意：虚拟手机也渲染进 #modalContent，但它带 .phone-fullscreen。
+   手机有自己成型的外观，这里必须排除，否则会被刷成白色而破相。 */
+#modal:not(.phone-fullscreen) #modalContent{background:#fff;color:#141518}
+#modal:not(.phone-fullscreen) #modalContent h2{color:#141518}
+#modal:not(.phone-fullscreen) #modalContent .note{
+ background:#f6f7f8;color:#4a4d52;box-shadow:none;border:1px solid #e4e6e8}
+#modal:not(.phone-fullscreen) #modalContent .field label{color:#6f7278}
+#modal:not(.phone-fullscreen) #modalContent input,
+#modal:not(.phone-fullscreen) #modalContent textarea,
+#modal:not(.phone-fullscreen) #modalContent select{
+ border:1px solid #e4e6e8;color:#141518;background:#fff;box-shadow:none}
+#modal:not(.phone-fullscreen) #modalContent .form-actions button{
+ border:1px solid #e4e6e8;color:#4a4d52;background:#fff;box-shadow:none}
+#modal:not(.phone-fullscreen) #modalContent .form-actions button.primary{
+ border:0;color:#fff;background:#1c1e22}
+#modal:not(.phone-fullscreen) #modalContent .form-actions button.danger{
+ border:1px solid #e4e6e8;color:#a03a32;background:#fff}
+
+/* ---------- 明确移除其他页面上的特效 ----------
+   只作用在这些页面自己的表面上，不用通配符，避免误伤内嵌组件。 */
+.view:not(#home) .header,
+.view:not(#home) .row.card,
+.view:not(#home) .card,
+.view:not(#home) .section,
+.view:not(#home) .character-studio-hero,
+.view:not(#home) .bubble,
+.view:not(#home) .chat-head,
+.view:not(#home) .composer,
+.view:not(#home) .search,
+.view:not(#home) .icon-btn,
+.view:not(#home) .avatar{
+ -webkit-backdrop-filter:none;backdrop-filter:none;text-shadow:none}
+.view:not(#home) .row.card:hover,
+.view:not(#home) .card:hover{transform:none;box-shadow:none}
+
+/* ---------- 压过 html[data-pokeji-theme] 那一层 ----------
+   那一层的每条规则都带 !important，所以这里也必须带，
+   否则内部页面会被强制回深色。#home 不在其中。 */
+html[data-pokeji-theme] body,
+html[data-pokeji-theme] #screen{background:#ffffff!important;color:#141518!important}
+html[data-pokeji-theme] .view:not(#home),
+html[data-pokeji-theme] .app-view:not(#home){
+ background-color:#ffffff!important;color:#141518!important}
+html[data-pokeji-theme] .app-view:not(#home)>.scroll,
+html[data-pokeji-theme] #chat>.scroll{background:#ffffff!important}
+html[data-pokeji-theme] .app-view:not(#home)>.header,
+html[data-pokeji-theme] #chat .chat-head{
+ background:#ffffff!important;color:#141518!important;border-color:#e4e6e8!important}
+html[data-pokeji-theme] .view:not(#home) .group,
+html[data-pokeji-theme] .view:not(#home) .section,
+html[data-pokeji-theme] .view:not(#home) .setting,
+html[data-pokeji-theme] .view:not(#home) .data-panel{
+ color:#141518!important;border-color:#e4e6e8!important}
+html[data-pokeji-theme] .view:not(#home) .setting{background:#f6f7f8!important}
+html[data-pokeji-theme] #chat .msg-group .bubble{
+ background:#f6f7f8!important;color:#141518!important}
+html[data-pokeji-theme] #chat .msg-group.me .bubble{
+ background:#1c1e22!important;color:#ffffff!important}
+html[data-pokeji-theme] #chat .composer{
+ background:#ffffff!important;border-color:#e4e6e8!important}
+/* 番外页也曾被强制深色 */
+html[data-pokeji-theme] .v455-story-view,
+html[data-pokeji-theme] .v455-story-page{background:#ffffff!important;color:#141518!important}
+html[data-pokeji-theme] .v455-story-head,
+html[data-pokeji-theme] .v455-manuscript-composer{
+ background:#ffffff!important;color:#141518!important;border-color:#e4e6e8!important}
+/* 文游与幻梦馆是独立视图，同样统一 */
+html[data-pokeji-theme] .v4571-vn-view,
+html[data-pokeji-theme] .v45712-dream-view{background:#ffffff!important;color:#141518!important}

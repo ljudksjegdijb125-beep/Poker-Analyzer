@@ -1,0 +1,26 @@
+/*
+  Compatibility stylesheet retained for deployments that still request this
+  historical filename. V45.7.17 deliberately has no glass, sheen, gradient or
+  gold layer; the authoritative neutral rules live in v45.7.17-global-white.css.
+*/
+#home .p12-home,
+#home .p12-dock,
+#home .p12-small-widget,
+#home .p12-editor,
+#home .p12-tile,
+#home .p12-island{
+  background:#ffffff!important;
+  background-image:none!important;
+  border-color:#dfe2e5!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+#home .home-app-icon,
+#home .home-app-icon svg,
+#home .dock-icon svg{
+  color:#1c2024!important;
+  stroke:#1c2024!important;
+  opacity:1!important;
+  filter:none!important;
+}
