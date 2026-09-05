@@ -4,7 +4,7 @@
    ========================================================= */
 const STORE='pokeji_api_only_v42';
 const LEGACY_STORES=['pokeji_api_only_v43','pokeji_api_only_v42','pokeji_api_only_v38','pokeji_api_only_v37','pokeji_api_only_v36','pokeji_api_only_v35','pokeji_api_only_v34','pokeji_api_only_v33','pokeji_api_only_v32','pokeji_api_only_v31','pokeji_api_only_v30','pokeji_api_only_v29','pokeji_api_only_v28','pokeji_api_only_v27','pokeji_api_only_v26','pokeji_api_only_v25','pokeji_api_only_v24','pokeji_api_only_v23','pokeji_api_only_v22','pokeji_api_only_v21','pokeji_api_only_v20','pokeji_api_only_v19','pokeji_api_only_v18','private_ai_space_v18','pokeji_api_only_v4','pokeji_api_only_v3'];
-const VERSION='45.7.30';
+const VERSION='45.7.32';
 let deferredInstallPrompt=null;
 let installRequestState='idle';
 let installWatchdog=null;
@@ -1201,7 +1201,7 @@ async function ensureBackgroundNotificationPermission(){
  try{return await Notification.requestPermission()==='granted'}catch{return false}
 }
 
-const V44_SW_URL='/sw-v44.js?build=45.7.30';
+const V44_SW_URL='/sw-v44.js?build=45.7.32';
 function isV44WorkerUrl(url){return /\/sw-v44\.js(?:$|[?#])/.test(String(url||''))}
 function isLegacyWorkerUrl(url){return /\/sw-v(?:38|42|43)\.js(?:$|[?#])/.test(String(url||''))}
 function registrationWorkerUrls(registration){return[registration?.installing?.scriptURL,registration?.waiting?.scriptURL,registration?.active?.scriptURL].filter(Boolean)}
@@ -2284,7 +2284,7 @@ async function v43FetchWorkerScript(){
  const response=await fetch('/sw-v44.js?build=45.7.9&probe='+Date.now(),{cache:'no-store',credentials:'same-origin'});const type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
  if(!/(?:javascript|ecmascript|text\/plain)/i.test(type))throw Error(`sw-v44.js 返回类型错误：${type||'未提供 Content-Type'}。通常是部署路径错误或返回了 HTML。`);
- if(!text.includes("pokeji-v45.7.30"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
+ if(!text.includes("pokeji-v45.7.32"))throw Error('线上 sw-v44.js 仍不是当前版本。请重新覆盖 sw-v44.js，并确认 Vercel 已部署最新 Git 提交。');
  try{new Function(text)}catch(error){throw Error(`线上 sw-v44.js 语法无效：${error.message}`)}return true;
 }
 async function checkForUpdates(){
@@ -2469,7 +2469,7 @@ function showChatPlusMenu(){if(!currentChat)return;const group=isGroupChatId(cur
 /* V44.1 forward-compatible Service Worker update check */
 function v435VersionParts(value){return String(value||'').split('.').map(part=>Number(part)||0)}
 function v435CompareVersions(left,right){const a=v435VersionParts(left),b=v435VersionParts(right),length=Math.max(a.length,b.length);for(let i=0;i<length;i++){const diff=(a[i]||0)-(b[i]||0);if(diff)return diff>0?1:-1}return 0}
-function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.30')}
+function v435ExpectedBuild(){return String(V44_SW_URL.match(/[?&]build=([^&#]+)/)?.[1]||'45.7.32')}
 async function v43FetchWorkerScript(){
  const expected=v435ExpectedBuild(),response=await fetch(`/sw-v44.js?build=${encodeURIComponent(expected)}&probe=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}),type=String(response.headers.get('content-type')||''),text=await response.text();
  if(!response.ok)throw Error(`线上缺少 sw-v44.js：HTTP ${response.status}`);
