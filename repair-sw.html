@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="pokeji-build" content="V45.7.32-20260905-CST">
+<meta name="pokeji-build" content="V45.7.33-20260905-CST">
 <title>扑克机 · V45 离线服务修复</title>
 <style>
 *{box-sizing:border-box}
@@ -19,18 +19,18 @@ p{margin:0;color:#41464c;font-size:12px;line-height:1.7}.status{margin-top:15px;
 </head>
 <body>
 <main class="box">
- <div class="mark">♠</div><h1>安全修复离线更新</h1><div class="buildstamp" data-build="V45.7.32-20260905-CST">V45.7.32 · 2026-09-05 北京时间</div>
+ <div class="mark">♠</div><h1>安全修复离线更新</h1><div class="buildstamp" data-build="V45.7.33-20260905-CST">V45.7.33 · 2026-09-05 北京时间</div>
  <p>只注销旧离线服务并删除扑克机 Cache Storage；不操作保存人物、聊天、设置和接口配置的本机资料。</p>
  <div id="status" class="status">等待开始。整个过程最多等待 6 秒；即使浏览器接口没有回应，也会自动结束等待。</div>
  <div class="actions">
   <button id="startRepair" class="primary" onclick="repair()">开始安全修复</button>
-  <a id="leaveRepair" href="/index.html?no-sw=1&amp;leave-repair=45.7.32">无离线服务打开</a>
-  <a href="/startup-repair.html?v=45.7.32">启动诊断</a>
+  <a id="leaveRepair" href="/index.html?no-sw=1&amp;leave-repair=45.7.33">无离线服务打开</a>
+  <a href="/startup-repair.html?v=45.7.33">启动诊断</a>
  </div>
  <small id="afterNote">修复完成后不会自动跳转。请完全关闭这个页面和已安装的扑克机，再从 Chrome 重新打开，避免旧离线服务继续控制本次跳转。</small>
 </main>
 <script>
-const BUILD='45.7.32';
+const BUILD='45.7.33';
 let running=false,finished=false,timeoutCount=0,errorCount=0,repairRun=0;
 function limited(task,ms,fallback){
  return new Promise(resolve=>{let settled=false;const timer=setTimeout(()=>{if(settled)return;settled=true;timeoutCount++;resolve(fallback)},ms);Promise.resolve(task).then(value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value)}).catch(()=>{if(settled)return;settled=true;clearTimeout(timer);errorCount++;resolve(fallback)})});
